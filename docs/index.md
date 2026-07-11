@@ -24,10 +24,10 @@ actually running.
 
 <p class="st-chips">
 <span>v1.0.0</span>
-<span>MIT</span>
+<span>LSAL v1.1 · source-available</span>
 <span>Python 3.12+</span>
 <span>~100 methods</span>
-<span>every method audited</span>
+<span>per-method audit verdicts</span>
 </p>
 
 </div>
