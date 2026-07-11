@@ -1,0 +1,47 @@
+cff-version: 1.2.0
+message: "If you use SafeTune in research, please cite the main paper below."
+title: "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs"
+abstract: >-
+  SafeTune is a library of LLM-safety methods, audited honestly
+  against their cited papers. It covers train-time (harden), weight-space
+  (recover, unlearn), and inference-time (steer) interventions, plus
+  diagnosis (interpret) and evaluation (evaluate). Every method is audited
+  against its cited paper and carries a faithfulness badge.
+authors:
+  - family-names: Seth
+    given-names: Pratinav
+    email: pratinav.seth@lexsi.ai
+  - family-names: Kaushal
+    given-names: Anshul
+    email: anshul.kaushal@lexsi.ai
+  - family-names: Sadhu
+    given-names: Saisab
+    email: saisab.sadhu@lexsi.ai
+  - family-names: Sankarapu
+    given-names: "Vinay Kumar"
+    email: v.k@lexsi.ai
+keywords:
+  - llm-safety
+  - fine-tuning
+  - alignment
+  - unlearning
+  - activation-steering
+  - interpretability
+license-url: "https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md"
+repository-code: "https://github.com/Lexsi-Labs/SafeTune"
+version: "1.0.0"
+date-released: "2026-06-29"
+preferred-citation:
+  type: unpublished
+  title: "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs"
+  authors:
+    - family-names: Seth
+      given-names: Pratinav
+    - family-names: Kaushal
+      given-names: Anshul
+    - family-names: Sadhu
+      given-names: Saisab
+    - family-names: Sankarapu
+      given-names: "Vinay Kumar"
+  year: 2026
+  notes: "Pratinav Seth, Anshul Kaushal, and Saisab Sadhu contributed equally (co-first authors)."

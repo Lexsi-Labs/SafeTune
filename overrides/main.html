@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+<!-- SEO + agent-search: clean titles, Open Graph / Twitter cards, JSON-LD.
+     Base Material only emits <meta name="description"> + canonical; the rest
+     is added here so the site is share-previewable and machine-readable. -->
+
+{% block htmltitle %}
+  {% if page and page.is_homepage %}
+    <title>SafeTune — A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs</title>
+  {% elif page and page.title %}
+    <title>{{ page.title | striptags }} · SafeTune</title>
+  {% else %}
+    <title>{{ config.site_name }}</title>
+  {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+  {% set page_desc = page.meta.description if page and page.meta and page.meta.description else config.site_description %}
+  {% set page_title = "SafeTune — A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs" if (page and page.is_homepage) else ((page.title ~ " · SafeTune") if (page and page.title) else config.site_name) %}
+  {% set page_url = page.canonical_url if page and page.canonical_url else config.site_url %}
+  {% set og_image = config.site_url ~ "assets/safetune-compass-logo.png" %}
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SafeTune">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_desc }}">
+  <meta property="og:url" content="{{ page_url }}">
+  <meta property="og:image" content="{{ og_image }}">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ page_desc }}">
+  <meta name="twitter:image" content="{{ og_image }}">
+
+  <!-- Structured data: this is an open-source software library -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "SafeTune",
+    "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
+    "description": "{{ config.site_description }}",
+    "url": "{{ config.site_url }}",
+    "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.12+",
+    "license": "https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md",
+    "author": [
+      {"@type": "Person", "name": "Pratinav Seth"},
+      {"@type": "Person", "name": "Anshul Kaushal"},
+      {"@type": "Person", "name": "Saisab Sadhu"},
+      {"@type": "Person", "name": "Vinay Kumar Sankarapu"}
+    ],
+    "keywords": "LLM safety, safety fine-tuning, safety drift, refusal, unlearning, activation steering, mechanistic interpretability, red-teaming, model evaluation, alignment"
+  }
+  </script>
+{% endblock %}

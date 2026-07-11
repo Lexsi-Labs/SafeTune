@@ -1,0 +1,123 @@
+Pillar,Method / Feature,Entry-point file,Runs?,Faithful?,Audit / fix status
+Recover (weight-space),apply_ctheta + _from_state_dicts + sweep_ctheta_strength,recover/ctheta.py,✅,✅,— (no fix; already faithful)
+Recover (weight-space),apply_prepost_merge,recover/merge.py,✅,✅,NEW — arXiv:2412.19512; zero-data safety recovery: θ = (1-α)θ_post + α·θ_pre
+Recover (weight-space),task_arithmetic,recover/merge.py,✅,✅,🟡→✅ — gold-standard re-check: arithmetic identical to upstream `TaskVector.apply_to` (`θ_ft + α·(θ_aligned − θ_base)`)
+Recover (weight-space),somf_merge,recover/merge.py,✅,🟠,"Yi et al. 2024 arXiv:2405.09055 — simplified/variant, not the paper's exact algorithm: the default uses a magnitude top-quantile mask, not the paper's learned DPO/Concrete mask (faithful only if you pass a mask from `learn_somf_mask`)"
+Recover (weight-space),apply_safemerge,recover/safemerge.py,✅,✅,🟡→✅ — `fix/safemerge.md`
+Recover (weight-space),apply_resta,recover/resta.py,✅,✅,🟡→✅ — `fix/resta.md`: DARE drop-and-rescale added (`dare=False` preserves old path)
+Recover (weight-space),apply_lox,recover/lox.py,⚠️ env-OOM,✅,🟠→✅ — `fix/lox.md`: correct aligned-model base point + `(λ−1)` coefficient
+Recover (weight-space),apply_safe_lora,recover/safe_lora.py,✅,✅,"🔴→✅ — `fix/safe_lora.md`: alignment projection matrix `C`, cosine-τ gate, LoRA-update projection"
+Recover (weight-space),apply_safe_delta,recover/safe_delta.py,✅,🟡,"🔴→🟡 — faithful post-hoc OBS delta edit (per-entry importance/safety-loss surrogate, OBS error-compensation sweep, `importance_drop=0.15`, `scale=rows/4096` all match `adjust_delta`), BUT simplified: a single GLOBAL keep-mask/safety-loss budget vs upstream's per-block (`blocksize=2048`) budgeted selection — different entries kept and ~2× budget scale. Algorithmically correct; not a line-for-line port"
+Recover (weight-space),apply_antidote,recover/antidote.py,✅ (logger fixed),✅,🔴→🟡→✅ — gold-standard re-check: SafeTune's `largest=True` topk is correct per paper; upstream bug (prunes lowest-WANDA instead of highest) does not affect SafeTune
+Recover (weight-space),apply_mscp,recover/mscp.py,✅,✅,🟠→🟡→✅ — default `coefficient` corrected 0.1→1.0 (paper Eq. 7 is a full replacement); the `Dim(D)` denominator is a genuine paper ambiguity (we use `numel(D)=out×in`; a single-axis covariance-style `/in` reading is also defensible and would scale `W_safe` by `out`) — its absolute scale is absorbed by `coefficient`; neuron-mask localisation correctly delegated to caller
+Recover (weight-space),apply_nlsr,recover/nlsr.py,✅,✅,🟡→✅ — `fix/nlsr.md`: faithful masked stage-3 transplant + τ-gate
+Recover (weight-space),apply_pke,recover/pke.py,✅,✅,"🟠→🟡→✅ — DINM (arXiv:2403.14472); faithful: teacher-forced REFUSAL cross-entropy on the harmful prompt + logit-space KL locality, masked to the located `down_proj` rows"
+Recover (weight-space),apply_safereact,recover/safereact.py,✅ (device fixed),✅,🟠→🟡→✅ — gold-standard re-check: LoRRA representation training with retain+CB loss schedule matches upstream; training-free fallback documented
+Recover (weight-space),apply_qresafe,recover/qresafe.py,✅,✅,🟡→✅ — `fix/qresafe.md`: SNIP identification + faithful LoRA-DPO path
+Recover (weight-space),apply_aaq,recover/aaq.py,✅ (probe-ids fixed),✅,🟡→✅ — `fix/aaq.md`: correct top-K KL APC loss + RTN quantization
+Recover (weight-space),apply_lssf,recover/lssf.py,✅,✅,🟠→🟡→✅ — `sqrt(alpha_i)` column scaling corrected to `alpha_i` (paper Eq. 10-11 literal: P'^(r) carries α²); behaviour unchanged at default `weight_max=1.0`
+Recover (weight-space),apply_deeprefusal,recover/deeprefusal.py,✅,🟠,"`fix/deeprefusal_RESOLVED.md` — honest SafeTune-original training-free counter-abliteration heuristic; no faithful published equivalent (the real DeepRefusal paper, arXiv:2509.15202, is a different LoRA method, cited as related work). 🟠 = do not cite as a paper"
+Recover (weight-space),scrub_unlearn,"recover/scrub.py, core/unlearn/",✅,✅,🟡→✅ — `fix/scrub_unlearn.md`
+Recover (weight-space),tracin_influence,"recover/scrub.py, core/unlearn/",✅,✅,"🔴→🟡→✅ — gold-standard re-check: exact TracInCP estimator (Pruthi et al. NeurIPS 2020); multi-checkpoint sum, η_t weighting, sign convention all correct"
+Recover (weight-space),RMU (Representation Misdirection for Unlearning),core/unlearn/rmu.py,✅ (CPU),✅,NEW — `fix/rmu_NEW.md`: line-by-line port of `centerforaisafety/wmdp` `run_rmu`
+Recover (weight-space),NPO (Negative Preference Optimization),core/unlearn/npo.py,✅ (CPU),✅,NEW — `fix/npo_NEW.md`: faithful to authors' reference (arXiv:2404.05868)
+Recover (weight-space),Gradient-Ascent / GradDiff unlearning,core/unlearn/gradient_ascent.py,✅ (CPU),✅,NEW — `fix/gradient_ascent_NEW.md`: canonical TOFU baselines
+Recover (weight-space),crisp_unlearn,core/unlearn/crisp.py,✅,🟠,"arXiv:2508.13650 — simplified/variant, not the paper's exact algorithm: uses squared-L2 / CE-retain / single-layer suppression vs the paper's raw-activation / L2-representation / multi-layer formulation"
+Recover (weight-space),apply_wise_ft,recover/wise_ft.py,—,—,"NEW (PR #18) — arXiv:2412.19512 (WiSE-FT, Wortsman et al. 2022); weight-space interpolation θ = α·θ_aligned + (1−α)·θ_drifted to recover safety from the drifted fine-tune"
+Recover (weight-space),apply_safety_vector_restore,recover/safety_vector_restore.py,—,—,"NEW (PR #18) — Yang et al. 2025; targeted task arithmetic on the harm direction: builds v = W_aligned − W_drifted, keeps the top-`rank` right singular directions, and re-injects them"
+Recover (weight-space),apply_grad_selective_recover,recover/grad_selective_recover.py,—,—,NEW (PR #18) — Yang et al. arXiv:2504.09757; gradient-guided rollback: selects top-saliency weights by harmful-gradient magnitude and restores those coordinates from the aligned reference
+Recover (weight-space),apply_oneshot_safety_patch,recover/oneshot_safety_patch.py,—,—,"NEW (PR #18) — arXiv:2601.01887; minimal-data/compute targeted recovery: one (harmful_prompt, safe_response) example yields per-parameter gradient saliency; the top-`top_fraction` params are updated, the rest frozen"
+Recover (weight-space),apply_antidote_v2,recover/antidote_v2.py,—,—,NEW (PR #18) — extends Huang et al. ICML 2025 arXiv:2408.09600; layer-adaptive WANDA pruning with a benign utility-floor constraint (per-layer prune fraction bounded by harm/util overlap budget)
+Recover (weight-space),apply_repnoise_recover,recover/repnoise_recover.py,—,—,NEW (PR #18) — post-hoc adaptation of Rosati et al. NeurIPS 2024 (RepNoise); extracts the top harmful-representation directions per layer and edits weights to suppress them — no retraining
+Harden (train-time),CSTTrainer,harden/cst.py,✅,✅,— (no fix; already faithful)
+Harden (train-time),EMACallback,harden/ema.py,✅,✅,— (no fix; already faithful)
+Harden (train-time),SafeGradTrainer,harden/safegrad.py,✅,✅,🟡→✅ — `fix/safegrad.md`: global (not per-param) surgery + KL alignment signal
+Harden (train-time),SPPFTTrainer,harden/sppft.py,✅,✅,🟡→✅ — `fix/sppft.md`
+Harden (train-time),DeRTaTrainer,harden/derta.py,✅,✅,🟡→✅ — `fix/derta.md`: SFT base class + faithful per-token RTO loss
+Harden (train-time),ASRTCallback,harden/asrt.py,✅,🟠,`fix/asrt_RESOLVED.md` — honest SafeTune-original heuristic in the MART lineage (arXiv:2311.07689); not a faithful MART impl (no learned adversarial LLM). 🟠 = do not cite as a paper
+Harden (train-time),MARTTrainer,harden/mart.py,✅,✅,"NEW — Ge et al. arXiv:2311.07689; faithful MART: two co-evolving LLMs (M_adv + M_tgt), two reward models, round-wise SFT; see `harden/__init__.py`"
+Harden (train-time),DeepRefusalTrainer,harden/deeprefusal.py,✅,✅,NEW — Xie et al. arXiv:2509.15202 (EMNLP 2025); faithful DeepRefusal: LoRA FT with stochastic per-layer refusal-direction ablation hooks + α·L_harmful+(1-α)·L_benign loss
+Harden (train-time),LisaTrainer,harden/lisa.py,✅,✅,🟠→✅ — `fix/lisa.md`: bi-state dataset alternation restored
+Harden (train-time),AsFTTrainer,harden/asft.py,✅,✅,🟠→✅ — `fix/asft.md`: loss-level Frobenius-norm regularizer (LoRA path)
+Harden (train-time),STARDSSTrainer,harden/star_dss.py,✅,✅,🟠→✅ — `fix/star_dss.md`: unsafe-token suppression restored
+Harden (train-time),SAPTrainer,harden/sap.py,✅,✅,🟠→✅ — `fix/sap.md`: hidden-state probe + bilevel inner loop
+Harden (train-time),DOORTrainer,harden/door.py,✅,✅,🔴→🟡→✅ — gold-standard re-check + bug fix: was mixing DPO+DOOR; `door_pure_mode=True` (default) now returns pure DOOR objective matching paper's `gd_npo_loss`
+Harden (train-time),LookAheadTrainer,harden/lookahead.py,✅,✅,"🔴→🟡→✅ — gold-standard re-check: answer-prefix preview logic matches upstream `main.py` exactly (real/virtual modes, boundary detection, loss masking)"
+Harden (train-time),AntibodyTrainer,harden/antibody.py,✅,✅,"🔴→🟡→✅ — Nguyen et al. arXiv:2603.00498; `xi` param added: `lambda_t = max{0, xi - ⟨g_sharp,g_align⟩/‖g_sharp‖²}` matches Theorem 4.1; `xi=0.0` default preserves simplified path"
+Harden (train-time),vaccine_loss,harden/vaccine.py,✅,✅,🟠→✅ — `fix/vaccine.md`: layer-wide hidden-state perturbation
+Harden (train-time),SurgeryTrainer,harden/surgery.py,✅,✅,🔴→🟡→✅ — Liu et al. arXiv:2602.05228; `harmful_dataset` param added: faithful path uses separate X_m batch (paper Algorithm 1); without it falls back to using user FT batch as X_m (documented shortcut)
+Harden (train-time),booster_project,harden/booster.py,✅,✅,🔴→✅ — `fix/booster.md`: simulated-perturbation finite-difference regularizer
+Harden (train-time),SaLoRA (compute_safety_subspace/project_lora_step),harden/salora.py,✅,✅,🔴→✅ — `fix/salora.md`: activation-derived fixed safety module + task-specific init
+Harden (train-time),tar_outer_loss,harden/tar.py,✅,✅,"🔴→🟡→✅ — gold-standard re-check: detached adversary steps, non-detached TR loss, accumulation averaging, parameter restoration all match `tar_training_loop` Algorithm 1"
+Harden (train-time),RepNoiseTrainer,harden/repnoise.py,✅,✅,NEW — arXiv:2405.14577; faithful RepNoise: layer-wise multi-kernel Gaussian MMD pushing harmful representations toward noise + harmful-CE ascent (`−α·log(harmful_CE)`) + retain CE
+Harden (train-time),SEAMTrainer,harden/seam.py,✅,✅,NEW — arXiv:2505.12186 (ICLR 2026); faithful self-destructive trap: `L_ul + α·L_up + β·L_sd` with the gradient-cosine coupling trap (Eq. 2) + Hessian-free coupling estimator (Eq. 6)
+Harden (train-time),CTRAPTrainer,harden/ctrap.py,✅,✅,NEW — arXiv:2505.16559; faithful collapse trap: collapse-to-fixed-TOKEN CE (Eq. 1) + bi-level simulated-attack objective `θ' = θ − α·∇_harmful` (Eq. 2)
+Harden (train-time),TVaccineTrainer (tvaccine_loss),harden/tvaccine.py,—,—,"NEW (PR #18) — Liu et al. arXiv:2410.09760; memory-efficient Vaccine variant: scores layers by safety-batch gradient norm, applies SAM-style hidden-state perturbation only to the top-k safety-critical layers"
+Harden (train-time),SEALTrainer,harden/seal.py,—,—,NEW (PR #18) — Shen et al. arXiv:2410.07471; data-selection defense: up-weights the SFT examples whose gradient conflicts most with the alignment gradient (tractable SEAL approximation)
+Harden (train-time),ConstrainedSFTTrainer,harden/constrained_sft.py,—,—,NEW (PR #18) — Qi et al. ICLR 2025 arXiv:2406.05946; simplified/variant — not the paper's exact algorithm: a KL-regularized SFT (position-decaying first-token KL penalty) vs the paper's bounded-DPO Eq. 3 + step-function β schedule. Un-audited `—` row; do not cite as the paper
+Harden (train-time),apply_lox_harden (LoXHardenConfig),harden/lox_harden.py,—,—,NEW (PR #18) — Perin et al. arXiv:2506.15606 (COLM 2025); training-free pre-FT safety-subspace extrapolation: extrapolates the aligned model along the top-k singular directions of (W_aligned − W_base) before fine-tuning
+Steer (inference-time),extract_refusal_direction + RefusalDirectionModel + orthogonalize/restore,steer/refusal_direction.py,✅,✅,— (no fix; already faithful)
+Steer (inference-time),CAA (extract_caa_vectors + CAAModel),steer/caa.py,✅,✅,— (no fix; already faithful)
+Steer (inference-time),LinearProbeGuardModel,steer/probe_guard.py,✅,✅,— (no fix; already faithful)
+Steer (inference-time),ContrastiveDecodingProcessor,steer/decoding/,✅,✅,— (no fix; already faithful)
+Steer (inference-time),ProxyTuningProcessor,steer/decoding/,✅,✅,— (no fix; already faithful)
+Steer (inference-time),SafeDecodingProcessor,steer/decoding/,✅,✅,🟡→✅ — `fix/safedecoding.md`: constant-α window schedule
+Steer (inference-time),AlphaSteerModel,steer/alphasteer.py,✅,✅,"🟡→✅ — `fix/alphasteer.md`: refusal-direction regression target, local faithful impl"
+Steer (inference-time),RepBendModel,steer/repbend.py,✅,✅,🟡→✅ — `fix/repbend.md`: faithful five-term RepBend training loss
+Steer (inference-time),TARModel,steer/tar.py,✅,✅,🟡→✅ — `fix/tar_steer.md`: honest training-time wrapper; forwards to `tar_outer_loss`
+Steer (inference-time),SafeSteerModel,steer/safesteer.py,✅,✅,🟡→✅ — `fix/safesteer.md`: subspace projection + median-norm pruning
+Steer (inference-time),SafeSwitchModel,steer/safeswitch.py,✅,✅,🟡→✅ — `fix/safeswitch.md`: two-stage prober
+Steer (inference-time),SCANSModel,steer/scans.py,✅,✅,🟠→✅ — `fix/scans.md`: vocab-projection layer selection + transition-based adaptive sign
+Steer (inference-time),STAModel,steer/sta.py,✅,✅,🟠→✅ — `fix/sta.md`: genuine SAE latent-atom steering
+Steer (inference-time),CircuitBreakerModel,steer/circuit_breaker.py,✅,✅,"🟠→✅ — `fix/circuit_breaker.md`: faithful RR/LoRRA training loss (runtime hook kept, labeled non-faithful)"
+Steer (inference-time),CircuitBreakerRRModel,steer/circuit_breakers_rr.py,✅,✅,🟠→✅ — `fix/circuit_breakers_rr.md`: faithful RR/LoRRA training loss
+Steer (inference-time),NudgingProcessor,steer/decoding/,✅,✅,🟠→🟡→✅ — gold-standard re-check: decision rule (`base_top_prob < top_prob_thres`) verbatim matches upstream `check_need_nudging`; default threshold 0.3 matches
+Steer (inference-time),AdaSteerModel,steer/adasteer.py,✅,✅,"RD/HD two-direction steering with per-input coefficients learned via logistic regression (paper's R-Law/H-Law, arXiv:2504.09466); only the coefficient scale differs from the repo's affine-ramp deployment constants"
+Steer (inference-time),RRFAEnsemble,steer/rrfa.py,✅,✅,⚫→🟡→✅ — gold-standard re-check: confirmed faithful no-op; RRFA defense is baked into LoRA weights at training time; no inference-time intervention exists in upstream
+Steer (inference-time),CASTModel + fit_cast_probe,steer/cast.py,✅,✅,"now the faithful cosine condition-vector gate — diff-of-means condition vector + cos(h, tanh(P·h)) vs a grid-searched threshold/comparator at prefill (IBM/activation-steering, arXiv:2409.05907); selective firing validated (harmful steered, benign passthrough)"
+Measure/evaluate — redteam,AbliterationAttack,evaluate/redteam/abliteration.py,✅,✅,— (no fix; already faithful)
+Measure/evaluate — redteam,BoNAttack,evaluate/redteam/bon.py,✅,✅,"🟠→✅ — `fix/bon.md`: all-three augmentations, correct ASCII operator, σ-derived intensities"
+Measure/evaluate — infra,StringMatchJudge,eval/pipeline/scorer.py,✅,✅,"🟠→✅ — `fix/string_match_judge.md`: canonical GCG/AdvBench `_test_prefixes`, full-response scan"
+Measure/evaluate — infra,HFJudge (HarmBench classifier),eval/pipeline/scorer.py,⏭️ 14 GB,✅,🔴→✅ — `fix/judges.md`: feeds the official `LLAMA2_CLS_PROMPT`
+Measure/evaluate — infra,OpenAIJudge (StrongREJECT),eval/pipeline/scorer.py,⏭️ needs key,✅,🔴→✅ — `fix/judges.md`: official StrongREJECT autograder prompt + 1–5 rubric + correct score formula
+Measure/evaluate — infra,JudgeAdapter,eval/judge_adapters.py,✅,✅,"🟡→✅ — `fix/judge_adapter.md`: one source of truth, de-duplicated"
+Measure/evaluate — infra,SpectralEntropyMonitor,evaluate/suite/spectral.py,✅,✅,🟠→✅ — `fix/spectral.md`: attention-mask applied; entropy no longer length/batch-dependent
+Measure/evaluate — infra,evaluate.suite.evaluate,evaluate/suite/evaluate.py,⏭️ 8B judge,✅,"🟠→✅ — `fix/evaluate.md`: 100-prompt cap, `"
+Measure/evaluate — infra,TamperBenchEvaluator,eval/tamperbench.py,⏭️ needs key,✅,🟡→✅ — `fix/tamperbench.md`: honest thin wrapper over the Qi et al. 2023 GPT-4 judge
+Measure/evaluate — infra,Loader: advbench,eval/pipeline/loaders.py,✅,✅,— (no fix; already faithful)
+Measure/evaluate — infra,Loader: xstest,eval/pipeline/loaders.py,✅,✅,"🟠→✅ — `fix/loaders.md`: `final_label` gold label, correct fields"
+Measure/evaluate — infra,Loader: sorrybench,eval/pipeline/loaders.py,✅,✅,— (no fix; already faithful)
+Measure/evaluate — infra,Loader: orbench,eval/pipeline/loaders.py,✅,✅,— (no fix; already faithful)
+Measure/evaluate — infra,Loader: harmbench,eval/pipeline/loaders.py,✅,✅,— (no fix; already faithful for `standard` config)
+Measure/evaluate — infra,Loader: agentharm,eval/pipeline/loaders.py,✅,✅,🟡→✅ — `fix/loaders2.md`: `hint_included` confirmed
+Measure/evaluate — infra,Loader: saladbench,eval/pipeline/loaders.py,✅,✅,🟠→✅ — `fix/loaders.md`: `1-/2-/3-category` columns mapped
+Measure/evaluate — infra,Loader: airbench,eval/pipeline/loaders.py,✅,✅,"🔴→✅ — `fix/loaders.md`: valid config passed, `l3-name`/`l2-name` fields"
+Measure/evaluate — infra,Loader: cares,eval/pipeline/loaders.py,✅,✅,"🔴→✅ — `fix/loaders.md`: real id `HFXM/CARES-18K`, correct schema"
+Measure/evaluate — infra,Loader: wildjailbreak,eval/pipeline/loaders.py,✅,✅,🟡→✅ — `fix/loaders2.md`: `label==1`-means-harmful verified
+Measure/evaluate — infra,Loader: jailbreakbench,eval/pipeline/loaders.py,✅,✅,NEW — arXiv:2404.01318; 200-behavior community-standard jailbreak eval
+Measure/evaluate — infra,Loader: muse,eval/pipeline/loaders.py,✅,✅,"NEW — arXiv:2407.06460; 6-axis unlearning eval (forget/retain, news/books)"
+Measure/evaluate — infra,Loader: rwku,eval/pipeline/loaders.py,✅,✅,NEW — arXiv:2406.10890; 200-public-figure real-world knowledge unlearning eval
+Measure/evaluate — infra,Loader: safedialbench,eval/pipeline/loaders.py,✅,✅,"NEW — arXiv:2502.11090; multi-turn safety benchmark (22 scenarios, 7 jailbreak types)"
+Measure/evaluate — infra,Pareto utilities,evaluate/suite/pareto.py,✅,✅,— (no fix; already faithful)
+Diagnose/interpret,identify_safety_neurons (weight mode),core/interpret/safety_neurons.py,✅,✅,"🟡→✅ — `fix/safety_neurons.md`: correct per-column cosine localization, documented semantics"
+Diagnose/interpret,identify_safety_neurons (activation mode),core/interpret/safety_neurons.py,✅,🟠,"simplified/variant, not the cited papers' exact metric: uses a one-model harmful-vs-benign activation contrast vs the cited papers' cross-model / set-difference metric"
+Diagnose/interpret,safety_circuit_info,core/interpret/safety_neurons.py,✅,✅,🟡→✅ — `fix/safety_neurons.md`: supports both localization methods
+Diagnose/interpret,CircuitInfo (+ JSON/YAML reader+writer),core/circuit_kit/,✅,✅,🟡→✅ — `fix/circuit_kit.md`: bidirectional round-trippable JSON/YAML schema (writer added)
+Diagnose/interpret,CircuitInfoProvider + save_circuit_info_to_file,core/circuit_kit/,✅,✅,— (infra; provider abstraction + file-save helper exported from circuit_kit)
+Diagnose/interpret,eap_safety_circuit (EAP / EAP-IG),core/interpret/eap.py,✅,✅,"⚫→🟡→✅ — gold-standard re-check + bug fix: interpolation loop corrected (`range(0,steps)` not `range(1,steps+1)`) to include corrupted endpoint, matching upstream EAP-IG sampling"
+Rewards (RL),SafetyRewardFunction,rewards/safety.py,n/a,✅,⚫→✅ — `audit_faithfulness/rewards.md` BUG 1: class was imported but never defined; now defined and exercised
+Rewards (RL),SafetyReward,rewards/safety.py,n/a,🟡,🟠→🟡 — `rewards.md` BUG 2: rewrote to score behavioural safety; toxicity demoted to optional aux; dead-label bug fixed; faithful when a judge is supplied
+Rewards (RL),ToxicityReward,rewards/safety.py,n/a,🟡,🟠→🟡 — `rewards.md`: dead-label branch fixed
+Rewards (RL),import safetune.rewards,"nlp.py, safety.py, training.py",n/a,✅ runs,❌→✅ — `rewards.md` BUG 3: deferred heavy `pipeline`/`Trainer` imports so the package imports on CPU
+Rewards (RL),BiasReward / HarmlessnessReward / HallucinationReward,rewards/safety.py,n/a,🟠,— (honest keyword heuristics; unchanged)
+Rewards (RL),text/nlp/math/code/specialized rewards,rewards/*.py,n/a,mixed ✅/🟡/🟠/⚫,— (honest heuristics / standard metrics; unchanged — see `rewards.md`)
+Runtime guards,redact_text / SafetyAuditEvent,runtime/audit_hooks.py,n/a,✅,🟡→✅ — `audit_faithfulness/runtime.md`: `Optional[str]` type contract
+Runtime guards,TenantPolicyRouter,runtime/tenant_policy_router.py,n/a,✅,— (already faithful)
+Runtime guards,SafetyMiddleware,runtime/safety_middleware.py,n/a,✅,🟠→✅ — `runtime.md`: default keyword detector; `pre_check` no longer silently inert
+Runtime guards,InputSanitizer,runtime/guardrails/pipeline.py,n/a,✅,🟠→✅ — `runtime.md`: optional `injection_classifier` hook ORed with regex floor
+Runtime guards,OutputVerifier,runtime/guardrails/pipeline.py,n/a,✅,🟠→✅ — `runtime.md`: strong-keyword single-hit blocking + `toxicity_classifier` hook
+Runtime guards,AuditLogger / GuardrailPipeline,runtime/guardrails/pipeline.py,n/a,✅,— (already faithful)
+Runtime guards,CoSAlignFormatter,runtime/cosa/cosalign.py,n/a,✅,"🟠→✅ — `runtime.md`: correct citation, honored `template_augmentation`, non-degenerate empty config, seeded RNG"
+Runtime guards,CoSARuntime,runtime/cosa/cosalign.py,n/a,✅,— (already faithful)
+Runtime guards,LLMSafeguardPredictor,runtime/inference/,n/a,✅,— (predict-before-generate safety gate; SafeTune infra)
+Runtime guards,HookedGenerationWrapper / DynamicPatchingConfig,runtime/inference/,n/a,✅,— (dynamic activation patching at generation time; SafeTune infra)

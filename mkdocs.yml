@@ -1,0 +1,282 @@
+site_name: SafeTune
+site_description: SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.
+site_url: https://lexsi-labs.github.io/SafeTune/
+repo_url: https://github.com/Lexsi-Labs/SafeTune
+repo_name: Lexsi-Labs/SafeTune
+edit_uri: edit/main/docs/
+copyright: >
+  Copyright &copy; 2026 <a href="https://lexsi.ai" target="_blank" rel="noopener">Lexsi Labs</a>
+
+theme:
+  name: material
+  custom_dir: overrides
+  logo: assets/compass.svg
+  favicon: assets/compass.svg
+  font:
+    text: Schibsted Grotesk
+    code: IBM Plex Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - navigation.prune
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+
+extra_css:
+  - assets/safetune.css
+
+extra_javascript:
+  - assets/safetune.js
+  - javascripts/mathjax.js
+  - javascripts/mathjax-tex-mml-chtml.js
+
+extra:
+  version:
+    provider: mike
+    default: latest
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Lexsi-Labs/SafeTune
+      name: SafeTune on GitHub
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/safetune/
+      name: SafeTune on PyPI
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/Lexsi_labs
+      name: Lexsi Labs on X
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/lexsi-labs/
+      name: Lexsi Labs on LinkedIn
+    - icon: simple/huggingface
+      link: https://huggingface.co/Lexsi
+      name: Lexsi Labs on Hugging Face
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - src
+          options:
+            show_source: false
+            heading_level: 2
+            show_root_heading: true
+            show_symbol_type_heading: true
+            docstring_style: google
+            filters:
+              - "!^_"
+
+# Internal / working pages kept out of the published nav.
+exclude_docs: |
+  reference/LIBRARY_CHECKLIST.csv
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+      - getting-started/index.md
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Core Concepts: getting-started/taxonomy.md
+      - How to Read These Docs: getting-started/how-to-read-these-docs.md
+
+  - User Guide:
+      - user-guide/index.md
+      - Audit Your Model: user-guide/audit-your-model.md
+      - CLI · YAML · Python: user-guide/usage.md
+      - Harden:
+          - user-guide/harden.md
+          - Gradient surgery: user-guide/harden/gradient-surgery.md
+          - Regularization: user-guide/harden/regularization.md
+          - Representation: user-guide/harden/representation.md
+          - Data shaping: user-guide/harden/data-shaping.md
+          - Data selection: user-guide/harden/data-selection.md
+          - Constrained SFT: user-guide/harden/constrained-sft.md
+          - Pre-FT extrapolation: user-guide/harden/pre-ft.md
+          - Tamper-resistant: user-guide/harden/tamper-resistant.md
+      - Recover:
+          - user-guide/recover.md
+          - Whole-model:
+              - user-guide/recover/whole-model/index.md
+              - Task arithmetic: user-guide/recover/whole-model/task-arithmetic.md
+              - SOMF merge: user-guide/recover/whole-model/somf-merge.md
+              - Pre-post merge: user-guide/recover/whole-model/pre-post-merge.md
+              - WiSE-FT: user-guide/recover/whole-model/wise-ft.md
+          - Low-rank:
+              - user-guide/recover/low-rank/index.md
+              - LOX: user-guide/recover/low-rank/lox.md
+              - LSSF: user-guide/recover/low-rank/lssf.md
+              - Safety vector restore: user-guide/recover/low-rank/safety-vector-restore.md
+          - Layer-level:
+              - user-guide/recover/layer/index.md
+              - SafeMerge: user-guide/recover/layer/safe-merge.md
+              - Safe LoRA: user-guide/recover/layer/safe-lora.md
+              - RESTA: user-guide/recover/layer/resta.md
+              - Safe Delta: user-guide/recover/layer/safe-delta.md
+              - QReSafe: user-guide/recover/layer/qresafe.md
+              - AAQ: user-guide/recover/layer/aaq.md
+              - RepNoise: user-guide/recover/layer/repnoise-recover.md
+          - Neuron / cluster:
+              - user-guide/recover/neuron/index.md
+              - NLSR: user-guide/recover/neuron/nlsr.md
+              - MSCP: user-guide/recover/neuron/mscp.md
+              - Antidote v1: user-guide/recover/neuron/antidote-v1.md
+              - Antidote v2: user-guide/recover/neuron/antidote-v2.md
+              - PKE: user-guide/recover/neuron/pke.md
+              - SafeReAct: user-guide/recover/neuron/safereact.md
+              - SCRUB (recover): user-guide/recover/neuron/scrub-recover.md
+          - Saliency:
+              - user-guide/recover/saliency/index.md
+              - Grad selective: user-guide/recover/saliency/grad-selective.md
+              - One-shot patch: user-guide/recover/saliency/one-shot-patch.md
+          - Circuit-guided:
+              - user-guide/recover/circuit/index.md
+              - C-ΔΘ: user-guide/recover/circuit/c-delta-theta.md
+              - C-ΔΘ (state-dict): user-guide/recover/circuit/c-delta-theta-state.md
+              - Sweep C-ΔΘ: user-guide/recover/circuit/sweep-c-delta-theta.md
+      - Unlearn:
+          - user-guide/unlearn.md
+          - RMU: user-guide/unlearn/rmu.md
+          - NPO: user-guide/unlearn/npo.md
+          - Gradient Ascent: user-guide/unlearn/gradient-ascent.md
+          - FLAT: user-guide/unlearn/flat.md
+          - SimDPO: user-guide/unlearn/simdpo.md
+      - Steer:
+          - user-guide/steer.md
+          - Activation steering:
+              - user-guide/steer/activation-steering/index.md
+              - RefusalDirectionModel: user-guide/steer/activation-steering/refusal-direction-model.md
+              - CAAModel: user-guide/steer/activation-steering/caa-model.md
+              - AdaSteerModel: user-guide/steer/activation-steering/ada-steer-model.md
+              - SafeSteerModel: user-guide/steer/activation-steering/safe-steer-model.md
+              - AlphaSteerModel: user-guide/steer/activation-steering/alpha-steer-model.md
+              - SafeSwitchModel: user-guide/steer/activation-steering/safe-switch-model.md
+              - SCANSModel: user-guide/steer/activation-steering/scans-model.md
+              - STAModel: user-guide/steer/activation-steering/sta-model.md
+              - CircuitBreakerModel: user-guide/steer/activation-steering/circuit-breaker-model.md
+              - CircuitBreakerRRModel: user-guide/steer/activation-steering/circuit-breaker-rr-model.md
+              - RepBendModel: user-guide/steer/activation-steering/rep-bend-model.md
+              - LinearProbeGuardModel: user-guide/steer/activation-steering/linear-probe-guard-model.md
+              - CASTModel: user-guide/steer/activation-steering/cast-model.md
+              - TARModel: user-guide/steer/activation-steering/tar-model.md
+              - RRFAEnsemble: user-guide/steer/activation-steering/rrfa-ensemble.md
+          - Decoding steering:
+              - user-guide/steer/decoding-steering/index.md
+              - ContrastiveDecoding: user-guide/steer/decoding-steering/contrastive-decoding.md
+              - ProxyTuning: user-guide/steer/decoding-steering/proxy-tuning.md
+              - SafeDecoding: user-guide/steer/decoding-steering/safe-decoding.md
+              - Nudging: user-guide/steer/decoding-steering/nudging.md
+          - Backends:
+              - user-guide/steer/backends/index.md
+              - Runner: user-guide/steer/backends/runner.md
+              - VLLMHookSteer: user-guide/steer/backends/vllm-hook-steer.md
+              - VLLMDecodeSteer: user-guide/steer/backends/vllm-decode-steer.md
+              - SteerSpec: user-guide/steer/backends/steer-spec.md
+              - DecodeSteerSpec: user-guide/steer/backends/decode-steer-spec.md
+      - Interpret:
+          - user-guide/interpret.md
+          - Safety neurons:
+              - user-guide/interpret/safety-neurons/index.md
+              - Weight-based: user-guide/interpret/safety-neurons/weight.md
+              - Activation-based: user-guide/interpret/safety-neurons/activation.md
+          - Circuit info:
+              - user-guide/interpret/circuit-info/index.md
+              - safety_circuit_info: user-guide/interpret/circuit-info/safety-circuit-info.md
+              - CircuitInfo object: user-guide/interpret/circuit-info/circuit-info-object.md
+          - EAP / EAP-IG: user-guide/interpret/eap/index.md
+      - Evaluate:
+          - user-guide/evaluate.md
+          - Attacks:
+              - user-guide/evaluate/attacks/index.md
+              - Abliteration: user-guide/evaluate/attacks/abliteration.md
+              - BoN: user-guide/evaluate/attacks/bon.md
+          - Benchmarks: user-guide/evaluate/benchmarks/index.md
+          - Judges: user-guide/evaluate/judges/index.md
+          - Pipeline: user-guide/evaluate/pipeline/index.md
+          - Monitoring: user-guide/evaluate/monitoring/index.md
+          - TamperBench: user-guide/evaluate/tamperbench/index.md
+          - Pareto frontier: user-guide/evaluate/pareto/index.md
+
+  - Reference:
+      - reference/index.md
+      - API Reference:
+          - reference/api/index.md
+          - Harden: reference/api/harden.md
+          - Recover: reference/api/recover.md
+          - Unlearn: reference/api/unlearn.md
+          - Steer: reference/api/steer.md
+          - Interpret: reference/api/interpret.md
+          - Evaluate: reference/api/evaluate.md
+          - Configuration: reference/api/config.md
+      - CLI Reference: reference/cli.md
+      - References: reference/references.md
+      - Feature Map: reference/feature-map.md
+      - System Design: reference/system-design.md
+      - API Contract: reference/api-contract.md
+
+  - Examples:
+      - examples/index.md
+      - Python Scripts: examples/scripts.md
+      - Notebooks: examples/notebooks.md
+      - Case Study — Single-Direction Jailbreak: examples/single-direction-jailbreak.md
+
+  - Community:
+      - FAQ: community/faq.md
+      - Contributing: community/contributing.md
+      - Scope & Limitations: community/scope.md
+      - Changelog: community/changelog.md
+      - Developer Runbook: community/dev-runbook.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.arithmatex:
+      generic: true
+  - tables
+  - toc:
+      permalink: true

@@ -1,0 +1,26 @@
+# SafeTune Documentation Dependencies
+# 
+# Install with: pip install -r requirements-docs.txt
+# 
+# These dependencies are only needed for building documentation.
+# They are not required for using SafeTune.
+#
+# NOTE: keep in sync with the [project.optional-dependencies] `docs` extra
+# in pyproject.toml — that is the source of truth for packaging.
+
+# MkDocs core + the Material theme used by mkdocs.yml
+mkdocs>=1.5.0
+mkdocs-material>=9.5.0
+
+# Markdown extensions used by mkdocs.yml
+pymdown-extensions>=10.0.0
+
+# Versioned docs deploys (mike)
+mike>=1.1.0
+
+# Code highlighting
+pygments>=2.15.0
+
+# API-reference autodoc (Reference > API Reference pages use ::: blocks)
+mkdocstrings[python]>=0.24.0
+

@@ -1,0 +1,36 @@
+# Runtime dependencies for SafeTune (core).
+# GENERATED to match [project.dependencies] in pyproject.toml — keep in sync.
+# pyproject.toml is the source of truth. For optional features use extras:
+#   pip install "safetune[viz]"     # matplotlib, seaborn
+#   pip install "safetune[dev]"     # pytest, ruff, nvitop, gpustat, ...
+#   pip install "safetune[docs]"    # mkdocs stack (or use requirements-docs.txt)
+#   pip install "safetune[vllm]"    # vLLM backend
+
+torch>=2.7.0
+transformers>=4.48.3,<6
+datasets>=2.14.0,<6
+accelerate>=0.24.0,<2
+peft>=0.6.0,<1
+bitsandbytes>=0.41.0
+trl>=0.12,<2
+numpy>=1.21.0
+pyyaml>=6.0
+huggingface-hub>=0.17.0
+tqdm>=4.64.0
+psutil>=5.9.0
+requests>=2.28.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+click>=8.0.0
+rich>=12.0.0
+typer>=0.7.0
+wandb>=0.15.0
+tensorboard>=2.12.0
+evaluate>=0.4.0
+rouge-score>=0.1.2
+sacrebleu>=2.3.0
+lm-eval>=0.4.8
+langdetect>=1.0.9
+immutabledict>=2.0.0
+nltk>=3.8.0
+nvidia-ml-py>=11.495.46; platform_system!='Darwin'

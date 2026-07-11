@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6B4CE6"/>
+      <stop offset="1" stop-color="#4A2FB0"/>
+    </linearGradient>
+  </defs>
+  <!-- outer ring -->
+  <circle cx="60" cy="60" r="48" stroke="url(#ring)" stroke-width="7" fill="none"/>
+  <!-- cardinal ticks -->
+  <line x1="60" y1="14" x2="60" y2="24" stroke="#5B3DD6" stroke-width="3" stroke-linecap="round"/>
+  <line x1="60" y1="96" x2="60" y2="106" stroke="#5B3DD6" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <line x1="14" y1="60" x2="24" y2="60" stroke="#5B3DD6" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <line x1="96" y1="60" x2="106" y2="60" stroke="#5B3DD6" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <!-- needle: amber north, ink south -->
+  <polygon points="60,26 68,60 52,60" fill="#F4A63C"/>
+  <polygon points="60,94 68,60 52,60" fill="#17141F" opacity="0.8"/>
+  <!-- center hub -->
+  <circle cx="60" cy="60" r="6" fill="#5B3DD6"/>
+  <circle cx="60" cy="60" r="2.5" fill="#F4A63C"/>
+</svg>

@@ -1,0 +1,298 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "safetune"
+version = "1.0.0"
+description = "SafeTune: a unified library for preserving and restoring safety in fine-tuned LLMs — train-time (harden), weight-space (recover, unlearn), inference-time (steer) interventions plus diagnosis (interpret) and evaluation, for the Hugging Face ecosystem."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE.md" }
+authors = [
+    {name = "Pratinav Seth", email = "pratinav.seth@lexsi.ai"},
+    {name = "Anshul Kaushal", email = "anshul.kaushal@lexsi.ai"},
+    {name = "Saisab Sadhu", email = "saisab.sadhu@lexsi.ai"},
+    {name = "Vinay Kumar Sankarapu", email = "v.k@lexsi.ai"},
+]
+keywords = [
+    "safety",
+    "SafeTune",
+    "SafetyLoRA",
+    "CircuitKIT",
+    "alignment",
+    "rlhf",
+    "fine-tuning",
+    "llm",
+    "machine learning",
+    "SFT",
+    "RL",
+    "DPO",
+    "ORPO",
+    "GRPO",
+    "PPO",
+    "GSPO",
+    "BOLT",
+    "transformers",
+    "unsloth",
+    "multi-backend",
+    "reward-functions",
+    "evaluation",
+    "lm-eval",
+    "wandb",
+    "tensorboard",
+    "checkpointing",
+    "device-management",
+    "unified-config",
+    "cli"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    # Core ML dependencies (upper bounds guard against major-version breakage)
+    "torch>=2.7.0",
+    "transformers>=4.48.3,<6",
+    "datasets>=2.14.0,<6",
+    "accelerate>=0.24.0,<2",
+    "peft>=0.6.0,<1",
+    "bitsandbytes>=0.41.0",
+    "trl>=0.12,<2",
+
+    # Core Python dependencies
+    "numpy>=1.21.0",
+    "pyyaml>=6.0",
+    "huggingface-hub>=0.17.0",
+    "tqdm>=4.64.0",
+    "psutil>=5.9.0",
+    "requests>=2.28.0",  # safetune.core.eval.pipeline.backends.api
+
+    # Data processing
+    "pandas>=1.3.0",
+    "scikit-learn>=1.0.0",  # safetune.interventions.steer.probe_guard.fit_linear_probe
+
+    # Utilities
+    "click>=8.0.0",
+    "rich>=12.0.0",
+    "typer>=0.7.0",
+
+    # Logging and monitoring
+    "wandb>=0.15.0",
+    "tensorboard>=2.12.0",
+
+    # Evaluation metrics
+    "evaluate>=0.4.0",
+    "rouge-score>=0.1.2",
+    "sacrebleu>=2.3.0",
+    "lm-eval>=0.4.8",
+    # lm-eval's ifeval capability task imports these lazily; without them the
+    # combined gsm8k,ifeval utility run crashes and drops gsm8k too.
+    "langdetect>=1.0.9",
+    "immutabledict>=2.0.0",
+    "nltk>=3.8.0",
+
+    # Device management (Linux/Windows only)
+    "nvidia-ml-py>=11.495.46; platform_system!='Darwin'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.1.0",
+    "hypothesis>=6.70.0",
+    "pre-commit>=3.0.0",
+    "nvitop>=1.1.0; platform_system!='Darwin'",
+    "gpustat>=1.1.1",
+]
+docs = [
+    # MkDocs stack (matches mkdocs.yml); see requirements-docs.txt
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mike>=1.1.0",
+    "pymdown-extensions>=10.0.0",
+    "pygments>=2.15.0",
+    # API-reference autodoc (Reference > API Reference pages use ::: blocks)
+    "mkdocstrings[python]>=0.24.0",
+]
+viz = [
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+]
+vllm = [
+    "vllm>=0.5.0",
+]
+vllm-lens = [
+    "vllm>=0.5.0",
+    "vllm-lens>=0.1.0",
+]
+interpret = [
+    # CircuitKit (ckit_theta) is currently installed from a local source path;
+    # publish to PyPI before adding a hard pin here.
+    "transformer_lens>=2.0.0",
+]
+unsloth = [
+    "unsloth>=2024.0",
+]
+text-metrics = [
+    "bert-score>=0.3.13",
+    "sentence-transformers>=2.2.0",
+    "codebleu>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Lexsi-Labs/SafeTune"
+Repository = "https://github.com/Lexsi-Labs/SafeTune"
+Documentation = "https://lexsi-labs.github.io/SafeTune/"
+"Bug Tracker" = "https://github.com/Lexsi-Labs/SafeTune/issues"
+"Changelog" = "https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"
+"Discussions" = "https://github.com/Lexsi-Labs/SafeTune/discussions"
+
+[project.scripts]
+safetune = "safetune.cli:main"
+st = "safetune.cli:main"
+
+[project.entry-points."safetune.evaluation"]
+lm_eval = "safetune.core.eval.lm_eval_integration:LMEvalRunner"
+custom = "safetune.core.eval.core:EvalRunner"
+
+[project.entry-points."safetune.rewards"]
+registry = "safetune.rewards.registry:RewardRegistry"
+factory = "safetune.rewards.factory:RewardFunctionFactory"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"safetune" = [
+    "*.yaml",
+    "*.yml",
+    "*.json",
+    "*.md",
+    "*.txt",
+    "py.typed",
+]
+
+
+# Black configuration
+[tool.black]
+line-length = 100
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+known_first_party = ["safetune"]
+known_third_party = [
+    "torch", 
+    "transformers", 
+    "datasets", 
+    "accelerate", 
+    "peft", 
+    "wandb",
+    "numpy",
+    "pandas"
+]
+
+# mypy configuration
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+
+
+# pytest configuration lives in pytest.ini (the single source of truth for
+# the test runner config). pyproject deliberately does NOT redefine
+# [tool.pytest.ini_options] to avoid two places silently diverging.
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src/safetune"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__init__.py",
+    "*/examples/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Ruff configuration (modern linter alternative to flake8)
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["B011"]
+
+# Bandit security linting
+[tool.bandit]
+exclude_dirs = ["tests", "examples"]
+skips = ["B101", "B601"]
