@@ -17,8 +17,10 @@ flowchart TB
     A --> ST["Stub<br/>not implemented"]
 ```
 
-Every method has been faithfulness-audited against its cited paper. The verdict
-distribution:
+Shipped methods are faithfulness-audited against their cited papers; recently
+added methods may carry a pending verdict in the
+[checklist](../reference/LIBRARY_CHECKLIST.csv) until their audit completes.
+The verdict categories:
 
 | Status | Meaning |
 |---|---|
