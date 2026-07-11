@@ -1,0 +1,2701 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+      
+      
+      
+        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/reference/references/">
+      
+      
+        <link rel="prev" href="../cli/">
+      
+      
+        <link rel="next" href="../feature-map/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/compass.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+  
+    <title>References · SafeTune</title>
+  
+
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Schibsted+Grotesk:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Schibsted Grotesk";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../assets/safetune.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  
+  
+  
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SafeTune">
+  <meta property="og:title" content="References · SafeTune">
+  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/reference/references/">
+  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-compass-logo.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="References · SafeTune">
+  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-compass-logo.png">
+
+  <!-- Structured data: this is an open-source software library -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "SafeTune",
+    "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
+    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.12+",
+    "license": "https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md",
+    "author": [
+      {"@type": "Person", "name": "Pratinav Seth"},
+      {"@type": "Person", "name": "Anshul Kaushal"},
+      {"@type": "Person", "name": "Saisab Sadhu"},
+      {"@type": "Person", "name": "Vinay Kumar Sankarapu"}
+    ],
+    "keywords": "LLM safety, safety fine-tuning, safety drift, refusal, unlearning, activation steering, mechanistic interpretability, red-teaming, model evaluation, alignment"
+  }
+  </script>
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#safetune-references" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SafeTune" class="md-header__button md-logo" aria-label="SafeTune" data-md-component="logo">
+      
+  <img src="../../assets/compass.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SafeTune
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              References
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Lexsi-Labs/SafeTune" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Lexsi-Labs/SafeTune
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user-guide/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../community/faq/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SafeTune" class="md-nav__button md-logo" aria-label="SafeTune" data-md-component="logo">
+      
+  <img src="../../assets/compass.svg" alt="logo">
+
+    </a>
+    SafeTune
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Lexsi-Labs/SafeTune" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Lexsi-Labs/SafeTune
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../getting-started/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../user-guide/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../api/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    References
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    References
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#recover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recover
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unlearn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unlearn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#harden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Harden
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#evaluate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evaluate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Evaluate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#red-team-attacks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red-team attacks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#judges-evaluation-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Judges &amp; evaluation infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interpret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interpret
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-rewards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime &amp; Rewards
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../system-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../examples/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../community/faq/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#recover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recover
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unlearn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unlearn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#harden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Harden
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#evaluate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evaluate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Evaluate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#red-team-attacks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red-team attacks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#judges-evaluation-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Judges &amp; evaluation infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interpret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interpret
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-rewards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime &amp; Rewards
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Lexsi-Labs/SafeTune/edit/main/docs/reference/references.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="safetune-references">SafeTune — References<a class="headerlink" href="#safetune-references" title="Permanent link">&para;</a></h1>
+<p>This document lists the ~100 methods shipped in SafeTune, organized by pillar. Each row links the implementation to its originating paper and lists the non-obvious inputs required. For a runnable example and full parameter reference for any method, see its page under <a href="../../user-guide/">User Guide</a>.</p>
+<pre class="mermaid"><code>flowchart TD
+    R["SafeTune · ~100 methods"]
+    R --&gt; HARD["Harden · 27&lt;br/&gt;training-time defenses"]
+    R --&gt; REC["Recover · 26&lt;br/&gt;training-free weight patching"]
+    R --&gt; EVAL["Evaluate · 24&lt;br/&gt;redteam + judges + benchmarks"]
+    R --&gt; STEER["Steer · 19&lt;br/&gt;inference-time intervention"]
+    R --&gt; UNL["Unlearn · 6&lt;br/&gt;forget-set training"]
+    R --&gt; INTERP["Interpret · 6&lt;br/&gt;safety neurons + circuits"]
+    R --&gt; OTHER["Runtime · Rewards · Data · Utils"]</code></pre>
+<h2 id="recover">Recover<a class="headerlink" href="#recover" title="Permanent link">&para;</a></h2>
+<p>Methods that restore safety to a model that has already been fine-tuned (or otherwise degraded).</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Paper</th>
+<th>Venue / Year</th>
+<th>arXiv</th>
+<th>Repo</th>
+<th>Description</th>
+<th>Requires</th>
+<th>Outputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>apply_ctheta</code></td>
+<td>C-ΔΘ: Circuit-Restricted Weight Arithmetic for Selective Refusal</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2602.04521">2602.04521</a></td>
+<td>—</td>
+<td>Subtracts the harmful fine-tuning delta scaled by α to recover safety-aligned weights.</td>
+<td>aligned + base + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_ctheta_from_state_dicts</code></td>
+<td>C-Θ (state-dict variant)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2602.04521">2602.04521</a></td>
+<td>—</td>
+<td>C-Θ weight arithmetic operating on bare state dicts for use in training loops or multi-step recovery pipelines.</td>
+<td>aligned + base + fine-tuned model state dicts</td>
+<td>patched state dict</td>
+</tr>
+<tr>
+<td><code>sweep_ctheta_strength</code></td>
+<td>C-Θ (strength sweep)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2602.04521">2602.04521</a></td>
+<td>—</td>
+<td>Sweeps α over a grid and returns patched models per strength for Pareto-front analysis.</td>
+<td>aligned + base + fine-tuned model</td>
+<td>list of patched models</td>
+</tr>
+<tr>
+<td><code>task_arithmetic</code></td>
+<td>Editing Models with Task Arithmetic (Ilharco et al.)</td>
+<td>ICLR 2023</td>
+<td><a href="https://arxiv.org/abs/2212.04089">2212.04089</a></td>
+<td><a href="https://github.com/mlfoundations/task_vectors">mlfoundations/task_vectors</a></td>
+<td>Adds <span class="arithmatex">\(\alpha \times (\theta_{\text{aligned}} - \theta_{\text{base}})\)</span> to the fine-tuned model to restore alignment via task-vector arithmetic.</td>
+<td>aligned + base + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>somf_merge</code></td>
+<td>SOMF (task-vector disentanglement)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2405.09055">2405.09055</a></td>
+<td>—</td>
+<td>Applies subspace-masked additive fusion onto the aligned model to disentangle safety from task knowledge. Faithful only when a learned mask is passed; the default magnitude-mask is a SafeTune variant.</td>
+<td>aligned + base + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>learn_somf_mask</code></td>
+<td>SOMF (mask learning)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2405.09055">2405.09055</a></td>
+<td>—</td>
+<td>Learns a safety subspace mask via Concrete-relaxation + DPO mask training. Pass the learned mask to <code>somf_merge()</code> for faithful execution.</td>
+<td>aligned + fine-tuned model + preference data</td>
+<td>learned mask</td>
+</tr>
+<tr>
+<td><code>apply_safemerge</code></td>
+<td>SafeMERGE (Djuhera et al.)</td>
+<td>ICLR 2025 Workshop</td>
+<td><a href="https://arxiv.org/abs/2503.17239">2503.17239</a></td>
+<td><a href="https://github.com/aladinD/SafeMERGE">aladinD/SafeMERGE</a></td>
+<td>Merges unsafe fine-tuned layers toward the safety-aligned model via per-layer cosine gating on the safety-subspace projection.</td>
+<td>aligned + base model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_resta</code></td>
+<td>RESTA (Bhardwaj et al.)</td>
+<td>ACL 2024</td>
+<td><a href="https://arxiv.org/abs/2402.11746">2402.11746</a></td>
+<td><a href="https://github.com/declare-lab/resta">declare-lab/resta</a></td>
+<td>Adds a safety vector via task arithmetic then applies DARE drop-and-rescale to suppress harmful drift.</td>
+<td>aligned + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_lox</code></td>
+<td>LoX (Perin et al.)</td>
+<td>COLM 2025</td>
+<td><a href="https://arxiv.org/abs/2506.15606">2506.15606</a></td>
+<td>—</td>
+<td>Performs low-rank extrapolation of the safety subspace that pulls the fine-tuned model back toward the aligned base point.</td>
+<td>aligned + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_safe_lora</code></td>
+<td>Safe LoRA</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2405.16833">2405.16833</a></td>
+<td>—</td>
+<td>Projects LoRA adapter updates into the safety-orthogonal subspace defined by alignment matrix C.</td>
+<td>aligned model + LoRA adapter</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_safe_delta</code></td>
+<td>Safe Delta</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2505.12038">2505.12038</a></td>
+<td>—</td>
+<td>Uses OBS-style second-order delta editing to prune parameter changes that encode harmful behaviour.</td>
+<td>aligned + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_antidote</code></td>
+<td>Antidote (Huang et al.)</td>
+<td>ICML 2025</td>
+<td><a href="https://arxiv.org/abs/2408.09600">2408.09600</a></td>
+<td><a href="https://github.com/git-disl/Antidote">git-disl/Antidote</a></td>
+<td>Prunes harmful weights identified by WANDA scores computed on harmful calibration prompts.</td>
+<td>fine-tuned model + harmful calibration prompts</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_mscp</code></td>
+<td>MSCP</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2508.09190">2508.09190</a></td>
+<td>—</td>
+<td>Projects model weights into the safe-model weight subspace to restore safety properties.</td>
+<td>aligned + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_nlsr</code></td>
+<td>NLSR (Yi et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2412.12497">2412.12497</a></td>
+<td>—</td>
+<td>Transplants stage-3 layers from the aligned model and gates them with a τ-threshold mask.</td>
+<td>aligned + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_pke</code></td>
+<td>PKE — Precision Knowledge Editing (Li et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2410.03772">2410.03772</a></td>
+<td><a href="https://github.com/HydroXai/Enhancing-Safety-in-Large-Language-Models">HydroXai/Enhancing-Safety-in-Large-Language-Models</a></td>
+<td>Applies gradient-based knowledge editing targeted at neurons identified as toxic hotspots.</td>
+<td>aligned (clean) + toxic fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_safereact</code></td>
+<td>SafeReAct</td>
+<td>NeurIPS 2025</td>
+<td>—</td>
+<td><a href="https://github.com/homles11/SafeReAct">homles11/SafeReAct</a></td>
+<td>Reactivates suppressed safety neurons via LoRRA representation training against the aligned model.</td>
+<td>aligned + post-trained model; optional probe inputs</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_qresafe</code></td>
+<td>Q-resafe (Chen et al.)</td>
+<td>ICML 2025</td>
+<td><a href="https://arxiv.org/abs/2506.20251">2506.20251</a></td>
+<td><a href="https://github.com/Thecommonirin/Qresafe">Thecommonirin/Qresafe</a></td>
+<td>Identifies safety-critical neurons via SNIP scoring then retrains them with LoRA-DPO on preference data.</td>
+<td>aligned + fine-tuned model + preference data</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_aaq</code></td>
+<td>AAQ (Wee et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2511.07842">2511.07842</a></td>
+<td>—</td>
+<td>Recovers safety lost during quantization using top-K KL APC loss on an RTN-quantized model.</td>
+<td>aligned + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_lssf</code></td>
+<td>LSSF</td>
+<td>ACL 2025</td>
+<td><a href="https://arxiv.org/abs/2602.00038">2602.00038</a></td>
+<td>—</td>
+<td>Selects a safety subspace by entropy-rank analysis then projects weights back with weighted blending.</td>
+<td>aligned + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td>`apply_deeprefusal`</td>
+<td>— (SafeTune-original heuristic)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Training-free counter-abliteration that projects the refusal direction back into the model's residual stream.</td>
+<td>fine-tuned model</td>
+<td>patched model</td>
+</tr>
+<tr>
+<td><code>apply_prepost_merge</code></td>
+<td>Pre + Post Merge</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Applies weight averaging between base + aligned (pre-merge) and then with the fine-tuned model (post-merge) for two-stage recovery.</td>
+<td>aligned + base + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_wise_ft</code></td>
+<td>WiSE-FT (Wortsman et al.)</td>
+<td>CVPR 2022</td>
+<td><a href="https://arxiv.org/abs/2109.01903">2109.01903</a></td>
+<td>—</td>
+<td>Weight-space ensembling between the fine-tuned and aligned models with interpolation coefficient α.</td>
+<td>aligned + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_safety_vector_restore</code></td>
+<td>Safety Vector Restore</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Computes a truncated-SVD safety subspace from aligned vs. base delta and projects the fine-tuned weights into it.</td>
+<td>aligned + base + fine-tuned model</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_grad_selective_recover</code></td>
+<td>Gradient-Selective Recover</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Restores only the safety-critical dimensions identified by gradient-based attribution scores on harmful probes.</td>
+<td>aligned + fine-tuned model + harmful probes</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_oneshot_safety_patch</code></td>
+<td>One-Shot Safety Patch</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Surgically patches individual parameter entries identified by their contribution to harmful output, using OBS-style pruning scores.</td>
+<td>fine-tuned model + harmful probes</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_antidote_v2</code></td>
+<td>Antidote v2 (Wanda-Klon)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Improved Antidote using normalised Wanda scores with dynamic threshold selection; prunes a larger fraction of weights than v1.</td>
+<td>fine-tuned model + harmful calibration prompts</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>apply_repnoise_recover</code></td>
+<td>RepNoise (recover variant)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2405.14577">2405.14577</a></td>
+<td>—</td>
+<td>Applies gradient-based representation-noise perturbation on the drifted model, tuned for recover (not train-time defence).</td>
+<td>drifted model + retain data</td>
+<td>patched weights</td>
+</tr>
+<tr>
+<td><code>scrub_unlearn</code></td>
+<td>SCRUB (Kurmanji et al.)</td>
+<td>NeurIPS 2023</td>
+<td><a href="https://arxiv.org/abs/2302.09880">2302.09880</a></td>
+<td><a href="https://github.com/meghdadk/SCRUB">meghdadk/SCRUB</a></td>
+<td>Distills toward a reference teacher on the retain set while pushing away from it on the forget set.</td>
+<td>forget data + retain data</td>
+<td>unlearned model</td>
+</tr>
+<tr>
+<td><code>tracin_influence</code></td>
+<td>TracIn (Pruthi et al.)</td>
+<td>NeurIPS 2020</td>
+<td><a href="https://arxiv.org/abs/2002.08484">2002.08484</a></td>
+<td><a href="https://github.com/frederick0329/TracIn">frederick0329/TracIn</a></td>
+<td>Computes per-example influence scores as gradient dot-products summed across training checkpoints.</td>
+<td>checkpoints + training examples</td>
+<td>per-example influence scores</td>
+</tr>
+</tbody>
+</table>
+<h2 id="unlearn">Unlearn<a class="headerlink" href="#unlearn" title="Permanent link">&para;</a></h2>
+<p>Methods that remove a specific capability from a finished model via forget/retain training.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Paper</th>
+<th>Venue / Year</th>
+<th>arXiv</th>
+<th>Repo</th>
+<th>Description</th>
+<th>Requires</th>
+<th>Outputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RMU</code></td>
+<td>RMU — Representation Misdirection for Unlearning (Li et al., WMDP)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2403.03218">2403.03218</a></td>
+<td><a href="https://github.com/centerforaisafety/wmdp">centerforaisafety/wmdp</a></td>
+<td>Steers hidden representations for harmful content onto a random anchor while preserving retain-set behaviour.</td>
+<td>forget data + retain data</td>
+<td>unlearned model</td>
+</tr>
+<tr>
+<td><code>NPO</code></td>
+<td>NPO — Negative Preference Optimization (Zhang et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2404.05868">2404.05868</a></td>
+<td>—</td>
+<td>Applies sigmoid-bounded negative log-likelihood on the forget set as a stable unlearning objective.</td>
+<td>forget data</td>
+<td>unlearned model</td>
+</tr>
+<tr>
+<td><code>GradientAscent</code> / <code>GradDiff</code></td>
+<td>TOFU (Maini et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2401.06121">2401.06121</a></td>
+<td>—</td>
+<td>Performs gradient ascent on the forget set; GradDiff adds a KL-preservation term on the retain set.</td>
+<td>forget data (+ retain data for GradDiff)</td>
+<td>unlearned model</td>
+</tr>
+<tr>
+<td><code>crisp_unlearn</code></td>
+<td>CRISP (Ashuach et al.)</td>
+<td>2025</td>
+<td><a href="https://arxiv.org/abs/2508.13650">2508.13650</a></td>
+<td>—</td>
+<td>Fine-tunes the model to suppress a set of target SAE feature activations on the forget set, making the concept removal persistent and runtime-free.</td>
+<td>frozen SAE + concept feature indices + forget/retain data</td>
+<td>concept-suppressed model</td>
+</tr>
+<tr>
+<td><code>flat_unlearn</code></td>
+<td>FLAT (f-divergence unlearning)</td>
+<td>ICLR 2025</td>
+<td><a href="https://arxiv.org/abs/2410.11143">2410.11143</a></td>
+<td>—</td>
+<td>Reference-free unlearning that maximises an f-divergence between refusal and harmful answer distributions for each forget prompt.</td>
+<td>forget data + retain data</td>
+<td>unlearned model</td>
+</tr>
+<tr>
+<td><code>simdpo_unlearn</code></td>
+<td>SimDPO (reference-free DPO unlearning; SimPO-based)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2405.14734">2405.14734</a></td>
+<td>—</td>
+<td>Treats harmful completions as rejected and safe refusals as chosen; runs DPO without a reference model.</td>
+<td>harmful pairs + retain data</td>
+<td>unlearned model</td>
+</tr>
+</tbody>
+</table>
+<h2 id="harden">Harden<a class="headerlink" href="#harden" title="Permanent link">&para;</a></h2>
+<p>Methods that make fine-tuning itself safer, so alignment is harder to degrade in the first place.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Paper</th>
+<th>Venue / Year</th>
+<th>arXiv</th>
+<th>Repo</th>
+<th>Description</th>
+<th>Requires</th>
+<th>Outputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CSTTrainer</code></td>
+<td>CST — Configurable Safety Tuning (Gallego)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2404.00495">2404.00495</a></td>
+<td><a href="https://github.com/vicgalle/configurable-safety-tuning">vicgalle/configurable-safety-tuning</a></td>
+<td>Wraps <code>trl.DPOTrainer</code> with the CST data formatting step so safety behaviour can be toggled by a system-prompt configuration.</td>
+<td>preference data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>EMACallback</code></td>
+<td>— (standard EMA)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Maintains an exponential moving average of model weights throughout training for a more stable checkpoint.</td>
+<td>—</td>
+<td>EMA checkpoint</td>
+</tr>
+<tr>
+<td><code>SafeGradTrainer</code></td>
+<td>SafeGrad (Yi et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2508.07172">2508.07172</a></td>
+<td>—</td>
+<td>Projects gradients away from the safety-relevant parameter subspace at each optimizer step.</td>
+<td>SFT data + safety reference</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>SPPFTTrainer</code></td>
+<td>SPPFT (Li et al.)</td>
+<td>ICLR 2025</td>
+<td><a href="https://arxiv.org/abs/2408.17003">2408.17003</a></td>
+<td>—</td>
+<td>Freezes the identified safety layers so those parameters are not updated during fine-tuning.</td>
+<td>SFT data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>DeRTaTrainer</code></td>
+<td>DeRTa — Decoupled Refusal Training (Yuan et al.)</td>
+<td>ACL 2025</td>
+<td><a href="https://arxiv.org/abs/2407.09121">2407.09121</a></td>
+<td>—</td>
+<td>Trains with a per-token refusing-to-answer loss appended to each SFT example.</td>
+<td>SFT data + refusal annotations</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>ASRTCallback</code></td>
+<td>— (SafeTune-original, MART-lineage heuristic)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2311.07689">2311.07689</a> (related)</td>
+<td>—</td>
+<td>Callback that adversarially perturbs inputs at each training step to expose the model to worst-case inputs.</td>
+<td>SFT data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>LisaTrainer</code></td>
+<td>Lisa — Lazy Safety Alignment (Huang et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2405.18641">2405.18641</a></td>
+<td>—</td>
+<td>Alternates a bi-state proximal optimization between task data and alignment data during fine-tuning.</td>
+<td>task data + safety data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>AsFTTrainer</code></td>
+<td>AsFT (Yang et al.)</td>
+<td>NeurIPS 2025</td>
+<td><a href="https://arxiv.org/abs/2506.08473">2506.08473</a></td>
+<td>—</td>
+<td>Anchors safety during fine-tuning by keeping updates within a narrow safety basin around the aligned model.</td>
+<td>SFT data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>STARDSSTrainer</code></td>
+<td>STAR-DSS (Peng et al.)</td>
+<td>NeurIPS 2025</td>
+<td><a href="https://arxiv.org/abs/2505.17196">2505.17196</a></td>
+<td>—</td>
+<td>Applies a dynamic safety-shaping loss during SFT to restore safety while fine-tuning.</td>
+<td>SFT data + unsafe token list</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>SAPTrainer</code></td>
+<td>SAP — Safety-Aware Probing (Wu et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2505.16737">2505.16737</a></td>
+<td>—</td>
+<td>Uses a hidden-state safety probe inside a bilevel optimization inner loop to prevent alignment degradation.</td>
+<td>SFT data + safety probe</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>DOORTrainer</code></td>
+<td>DOOR (Zhao et al.)</td>
+<td>ICML 2025</td>
+<td><a href="https://arxiv.org/abs/2503.03710">2503.03710</a></td>
+<td><a href="https://github.com/wicai24/DOOR-Alignment">wicai24/DOOR-Alignment</a></td>
+<td>Combines refusal MLE with NPO unlearning on harmful pairs; W-DOOR adds per-token proxy-reward weighting.</td>
+<td>refusal pairs + harmful pairs (+ proxy DPO model for W-DOOR)</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>LookAheadTrainer</code></td>
+<td>LookAhead Tuning (Liu et al.)</td>
+<td>WSDM 2026</td>
+<td><a href="https://arxiv.org/abs/2503.19041">2503.19041</a></td>
+<td><a href="https://github.com/zjunlp/LookAheadTuning">zjunlp/LookAheadTuning</a></td>
+<td>Inserts a partial answer preview between prompt and answer tokens to anchor safety alignment during SFT.</td>
+<td>SFT data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>AntibodyTrainer</code></td>
+<td>Antibody (Nguyen et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2603.00498">2603.00498</a></td>
+<td>—</td>
+<td>Combines SAM-based flatness optimization with likelihood-ratio data reweighting for robustness; <code>xi</code> param implements the Theorem 4.1 coefficient.</td>
+<td>SFT data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>vaccine_loss</code></td>
+<td>Vaccine (Huang et al.)</td>
+<td>NeurIPS 2024</td>
+<td><a href="https://arxiv.org/abs/2402.01109">2402.01109</a></td>
+<td>—</td>
+<td>Applies layer-wide hidden-state perturbations during SFT to immunize the model against harmful fine-tuning.</td>
+<td>SFT data</td>
+<td>loss scalar</td>
+</tr>
+<tr>
+<td><code>SurgeryTrainer</code></td>
+<td>Surgery (Liu et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2602.05228">2602.05228</a></td>
+<td>—</td>
+<td>Trains a divergence between harmful-sink and refusal-sink representations to reinforce refusal behaviour; faithful path uses a separate <code>harmful_dataset</code> batch.</td>
+<td>refusal batch</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>booster_project</code></td>
+<td>Booster (Huang et al.)</td>
+<td>ICLR 2025</td>
+<td><a href="https://arxiv.org/abs/2409.01586">2409.01586</a></td>
+<td><a href="https://github.com/git-disl/Booster">git-disl/Booster</a></td>
+<td>Estimates gradient regularization via simulated finite-difference perturbations to resist fine-tuning attacks.</td>
+<td>SFT data</td>
+<td>gradient projection</td>
+</tr>
+<tr>
+<td><code>SaLoRA</code></td>
+<td>SaLoRA (Li et al.)</td>
+<td>ICLR 2025</td>
+<td><a href="https://arxiv.org/abs/2501.01765">2501.01765</a></td>
+<td>—</td>
+<td>Derives a fixed safety LoRA module from the safety subspace and initializes a task-specific LoRA from it.</td>
+<td>SFT data</td>
+<td>LoRA adapter</td>
+</tr>
+<tr>
+<td><code>tar_outer_loss</code></td>
+<td>TAR (Tamirisa et al.)</td>
+<td>ICLR 2025</td>
+<td><a href="https://arxiv.org/abs/2408.00761">2408.00761</a></td>
+<td><a href="https://github.com/rishub-tamirisa/tamper-resistance">rishub-tamirisa/tamper-resistance</a></td>
+<td>First-order meta-learning outer loss that explicitly trains the model to resist adversarial fine-tuning.</td>
+<td>retain/harm/safety batches</td>
+<td>differentiable loss scalar</td>
+</tr>
+<tr>
+<td><code>RepNoiseTrainer</code></td>
+<td>RepNoise (Rosati et al.)</td>
+<td>NeurIPS 2024</td>
+<td><a href="https://arxiv.org/abs/2405.14577">2405.14577</a></td>
+<td>—</td>
+<td>Injects representation noise during fine-tuning so a downstream recover step can easily remove the drift.</td>
+<td>SFT data + retain data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>SEAMTrainer</code></td>
+<td>SEAM — Self-Destructive Language Models (Wang, Yang et al.)</td>
+<td>ICLR 2026</td>
+<td><a href="https://arxiv.org/abs/2505.12186">2505.12186</a></td>
+<td>—</td>
+<td>Trains the model so that harmful fine-tuning collapses its usefulness, deterring tampering.</td>
+<td>SFT data + harm annotations</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>CTRAPTrainer</code></td>
+<td>CTRAP — Collapse Trap (Yi et al.)</td>
+<td>2025</td>
+<td><a href="https://arxiv.org/abs/2505.16559">2505.16559</a></td>
+<td>—</td>
+<td>Embeds a collapse trap so that harmful fine-tuning degrades the model's general capability.</td>
+<td>SFT data + adversarial triggers</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>MARTTrainer</code></td>
+<td>MART — Multi-round Automatic Red-Teaming (Ge et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2311.07689">2311.07689</a></td>
+<td>—</td>
+<td>Co-evolves an adversarial prompt generator and the target model over rounds, SFT-training the target on each round's successful attacks.</td>
+<td>SFT data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>DeepRefusalTrainer</code></td>
+<td>Deep Refusal</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2509.15202">2509.15202</a></td>
+<td>—</td>
+<td>LoRA fine-tuning that probabilistically ablates the refusal direction so refusal is rebuilt at greater depth.</td>
+<td>refusal pairs</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>TVaccineTrainer</code> / <code>tvaccine_loss</code></td>
+<td>T-Vaccine</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Layer-selective SAM perturbation: perturbs only the top-k safety-critical layers identified by gradient norm.</td>
+<td>SFT data</td>
+<td>loss scalar</td>
+</tr>
+<tr>
+<td><code>SEALTrainer</code></td>
+<td>SEAL (Shen et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2410.07471">2410.07471</a></td>
+<td>—</td>
+<td>Selects safety-sensitive training examples via gradient-cosine scoring and up-weights them during SFT.</td>
+<td>SFT data</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>ConstrainedSFTTrainer</code></td>
+<td>Constrained SFT (Qi et al.)</td>
+<td>ICLR 2025</td>
+<td><a href="https://arxiv.org/abs/2406.05946">2406.05946</a></td>
+<td>—</td>
+<td>Constrains SFT to preserve the safety-critical response prefix that standard fine-tuning erodes.</td>
+<td>SFT data + reference model</td>
+<td>hardened trainer</td>
+</tr>
+<tr>
+<td><code>apply_lox_harden</code></td>
+<td>LoX (harden variant, Perin et al.)</td>
+<td>COLM 2025</td>
+<td><a href="https://arxiv.org/abs/2506.15606">2506.15606</a></td>
+<td>—</td>
+<td>Pre-FT extrapolation that strengthens the aligned model's safety subspace before fine-tuning starts.</td>
+<td>base model + aligned model</td>
+<td>pre-conditioned model</td>
+</tr>
+</tbody>
+</table>
+<h2 id="steer">Steer<a class="headerlink" href="#steer" title="Permanent link">&para;</a></h2>
+<p>Inference-time wrappers and decoding processors that steer model behaviour without modifying weights.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Paper</th>
+<th>Venue / Year</th>
+<th>arXiv</th>
+<th>Repo</th>
+<th>Description</th>
+<th>Requires</th>
+<th>Outputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>extract_refusal_direction</code> + <code>RefusalDirectionModel</code></td>
+<td>Refusal Direction (Arditi et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2406.11717">2406.11717</a></td>
+<td>—</td>
+<td>Extracts the mean-difference refusal direction from contrast prompts and hooks it into the residual stream at inference.</td>
+<td>contrast prompts</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>CAA</code> / <code>CAAModel</code></td>
+<td>CAA — Contrastive Activation Addition (Panickssery et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2312.06681">2312.06681</a></td>
+<td>—</td>
+<td>Adds layer-wise steering vectors derived from contrastive prompt pairs to shift model behaviour at inference.</td>
+<td>contrast prompts</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>LinearProbeGuardModel</code></td>
+<td>Linear Probe Safety Guard</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Trains a linear classifier on hidden states to detect harmful queries and route them to a canned refusal before generation.</td>
+<td>labeled prompts</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>ContrastiveDecodingProcessor</code></td>
+<td>Contrastive Decoding (O'Brien &amp; Lewis)</td>
+<td>2023</td>
+<td><a href="https://arxiv.org/abs/2309.09117">2309.09117</a></td>
+<td>—</td>
+<td>Subtracts amateur model logits from expert model logits at each decoding step to suppress unsafe completions.</td>
+<td>amateur model</td>
+<td>logits processor</td>
+</tr>
+<tr>
+<td><code>ProxyTuningProcessor</code></td>
+<td>Proxy Tuning (Liu et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2401.08565">2401.08565</a></td>
+<td>—</td>
+<td>Transfers the steering delta from a small tuned/untuned pair to a large base model at decoding time.</td>
+<td>large base model + small base model + small tuned model</td>
+<td>logits processor</td>
+</tr>
+<tr>
+<td><code>SafeDecodingProcessor</code></td>
+<td>SafeDecoding (Xu et al.)</td>
+<td>ACL 2024</td>
+<td><a href="https://arxiv.org/abs/2402.08983">2402.08983</a></td>
+<td>—</td>
+<td>Blends target logits with a safety-tuned guide at the shared vocabulary intersection over the first m generated tokens.</td>
+<td>safety expert model</td>
+<td>logits processor</td>
+</tr>
+<tr>
+<td><code>AlphaSteerModel</code></td>
+<td>AlphaSteer</td>
+<td>ICLR 2026</td>
+<td><a href="https://arxiv.org/abs/2506.07022">2506.07022</a></td>
+<td>—</td>
+<td>Applies null-space-constrained activation steering along the refusal direction with a learned α coefficient.</td>
+<td>refusal direction vectors</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>RepBendModel</code></td>
+<td>RepBend (Yousefpour et al.)</td>
+<td>ACL 2025</td>
+<td><a href="https://arxiv.org/abs/2504.01550">2504.01550</a></td>
+<td>—</td>
+<td>Optimizes a representation-bending loss to shape hidden states toward safe representations.</td>
+<td>contrast data</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>TARModel</code></td>
+<td>TAR (Tamirisa et al.)</td>
+<td>ICLR 2025</td>
+<td><a href="https://arxiv.org/abs/2408.00761">2408.00761</a></td>
+<td><a href="https://github.com/rishub-tamirisa/tamper-resistance">rishub-tamirisa/tamper-resistance</a></td>
+<td>Training-time wrapper that routes the forward pass through <code>tar_outer_loss</code> for tamper-resistant training.</td>
+<td>—</td>
+<td>trained model</td>
+</tr>
+<tr>
+<td><code>SafeSteerModel</code></td>
+<td>SafeSteer (Ghosh et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2506.04250">2506.04250</a></td>
+<td>—</td>
+<td>Prunes steering vectors via subspace projection and median-norm thresholding before applying them.</td>
+<td>steering vectors</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>SafeSwitchModel</code></td>
+<td>SafeSwitch (Han et al.)</td>
+<td>Findings of EMNLP 2025</td>
+<td><a href="https://arxiv.org/abs/2502.01042">2502.01042</a></td>
+<td><a href="https://github.com/Hanpx20/SafeSwitch">Hanpx20/SafeSwitch</a></td>
+<td>Runs a two-stage safety prober that switches generation to a safe path when a threat is detected.</td>
+<td>safety probe data</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>SCANSModel</code></td>
+<td>SCANS (Cao et al.)</td>
+<td>AAAI 2025</td>
+<td><a href="https://arxiv.org/abs/2408.11491">2408.11491</a></td>
+<td>—</td>
+<td>Selects steering layers by vocabulary-projection analysis then applies transition-based adaptive sign steering.</td>
+<td>contrast data</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>STAModel</code></td>
+<td>STA — Steering Target Atoms (Wang et al.)</td>
+<td>ACL 2025</td>
+<td><a href="https://arxiv.org/abs/2505.20322">2505.20322</a></td>
+<td><a href="https://github.com/zjunlp/steer-target-atoms">zjunlp/steer-target-atoms</a></td>
+<td>Steers safety-relevant SAE latent atoms for fine-grained control over harmful-content generation.</td>
+<td>SAE + safety latent indices</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>CircuitBreakerModel</code></td>
+<td>Circuit Breakers (Zou et al.)</td>
+<td>NeurIPS 2024</td>
+<td><a href="https://arxiv.org/abs/2406.04313">2406.04313</a></td>
+<td><a href="https://github.com/GraySwanAI/circuit-breakers">GraySwanAI/circuit-breakers</a></td>
+<td>Applies LoRRA representation-rerouting training to redirect harmful representations.</td>
+<td>harmful + benign data</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>CircuitBreakerRRModel</code></td>
+<td>Circuit Breakers RR</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2406.04313">2406.04313</a></td>
+<td>—</td>
+<td>RR variant of Circuit Breakers applying the LoRRA rerouting loss with a representation-redirect head.</td>
+<td>harmful + benign data</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>NudgingProcessor</code></td>
+<td>Nudging (Fei et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2410.09300">2410.09300</a></td>
+<td><a href="https://github.com/fywalter/nudging">fywalter/nudging</a></td>
+<td>Nudges generation toward a safer model when the base model's top-token probability falls below a threshold.</td>
+<td>nudge model</td>
+<td>logits processor</td>
+</tr>
+<tr>
+<td><code>AdaSteerModel</code></td>
+<td>AdaSteer</td>
+<td>EMNLP 2025</td>
+<td><a href="https://arxiv.org/abs/2504.09466">2504.09466</a></td>
+<td><a href="https://github.com/MuyuenLP/AdaSteer">MuyuenLP/AdaSteer</a></td>
+<td>Applies adaptive dual-direction steering (refusal + harm directions) with per-input logistic coefficients.</td>
+<td>RD/HD steering vectors + calibration data</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>RRFAEnsemble</code></td>
+<td>RRFA (Ozdincer)</td>
+<td>COLM 2026</td>
+<td>—</td>
+<td><a href="https://github.com/memo-ozdincer/RRFA">memo-ozdincer/RRFA</a></td>
+<td>Training-time LoRA representation-rerouting for agentic injection defense; acts as a no-op wrapper at inference.</td>
+<td>pre-trained RRFA LoRA checkpoint</td>
+<td>wrapped model (no-op at inference)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="evaluate">Evaluate<a class="headerlink" href="#evaluate" title="Permanent link">&para;</a></h2>
+<h3 id="red-team-attacks">Red-team attacks<a class="headerlink" href="#red-team-attacks" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Paper</th>
+<th>Venue / Year</th>
+<th>arXiv</th>
+<th>Repo</th>
+<th>Description</th>
+<th>Requires</th>
+<th>Outputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AbliterationAttack</code></td>
+<td>Abliteration (Arditi et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2406.11717">2406.11717</a></td>
+<td>—</td>
+<td>Removes the refusal direction from model weights to produce a maximally uncensored red-team baseline.</td>
+<td>—</td>
+<td>abliterated model</td>
+</tr>
+<tr>
+<td><code>BoNAttack</code></td>
+<td>Best-of-N Jailbreaking (Hughes et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2412.03556">2412.03556</a></td>
+<td>—</td>
+<td>Generates N augmented prompt variants and selects the one that elicits the most harmful completion.</td>
+<td>judge</td>
+<td>attack result</td>
+</tr>
+</tbody>
+</table>
+<h3 id="judges-evaluation-infrastructure">Judges &amp; evaluation infrastructure<a class="headerlink" href="#judges-evaluation-infrastructure" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Paper</th>
+<th>Venue / Year</th>
+<th>arXiv</th>
+<th>Repo</th>
+<th>Description</th>
+<th>Requires</th>
+<th>Outputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>StringMatchJudge</code></td>
+<td>— (canonical GCG/AdvBench prefix list)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Detects refusals via string-matching against a standard list of refusal prefixes.</td>
+<td>response string</td>
+<td>bool</td>
+</tr>
+<tr>
+<td><code>HFJudge</code></td>
+<td>HarmBench (Mazeika et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2402.04249">2402.04249</a></td>
+<td>—</td>
+<td>Scores model responses with a HuggingFace classifier (default <code>cais/HarmBench-Mistral-7b-val-cls</code>) using the official HarmBench classifier template.</td>
+<td>model response</td>
+<td>0/1 label</td>
+</tr>
+<tr>
+<td><code>OpenAIJudge</code></td>
+<td>StrongREJECT (Souly et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2402.10260">2402.10260</a></td>
+<td>—</td>
+<td>Autogrades responses with a GPT-4 StrongREJECT rubric on a 1–5 harmlessness scale.</td>
+<td>OpenAI API key + response</td>
+<td>1–5 score</td>
+</tr>
+<tr>
+<td><code>JudgeAdapter</code></td>
+<td>— (SafeTune infra)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Unified adapter that wraps any judge and normalizes its output to a common score format.</td>
+<td>judge instance</td>
+<td>normalized score</td>
+</tr>
+<tr>
+<td><code>SpectralEntropyMonitor</code></td>
+<td>— (SafeTune infra)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Monitors attention-entropy spectra across layers to detect distribution shift during inference.</td>
+<td>model + inputs</td>
+<td>entropy metrics</td>
+</tr>
+<tr>
+<td><code>evaluate</code></td>
+<td>— (SafeTune infra)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>End-to-end evaluation pipeline that runs a model against benchmarks and aggregates judge scores.</td>
+<td>benchmarks + judge</td>
+<td>metric dict</td>
+</tr>
+<tr>
+<td><code>TamperBenchEvaluator</code></td>
+<td>TamperBench</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2602.06911">2602.06911</a></td>
+<td>—</td>
+<td>Thin wrapper over the official <code>tamperbench</code> package; delegates the tamper-resistance metric to that harness.</td>
+<td><code>tamperbench</code> package + responses</td>
+<td>ASR</td>
+</tr>
+<tr>
+<td>Pareto utilities</td>
+<td>— (SafeTune infra)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Computes the safety/utility Pareto front across a set of (safety, utility) metric pairs.</td>
+<td>metric pairs</td>
+<td>Pareto front</td>
+</tr>
+<tr>
+<td>Dataset loaders (<code>advbench</code>, <code>xstest</code>, <code>sorrybench</code>, <code>orbench</code>, <code>harmbench</code>, <code>agentharm</code>, <code>saladbench</code>, <code>airbench</code>, <code>cares</code>, <code>wildjailbreak</code>, <code>jailbreakbench</code>, <code>muse</code>, <code>rwku</code>, <code>safedialbench</code>)</td>
+<td>Various</td>
+<td>Various</td>
+<td>Various</td>
+<td>Various</td>
+<td>Load each named safety benchmark as a ready-to-use pandas DataFrame.</td>
+<td>—</td>
+<td>benchmark DataFrames</td>
+</tr>
+</tbody>
+</table>
+<h2 id="interpret">Interpret<a class="headerlink" href="#interpret" title="Permanent link">&para;</a></h2>
+<p>Methods that localize safety-relevant structure (neurons, circuits, edges) inside a model.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Paper</th>
+<th>Venue / Year</th>
+<th>arXiv</th>
+<th>Repo</th>
+<th>Description</th>
+<th>Requires</th>
+<th>Outputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>identify_safety_neurons</code> (weight mode)</td>
+<td>Finding Safety Neurons (Chen et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2406.14144">2406.14144</a></td>
+<td>—</td>
+<td>Localizes safety-relevant weight columns by cosine of each output-projection column against the refusal direction.</td>
+<td>aligned reference model</td>
+<td>neuron indices</td>
+</tr>
+<tr>
+<td><code>identify_safety_neurons</code> (activation mode)</td>
+<td>Finding Safety Neurons (Chen et al.)</td>
+<td>—</td>
+<td><a href="https://arxiv.org/abs/2406.14144">2406.14144</a></td>
+<td>—</td>
+<td>Localizes safety neurons by contrasting activations on harmful vs. benign prompts. SafeTune variant: a one-model harmful-vs-benign contrast vs the cited papers' cross-checkpoint metric.</td>
+<td>contrast prompts</td>
+<td>neuron indices</td>
+</tr>
+<tr>
+<td><code>safety_circuit_info</code></td>
+<td>— (SafeTune infra)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Convenience wrapper that runs neuron identification and packages results into a <code>CircuitInfo</code> object.</td>
+<td>—</td>
+<td>CircuitInfo</td>
+</tr>
+<tr>
+<td><code>CircuitInfo</code> (+ JSON/YAML I/O)</td>
+<td>— (SafeTune infra)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Bidirectional round-trippable data structure for representing safety circuits; serializes to JSON and YAML.</td>
+<td>circuit data</td>
+<td>JSON / YAML</td>
+</tr>
+<tr>
+<td><code>eap_safety_circuit</code></td>
+<td>EAP-IG (Hanna et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2403.17806">2403.17806</a></td>
+<td><a href="https://github.com/hannamw/EAP-IG">hannamw/EAP-IG</a></td>
+<td>Runs integrated-gradient edge attribution patching to discover the safety circuit at edge resolution.</td>
+<td>contrast prompt pairs</td>
+<td>CircuitInfo</td>
+</tr>
+</tbody>
+</table>
+<h2 id="runtime-rewards">Runtime &amp; Rewards<a class="headerlink" href="#runtime-rewards" title="Permanent link">&para;</a></h2>
+<p>These components are SafeTune infrastructure: wrappers, formatters, and reward signals with no independent paper citation.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SafetyMiddleware</code></td>
+<td>Request/response middleware layer that gates generation through a configurable safety policy.</td>
+</tr>
+<tr>
+<td><code>InputSanitizer</code></td>
+<td>Sanitizes raw user inputs before they reach the model (strips injections, normalizes encoding).</td>
+</tr>
+<tr>
+<td><code>OutputVerifier</code></td>
+<td>Post-generation verifier that checks model outputs against a policy before returning them to the caller.</td>
+</tr>
+<tr>
+<td><code>CoSAlignFormatter</code></td>
+<td>Formats prompts according to the CoSAlign instruction template for alignment-consistent system prompts.</td>
+</tr>
+<tr>
+<td>Additional runtime guardrails</td>
+<td>Further configurable pre/post hooks (rate limiting, logging, PII redaction, etc.).</td>
+</tr>
+<tr>
+<td><code>SafetyRewardFunction</code> / <code>SafetyReward</code> / <code>ToxicityReward</code></td>
+<td>Judge-based or keyword-heuristic reward signals for use in RLHF training loops; require a judge or keyword list.</td>
+</tr>
+<tr>
+<td><code>BiasReward</code> / <code>HarmlessnessReward</code> / <code>HallucinationReward</code></td>
+<td>Additional keyword- or judge-based reward signals for bias, harmlessness, and hallucination.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../cli/" class="md-footer__link md-footer__link--prev" aria-label="Previous: CLI Reference">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                CLI Reference
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../feature-map/" class="md-footer__link md-footer__link--next" aria-label="Next: Feature Map">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Feature Map
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 <a href="https://lexsi.ai" target="_blank" rel="noopener">Lexsi Labs</a>
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/Lexsi-Labs/SafeTune" target="_blank" rel="noopener" title="SafeTune on GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://pypi.org/project/safetune/" target="_blank" rel="noopener" title="SafeTune on PyPI" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://x.com/Lexsi_labs" target="_blank" rel="noopener" title="Lexsi Labs on X" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M357.2 48h70.6L273.6 224.2 455 464H313L201.7 318.6 74.5 464H3.8l164.9-188.5L-5.2 48h145.6l100.5 132.9zm-24.8 373.8h39.1L119.1 88h-42z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://www.linkedin.com/company/lexsi-labs/" target="_blank" rel="noopener" title="Lexsi Labs on LinkedIn" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3M135.4 416H69V202.2h66.5V416zM102.2 96a38.5 38.5 0 1 1 0 77 38.5 38.5 0 1 1 0-77m282.1 320h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://huggingface.co/Lexsi" target="_blank" rel="noopener" title="Lexsi Labs on Hugging Face" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.025 1.13c-5.77 0-10.449 4.647-10.449 10.378 0 1.112.178 2.181.503 3.185.064-.222.203-.444.416-.577a.96.96 0 0 1 .524-.15c.293 0 .584.124.84.284.278.173.48.408.71.694.226.282.458.611.684.951v-.014c.017-.324.106-.622.264-.874s.403-.487.762-.543c.3-.047.596.06.787.203s.31.313.4.467c.15.257.212.468.233.542.01.026.653 1.552 1.657 2.54.616.605 1.01 1.223 1.082 1.912.055.537-.096 1.059-.38 1.572.637.121 1.294.187 1.967.187.657 0 1.298-.063 1.921-.178-.287-.517-.44-1.041-.384-1.581.07-.69.465-1.307 1.081-1.913 1.004-.987 1.647-2.513 1.657-2.539.021-.074.083-.285.233-.542.09-.154.208-.323.4-.467a1.08 1.08 0 0 1 .787-.203c.359.056.604.29.762.543s.247.55.265.874v.015c.225-.34.457-.67.683-.952.23-.286.432-.52.71-.694.257-.16.547-.284.84-.285a.97.97 0 0 1 .524.151c.228.143.373.388.43.625l.006.04a10.3 10.3 0 0 0 .534-3.273c0-5.731-4.678-10.378-10.449-10.378M8.327 6.583a1.5 1.5 0 0 1 .713.174 1.487 1.487 0 0 1 .617 2.013c-.183.343-.762-.214-1.102-.094-.38.134-.532.914-.917.71a1.487 1.487 0 0 1 .69-2.803m7.486 0a1.487 1.487 0 0 1 .689 2.803c-.385.204-.536-.576-.916-.71-.34-.12-.92.437-1.103.094a1.487 1.487 0 0 1 .617-2.013 1.5 1.5 0 0 1 .713-.174m-10.68 1.55a.96.96 0 1 1 0 1.921.96.96 0 0 1 0-1.92m13.838 0a.96.96 0 1 1 0 1.92.96.96 0 0 1 0-1.92M8.489 11.458c.588.01 1.965 1.157 3.572 1.164 1.607-.007 2.984-1.155 3.572-1.164.196-.003.305.12.305.454 0 .886-.424 2.328-1.563 3.202-.22-.756-1.396-1.366-1.63-1.32q-.011.001-.02.006l-.044.026-.01.008-.03.024q-.018.017-.035.036l-.032.04a1 1 0 0 0-.058.09l-.014.025q-.049.088-.11.19a1 1 0 0 1-.083.116 1.2 1.2 0 0 1-.173.18q-.035.029-.075.058a1.3 1.3 0 0 1-.251-.243 1 1 0 0 1-.076-.107c-.124-.193-.177-.363-.337-.444-.034-.016-.104-.008-.2.022q-.094.03-.216.087-.06.028-.125.063l-.13.074q-.067.04-.136.086a3 3 0 0 0-.135.096 3 3 0 0 0-.26.219 2 2 0 0 0-.12.121 2 2 0 0 0-.106.128l-.002.002a2 2 0 0 0-.09.132l-.001.001a1.2 1.2 0 0 0-.105.212q-.013.036-.024.073c-1.139-.875-1.563-2.317-1.563-3.203 0-.334.109-.457.305-.454m.836 10.354c.824-1.19.766-2.082-.365-3.194-1.13-1.112-1.789-2.738-1.789-2.738s-.246-.945-.806-.858-.97 1.499.202 2.362c1.173.864-.233 1.45-.685.64-.45-.812-1.683-2.896-2.322-3.295s-1.089-.175-.938.647 2.822 2.813 2.562 3.244-1.176-.506-1.176-.506-2.866-2.567-3.49-1.898.473 1.23 2.037 2.16c1.564.932 1.686 1.178 1.464 1.53s-3.675-2.511-4-1.297c-.323 1.214 3.524 1.567 3.287 2.405-.238.839-2.71-1.587-3.216-.642-.506.946 3.49 2.056 3.522 2.064 1.29.33 4.568 1.028 5.713-.624m5.349 0c-.824-1.19-.766-2.082.365-3.194 1.13-1.112 1.789-2.738 1.789-2.738s.246-.945.806-.858.97 1.499-.202 2.362c-1.173.864.233 1.45.685.64.451-.812 1.683-2.896 2.322-3.295s1.089-.175.938.647-2.822 2.813-2.562 3.244 1.176-.506 1.176-.506 2.866-2.567 3.49-1.898-.473 1.23-2.037 2.16c-1.564.932-1.686 1.178-1.464 1.53s3.675-2.511 4-1.297c.323 1.214-3.524 1.567-3.287 2.405.238.839 2.71-1.587 3.216-.642.506.946-3.49 2.056-3.522 2.064-1.29.33-4.568 1.028-5.713-.624"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../assets/safetune.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="../../javascripts/mathjax-tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

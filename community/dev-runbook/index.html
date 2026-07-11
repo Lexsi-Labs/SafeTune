@@ -1,0 +1,2400 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+      
+      
+      
+        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/community/dev-runbook/">
+      
+      
+        <link rel="prev" href="../changelog/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/compass.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+  
+    <title>Developer Runbook · SafeTune</title>
+  
+
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Schibsted+Grotesk:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Schibsted Grotesk";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../assets/safetune.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  
+  
+  
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SafeTune">
+  <meta property="og:title" content="Developer Runbook · SafeTune">
+  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/community/dev-runbook/">
+  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-compass-logo.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Developer Runbook · SafeTune">
+  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-compass-logo.png">
+
+  <!-- Structured data: this is an open-source software library -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "SafeTune",
+    "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
+    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.12+",
+    "license": "https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md",
+    "author": [
+      {"@type": "Person", "name": "Pratinav Seth"},
+      {"@type": "Person", "name": "Anshul Kaushal"},
+      {"@type": "Person", "name": "Saisab Sadhu"},
+      {"@type": "Person", "name": "Vinay Kumar Sankarapu"}
+    ],
+    "keywords": "LLM safety, safety fine-tuning, safety drift, refusal, unlearning, activation steering, mechanistic interpretability, red-teaming, model evaluation, alignment"
+  }
+  </script>
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#safetune-development-enterprise-runbook" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SafeTune" class="md-header__button md-logo" aria-label="SafeTune" data-md-component="logo">
+      
+  <img src="../../assets/compass.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SafeTune
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Developer Runbook
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Lexsi-Labs/SafeTune" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Lexsi-Labs/SafeTune
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user-guide/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../faq/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SafeTune" class="md-nav__button md-logo" aria-label="SafeTune" data-md-component="logo">
+      
+  <img src="../../assets/compass.svg" alt="logo">
+
+    </a>
+    SafeTune
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Lexsi-Labs/SafeTune" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Lexsi-Labs/SafeTune
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../getting-started/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../user-guide/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../reference/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../examples/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Community
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scope & Limitations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Runbook
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Runbook
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-local-developer-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Local Developer Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Local Developer Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-one-liner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 One-liner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-editable-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Editable Install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-quick-smoke-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Quick Smoke Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-testing-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Testing Matrix
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Testing Matrix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-local-cpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Local (CPU)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-ci-github-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 CI (GitHub Actions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-full-integration-gpu-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Full Integration (GPU required)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23a-lightweight-proxy-mode-no-checkpoints-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3a Lightweight proxy mode (no checkpoints needed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-testing-hardware-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Testing Hardware Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-code-quality-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Code Quality Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Code Quality Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-linting-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Linting &amp; Formatting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-pre-commit-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Pre-commit (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-documentation-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Documentation Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-cicd-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. CI/CD Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. CI/CD Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-workflow-docs-build-docsyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Workflow: Docs Build (docs.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-workflow-smoke-tests-smokeyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Workflow: Smoke Tests (smoke.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Versioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-wheel-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Wheel Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-dependency-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Dependency Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Dependency Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-core-dependencies-pyprojecttoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Core Dependencies (pyproject.toml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-optional-extras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Optional Extras
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-docker-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Docker (Optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-adding-a-new-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Adding a New Method
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Adding a New Method">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-implement-the-trainer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Implement the trainer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-re-export-from-__init__py" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Re-export from __init__.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-register-in-_registrypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Register in _registry.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-runtime-registration-third-party-extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Runtime registration (third-party extensions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.5 Environment variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-disaster-recovery-fail-safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Disaster Recovery &amp; Fail-Safe
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-local-developer-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Local Developer Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Local Developer Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-one-liner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 One-liner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-editable-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Editable Install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-quick-smoke-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Quick Smoke Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-testing-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Testing Matrix
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Testing Matrix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-local-cpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Local (CPU)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-ci-github-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 CI (GitHub Actions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-full-integration-gpu-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Full Integration (GPU required)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23a-lightweight-proxy-mode-no-checkpoints-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3a Lightweight proxy mode (no checkpoints needed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-testing-hardware-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Testing Hardware Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-code-quality-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Code Quality Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Code Quality Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-linting-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Linting &amp; Formatting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-pre-commit-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Pre-commit (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-documentation-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Documentation Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-cicd-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. CI/CD Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. CI/CD Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-workflow-docs-build-docsyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Workflow: Docs Build (docs.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-workflow-smoke-tests-smokeyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Workflow: Smoke Tests (smoke.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Versioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-wheel-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Wheel Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-dependency-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Dependency Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Dependency Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-core-dependencies-pyprojecttoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Core Dependencies (pyproject.toml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-optional-extras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Optional Extras
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-docker-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Docker (Optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-adding-a-new-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Adding a New Method
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Adding a New Method">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-implement-the-trainer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Implement the trainer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-re-export-from-__init__py" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Re-export from __init__.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-register-in-_registrypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Register in _registry.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-runtime-registration-third-party-extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Runtime registration (third-party extensions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.5 Environment variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-disaster-recovery-fail-safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Disaster Recovery &amp; Fail-Safe
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../faq/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Community
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Lexsi-Labs/SafeTune/edit/main/docs/community/dev-runbook.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="safetune-development-enterprise-runbook">SafeTune — Development &amp; Enterprise Runbook<a class="headerlink" href="#safetune-development-enterprise-runbook" title="Permanent link">&para;</a></h1>
+<h2 id="1-local-developer-setup">1. Local Developer Setup<a class="headerlink" href="#1-local-developer-setup" title="Permanent link">&para;</a></h2>
+<h3 id="11-one-liner">1.1 One-liner<a class="headerlink" href="#11-one-liner" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Lexsi-Labs/SafeTune.git
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>SafeTune
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,docs]&quot;</span>
+</code></pre></div>
+<h3 id="12-editable-install">1.2 Editable Install<a class="headerlink" href="#12-editable-install" title="Permanent link">&para;</a></h3>
+<p>The <code>pyproject.toml</code> uses <code>[tool.setuptools.packages.find] where = ["src"]</code>.
+Install in editable mode so changes to <code>src/safetune/</code> take effect immediately:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span><span class="w">       </span><span class="c1"># + dev dependencies (pytest, ruff, mypy)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span><span class="w">      </span><span class="c1"># + mkdocs-material for docs</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[vllm]&quot;</span><span class="w">      </span><span class="c1"># + vLLM backend for eval</span>
+</code></pre></div>
+<h3 id="13-environment-variables">1.3 Environment Variables<a class="headerlink" href="#13-environment-variables" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CUDA_VISIBLE_DEVICES</code></td>
+<td>auto</td>
+<td>GPU selection</td>
+</tr>
+<tr>
+<td><code>HF_TOKEN</code></td>
+<td>—</td>
+<td>HuggingFace authentication</td>
+</tr>
+<tr>
+<td><code>SAFETUNE_DRIFT_MODEL</code></td>
+<td>—</td>
+<td>Path to drifted checkpoint</td>
+</tr>
+<tr>
+<td><code>SAFETUNE_BASE_MODEL</code></td>
+<td>—</td>
+<td>Path to base model checkpoint</td>
+</tr>
+<tr>
+<td><code>SAFETUNE_ALIGNED_MODEL</code></td>
+<td>—</td>
+<td>Path to aligned reference checkpoint</td>
+</tr>
+<tr>
+<td><code>SAFETUNE_GPU_MEM</code></td>
+<td><code>0.75</code></td>
+<td>vLLM GPU memory utilization (also settable per-trainer via <code>gpu_memory_utilization=</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="14-quick-smoke-test">1.4 Quick Smoke Test<a class="headerlink" href="#14-quick-smoke-test" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import safetune; print(safetune.__version__)&quot;</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>python<span class="w"> </span>examples/quickstart/quickstart.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w">  </span><span class="c1"># requires ~1.5 GB RAM</span>
+</code></pre></div>
+<h2 id="2-testing-matrix">2. Testing Matrix<a class="headerlink" href="#2-testing-matrix" title="Permanent link">&para;</a></h2>
+<h3 id="21-local-cpu">2.1 Local (CPU)<a class="headerlink" href="#21-local-cpu" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pytest<span class="w"> </span>tests/<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not slow and not gpu&quot;</span><span class="w"> </span>--timeout<span class="o">=</span><span class="m">120</span>
+</code></pre></div>
+<p>Runs instantiation tests, data pipeline tests, and configuration validation.
+GPU-dependent tests are skipped.</p>
+<h3 id="22-ci-github-actions">2.2 CI (GitHub Actions)<a class="headerlink" href="#22-ci-github-actions" title="Permanent link">&para;</a></h3>
+<p>See <code>.github/workflows/smoke.yml</code>:
+- <code>pip install -e ".[dev]"</code>
+- <code>python -c "import safetune; print(safetune.__version__)"</code> (import check)
+- <code>pytest tests/ -m "not gpu and not unsloth and not wandb" --no-cov -q --timeout=120</code></p>
+<h3 id="23-full-integration-gpu-required">2.3 Full Integration (GPU required)<a class="headerlink" href="#23-full-integration-gpu-required" title="Permanent link">&para;</a></h3>
+<p>The <code>tests/integration/</code> scripts run each pillar's trainers end-to-end
+(<code>.train()</code> then <code>.evaluate()</code>) and print PASS / FAIL / SKIP. They are run
+directly with <code>python</code> (not collected by <code>pytest</code>) and require external
+checkpoints supplied via <code>SAFETUNE_DRIFT_MODEL</code> (and, for recover,
+<code>SAFETUNE_ALIGNED_MODEL</code> / <code>SAFETUNE_BASE_MODEL</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SAFETUNE_DRIFT_MODEL</span><span class="o">=</span>/path/to/drifted
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SAFETUNE_ALIGNED_MODEL</span><span class="o">=</span>/path/to/aligned
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>python<span class="w"> </span>tests/integration/test_harden.py<span class="w">   </span><span class="c1"># expects a CUDA GPU with 24+ GB VRAM</span>
+</code></pre></div>
+<p>Trainers exercised per pillar:
+- <code>test_harden.py</code> — 22 trainers
+- <code>test_recover.py</code> — 24 trainers
+- <code>test_steer.py</code> — 19 trainers
+- <code>test_unlearn.py</code> — 6 trainers</p>
+<p>Each train + eval cycle takes 5-30 minutes depending on method.</p>
+<p>Cap the benchmark eval for a fast smoke run with <code>SAFETUNE_EVAL_LIMIT=N</code>
+(N examples per lm-eval task).</p>
+<h3 id="23a-lightweight-proxy-mode-no-checkpoints-needed">2.3a Lightweight proxy mode (no checkpoints needed)<a class="headerlink" href="#23a-lightweight-proxy-mode-no-checkpoints-needed" title="Permanent link">&para;</a></h3>
+<p>When you don't have the drifted checkpoints, run the pipeline end-to-end on a
+small public model to prove every pillar's train/apply/calibrate/unlearn path
+executes (this is a plumbing smoke, <strong>not</strong> a safety-drift measurement):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">SAFETUNE_PROXY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>pytest<span class="w"> </span>tests/integration<span class="w"> </span>-m<span class="w"> </span>proxy
+</code></pre></div>
+<p>Proxy mode defaults <code>SAFETUNE_DRIFT_MODEL</code> to <code>Qwen/Qwen2.5-0.5B-Instruct</code>
+(+ small distinct base/aligned refs) and runs <code>tests/integration/test_proxy.py</code>
+— one train/apply/calibrate/unlearn + generation per pillar, ~70s on one GPU.
+<code>proxy</code>-marked tests only run under <code>SAFETUNE_PROXY=1</code>; the full-eval tests
+(mode above) still require real checkpoints.</p>
+<h3 id="24-testing-hardware-requirements">2.4 Testing Hardware Requirements<a class="headerlink" href="#24-testing-hardware-requirements" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Test level</th>
+<th>GPU</th>
+<th>VRAM</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU unit tests</td>
+<td>None</td>
+<td>0 GB</td>
+<td>2 min</td>
+</tr>
+<tr>
+<td>CI smoke tests</td>
+<td>None</td>
+<td>0 GB</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td>Single-pillar integration</td>
+<td>1× A100 80GB</td>
+<td>24 GB</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td>Full suite</td>
+<td>1× A100 80GB</td>
+<td>80 GB</td>
+<td>2 hr</td>
+</tr>
+<tr>
+<td>Evaluation benchmarks</td>
+<td>1× A100 80GB</td>
+<td>40 GB</td>
+<td>1 hr</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-code-quality-pipeline">3. Code Quality Pipeline<a class="headerlink" href="#3-code-quality-pipeline" title="Permanent link">&para;</a></h2>
+<h3 id="31-linting-formatting">3.1 Linting &amp; Formatting<a class="headerlink" href="#31-linting-formatting" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>flake8<span class="w"> </span>src/<span class="w">                           </span><span class="c1"># style + lint (pinned in [dev])</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w">                       </span><span class="c1"># optional alternative linter (pip install ruff)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>black<span class="w"> </span>--check<span class="w"> </span>src/<span class="w">                    </span><span class="c1"># formatting</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>isort<span class="w"> </span>--check<span class="w"> </span>src/<span class="w">                    </span><span class="c1"># import ordering</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>mypy<span class="w"> </span>src/<span class="w"> </span>--ignore-missing-imports<span class="w">   </span><span class="c1"># type checking (loose)</span>
+</code></pre></div>
+<p>All configured in <code>pyproject.toml</code> under <code>[tool.ruff]</code>, <code>[tool.black]</code>,
+<code>[tool.isort]</code>, <code>[tool.mypy]</code>. The <code>[dev]</code> extra pins flake8, black, isort, and
+mypy; ruff has a <code>[tool.ruff]</code> config but is not installed by <code>[dev]</code>.</p>
+<h3 id="32-pre-commit-optional">3.2 Pre-commit (optional)<a class="headerlink" href="#32-pre-commit-optional" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pip<span class="w"> </span>install<span class="w"> </span>pre-commit
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>pre-commit<span class="w"> </span>install<span class="w">  </span><span class="c1"># once per clone</span>
+</code></pre></div>
+<p>Note: <code>.pre-commit-config.yaml</code> is <code>.gitignore</code>d — create your own from the
+tool configs in <code>pyproject.toml</code>.</p>
+<h3 id="33-documentation-build">3.3 Documentation Build<a class="headerlink" href="#33-documentation-build" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict<span class="w">      </span><span class="c1"># builds site/ with zero warnings</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>mkdocs<span class="w"> </span>serve<span class="w"> </span>-a<span class="w"> </span><span class="m">0</span>.0.0.0:8000<span class="w">  </span><span class="c1"># live preview</span>
+</code></pre></div>
+<h2 id="4-cicd-pipeline">4. CI/CD Pipeline<a class="headerlink" href="#4-cicd-pipeline" title="Permanent link">&para;</a></h2>
+<h3 id="41-workflow-docs-build-docsyml">4.1 Workflow: Docs Build (<code>docs.yml</code>)<a class="headerlink" href="#41-workflow-docs-build-docsyml" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">on</span><span class="p">:</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">push/PR → main</span><span class="p">:</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nt">paths</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;docs/**&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mkdocs.yml&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;requirements-docs.txt&#39;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="nt">jobs</span><span class="p">:</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">build</span><span class="p">:</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pip install -r requirements-docs.txt</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mkdocs build --strict</span>
+</code></pre></div>
+<h3 id="42-workflow-smoke-tests-smokeyml">4.2 Workflow: Smoke Tests (<code>smoke.yml</code>)<a class="headerlink" href="#42-workflow-smoke-tests-smokeyml" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">push/PR → main</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nt">jobs</span><span class="p">:</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">test</span><span class="p">:</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nt">timeout-minutes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">25</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pip install -e &quot;.[dev]&quot;</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python -c &quot;import safetune; print(safetune.__version__)&quot;</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pytest tests/ -m &quot;not gpu and not unsloth and not wandb&quot; --no-cov -q --timeout=120</span>
+</code></pre></div>
+<h3 id="43-versioning">4.3 Versioning<a class="headerlink" href="#43-versioning" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Current: <code>1.0.0</code> (SemVer)</li>
+<li>PyPI release: <code>python -m build &amp;&amp; twine upload dist/*</code></li>
+<li>Version pinned in <code>src/safetune/__init__.py</code>: <code>__version__ = "1.0.0"</code></li>
+<li>Mirrored in <code>pyproject.toml</code>: <code>version = "1.0.0"</code></li>
+</ul>
+<h3 id="44-wheel-build">4.4 Wheel Build<a class="headerlink" href="#44-wheel-build" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>pip<span class="w"> </span>install<span class="w"> </span>build
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>python<span class="w"> </span>-m<span class="w"> </span>build
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1"># Produces dist/safetune-1.0.0-py3-none-any.whl + dist/safetune-1.0.0.tar.gz</span>
+</code></pre></div>
+<h2 id="5-dependency-management">5. Dependency Management<a class="headerlink" href="#5-dependency-management" title="Permanent link">&para;</a></h2>
+<h3 id="51-core-dependencies-pyprojecttoml">5.1 Core Dependencies (<code>pyproject.toml</code>)<a class="headerlink" href="#51-core-dependencies-pyprojecttoml" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>torch &gt;= 2.7.0
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>transformers &gt;= 4.48.3, &lt; 6
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>trl &gt;= 0.12, &lt; 2
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>datasets &gt;= 2.14
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>peft
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>accelerate
+</code></pre></div>
+<h3 id="52-optional-extras">5.2 Optional Extras<a class="headerlink" href="#52-optional-extras" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Extra</th>
+<th>Key deps</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[dev]</code></td>
+<td>pytest, black, isort, flake8, mypy, pre-commit</td>
+<td>Development tooling</td>
+</tr>
+<tr>
+<td><code>[docs]</code></td>
+<td>mkdocs, mkdocs-material, mkdocs-mike</td>
+<td>Documentation build</td>
+</tr>
+<tr>
+<td><code>[vllm]</code></td>
+<td>vllm</td>
+<td>vLLM evaluation backend</td>
+</tr>
+<tr>
+<td><code>[interpret]</code></td>
+<td>transformer_lens</td>
+<td>Interpretability tools</td>
+</tr>
+<tr>
+<td><code>[viz]</code></td>
+<td>matplotlib, seaborn</td>
+<td>Visualization</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-docker-optional">5.3 Docker (Optional)<a class="headerlink" href="#53-docker-optional" title="Permanent link">&para;</a></h3>
+<p>For reproducible GPU environments:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">FROM</span><span class="w"> </span><span class="s">pytorch/pytorch:2.7.0-cuda12.8-cudnn9-devel</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">COPY</span><span class="w"> </span>.<span class="w"> </span>/app
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">RUN</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,vllm]&quot;</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;pytest&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;tests/&quot;</span><span class="p">]</span>
+</code></pre></div>
+<h2 id="6-adding-a-new-method">6. Adding a New Method<a class="headerlink" href="#6-adding-a-new-method" title="Permanent link">&para;</a></h2>
+<p>Adding a method requires touching exactly three places.</p>
+<h3 id="61-implement-the-trainer">6.1 Implement the trainer<a class="headerlink" href="#61-implement-the-trainer" title="Permanent link">&para;</a></h3>
+<p>Create (or extend) a module in the appropriate <code>runner/&lt;pillar&gt;/</code> directory.
+Inherit from the pillar base class and implement the required method:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># src/safetune/runner/harden/_mymethod.py</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">_HardenBase</span><span class="p">,</span> <span class="n">_keep_model_columns</span><span class="p">,</span> <span class="n">default_data_collator</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyMethodTrainer</span><span class="p">(</span><span class="n">_HardenBase</span><span class="p">):</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;One-line description.</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="sd">    Args:</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="sd">        alpha: my hyperparameter. Default 1.0.</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    <span class="n">METHOD</span> <span class="o">=</span> <span class="s2">&quot;MyMethod&quot;</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>        <span class="n">out_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_out_dir</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>        <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lora_base</span><span class="p">()</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>        <span class="c1"># ... training logic ...</span>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_merged</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">)</span>
+</code></pre></div>
+<p>For <strong>recover</strong> trainers, inherit from <code>_RecoverBase</code> and implement <code>apply()</code>
+following the contract in <a href="../../reference/api-contract/">api-contract.md</a>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># src/safetune/runner/recover/_myrecover.py</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">_RecoverBase</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">safetune.recover</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">R</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyRecoverTrainer</span><span class="p">(</span><span class="n">_RecoverBase</span><span class="p">):</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="n">METHOD</span> <span class="o">=</span> <span class="s2">&quot;MyRecover&quot;</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>        <span class="k">return</span> <span class="n">R</span><span class="o">.</span><span class="n">my_recover_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="62-re-export-from-__init__py">6.2 Re-export from <code>__init__.py</code><a class="headerlink" href="#62-re-export-from-__init__py" title="Permanent link">&para;</a></h3>
+<p>Add the class to the pillar runner's <code>__init__.py</code> so it is importable via
+<code>from safetune.runner import harden</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># src/safetune/runner/harden/__init__.py</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">._mymethod</span><span class="w"> </span><span class="kn">import</span> <span class="n">MyMethodTrainer</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="s2">&quot;MyMethodTrainer&quot;</span><span class="p">]</span>
+</code></pre></div>
+<h3 id="63-register-in-_registrypy">6.3 Register in <code>_registry.py</code><a class="headerlink" href="#63-register-in-_registrypy" title="Permanent link">&para;</a></h3>
+<p>Add one line to <code>src/safetune/runner/_registry.py</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">HARDEN_REGISTRY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="o">...</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="s2">&quot;mymethod&quot;</span><span class="p">:</span> <span class="s2">&quot;MyMethodTrainer&quot;</span><span class="p">,</span>   <span class="c1"># ← add this</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="p">}</span>
+</code></pre></div>
+<p>After this, <code>safetune train --algo mymethod</code> and <code>safetune list</code> both work.
+No other files need to change.</p>
+<h3 id="64-runtime-registration-third-party-extensions">6.4 Runtime registration (third-party extensions)<a class="headerlink" href="#64-runtime-registration-third-party-extensions" title="Permanent link">&para;</a></h3>
+<p>External code can extend the registry without editing library files:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_harden</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">register_harden</span><span class="p">(</span><span class="s2">&quot;mymethod&quot;</span><span class="p">,</span> <span class="s2">&quot;MyMethodTrainer&quot;</span><span class="p">)</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="c1"># Then run the CLI or use the runner as normal</span>
+</code></pre></div>
+<h3 id="65-environment-variables">6.5 Environment variables<a class="headerlink" href="#65-environment-variables" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CUDA_VISIBLE_DEVICES</code></td>
+<td>auto</td>
+<td>GPU selection</td>
+</tr>
+<tr>
+<td><code>HF_TOKEN</code></td>
+<td>—</td>
+<td>HuggingFace authentication</td>
+</tr>
+<tr>
+<td><code>SAFETUNE_DRIFT_MODEL</code></td>
+<td>—</td>
+<td>Path to drifted checkpoint</td>
+</tr>
+<tr>
+<td><code>SAFETUNE_BASE_MODEL</code></td>
+<td>—</td>
+<td>Path to base model checkpoint</td>
+</tr>
+<tr>
+<td><code>SAFETUNE_ALIGNED_MODEL</code></td>
+<td>—</td>
+<td>Path to aligned reference checkpoint</td>
+</tr>
+<tr>
+<td><code>SAFETUNE_GPU_MEM</code></td>
+<td><code>0.75</code></td>
+<td>vLLM GPU memory utilization (also settable per-trainer via <code>gpu_memory_utilization=</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-disaster-recovery-fail-safe">7. Disaster Recovery &amp; Fail-Safe<a class="headerlink" href="#7-disaster-recovery-fail-safe" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPU OOM during training</td>
+<td>Reduce <code>per_device_train_batch_size</code>, enable gradient checkpointing</td>
+</tr>
+<tr>
+<td>GPU OOM during vLLM eval</td>
+<td>Reduce <code>gpu_memory_utilization</code> (env var <code>SAFETUNE_GPU_MEM</code>), default 0.75</td>
+</tr>
+<tr>
+<td>vLLM unsupported model</td>
+<td>Auto-fallback to HuggingFace generation with warning</td>
+</tr>
+<tr>
+<td>Transformers TF probe error</td>
+<td>SafeTune disables TF/Flax on import (<code>USE_TF=0</code>)</td>
+</tr>
+<tr>
+<td>Model download failure</td>
+<td>Check HF token, network, disk space in <code>~/.cache/huggingface/</code></td>
+</tr>
+<tr>
+<td>Corrupted checkpoint</td>
+<td>Delete checkpoint and re-run training</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../changelog/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Changelog">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Changelog
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 <a href="https://lexsi.ai" target="_blank" rel="noopener">Lexsi Labs</a>
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/Lexsi-Labs/SafeTune" target="_blank" rel="noopener" title="SafeTune on GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://pypi.org/project/safetune/" target="_blank" rel="noopener" title="SafeTune on PyPI" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://x.com/Lexsi_labs" target="_blank" rel="noopener" title="Lexsi Labs on X" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M357.2 48h70.6L273.6 224.2 455 464H313L201.7 318.6 74.5 464H3.8l164.9-188.5L-5.2 48h145.6l100.5 132.9zm-24.8 373.8h39.1L119.1 88h-42z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://www.linkedin.com/company/lexsi-labs/" target="_blank" rel="noopener" title="Lexsi Labs on LinkedIn" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3M135.4 416H69V202.2h66.5V416zM102.2 96a38.5 38.5 0 1 1 0 77 38.5 38.5 0 1 1 0-77m282.1 320h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://huggingface.co/Lexsi" target="_blank" rel="noopener" title="Lexsi Labs on Hugging Face" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.025 1.13c-5.77 0-10.449 4.647-10.449 10.378 0 1.112.178 2.181.503 3.185.064-.222.203-.444.416-.577a.96.96 0 0 1 .524-.15c.293 0 .584.124.84.284.278.173.48.408.71.694.226.282.458.611.684.951v-.014c.017-.324.106-.622.264-.874s.403-.487.762-.543c.3-.047.596.06.787.203s.31.313.4.467c.15.257.212.468.233.542.01.026.653 1.552 1.657 2.54.616.605 1.01 1.223 1.082 1.912.055.537-.096 1.059-.38 1.572.637.121 1.294.187 1.967.187.657 0 1.298-.063 1.921-.178-.287-.517-.44-1.041-.384-1.581.07-.69.465-1.307 1.081-1.913 1.004-.987 1.647-2.513 1.657-2.539.021-.074.083-.285.233-.542.09-.154.208-.323.4-.467a1.08 1.08 0 0 1 .787-.203c.359.056.604.29.762.543s.247.55.265.874v.015c.225-.34.457-.67.683-.952.23-.286.432-.52.71-.694.257-.16.547-.284.84-.285a.97.97 0 0 1 .524.151c.228.143.373.388.43.625l.006.04a10.3 10.3 0 0 0 .534-3.273c0-5.731-4.678-10.378-10.449-10.378M8.327 6.583a1.5 1.5 0 0 1 .713.174 1.487 1.487 0 0 1 .617 2.013c-.183.343-.762-.214-1.102-.094-.38.134-.532.914-.917.71a1.487 1.487 0 0 1 .69-2.803m7.486 0a1.487 1.487 0 0 1 .689 2.803c-.385.204-.536-.576-.916-.71-.34-.12-.92.437-1.103.094a1.487 1.487 0 0 1 .617-2.013 1.5 1.5 0 0 1 .713-.174m-10.68 1.55a.96.96 0 1 1 0 1.921.96.96 0 0 1 0-1.92m13.838 0a.96.96 0 1 1 0 1.92.96.96 0 0 1 0-1.92M8.489 11.458c.588.01 1.965 1.157 3.572 1.164 1.607-.007 2.984-1.155 3.572-1.164.196-.003.305.12.305.454 0 .886-.424 2.328-1.563 3.202-.22-.756-1.396-1.366-1.63-1.32q-.011.001-.02.006l-.044.026-.01.008-.03.024q-.018.017-.035.036l-.032.04a1 1 0 0 0-.058.09l-.014.025q-.049.088-.11.19a1 1 0 0 1-.083.116 1.2 1.2 0 0 1-.173.18q-.035.029-.075.058a1.3 1.3 0 0 1-.251-.243 1 1 0 0 1-.076-.107c-.124-.193-.177-.363-.337-.444-.034-.016-.104-.008-.2.022q-.094.03-.216.087-.06.028-.125.063l-.13.074q-.067.04-.136.086a3 3 0 0 0-.135.096 3 3 0 0 0-.26.219 2 2 0 0 0-.12.121 2 2 0 0 0-.106.128l-.002.002a2 2 0 0 0-.09.132l-.001.001a1.2 1.2 0 0 0-.105.212q-.013.036-.024.073c-1.139-.875-1.563-2.317-1.563-3.203 0-.334.109-.457.305-.454m.836 10.354c.824-1.19.766-2.082-.365-3.194-1.13-1.112-1.789-2.738-1.789-2.738s-.246-.945-.806-.858-.97 1.499.202 2.362c1.173.864-.233 1.45-.685.64-.45-.812-1.683-2.896-2.322-3.295s-1.089-.175-.938.647 2.822 2.813 2.562 3.244-1.176-.506-1.176-.506-2.866-2.567-3.49-1.898.473 1.23 2.037 2.16c1.564.932 1.686 1.178 1.464 1.53s-3.675-2.511-4-1.297c-.323 1.214 3.524 1.567 3.287 2.405-.238.839-2.71-1.587-3.216-.642-.506.946 3.49 2.056 3.522 2.064 1.29.33 4.568 1.028 5.713-.624m5.349 0c-.824-1.19-.766-2.082.365-3.194 1.13-1.112 1.789-2.738 1.789-2.738s.246-.945.806-.858.97 1.499-.202 2.362c-1.173.864.233 1.45.685.64.451-.812 1.683-2.896 2.322-3.295s1.089-.175.938.647-2.822 2.813-2.562 3.244 1.176-.506 1.176-.506 2.866-2.567 3.49-1.898-.473 1.23-2.037 2.16c-1.564.932-1.686 1.178-1.464 1.53s3.675-2.511 4-1.297c.323 1.214-3.524 1.567-3.287 2.405.238.839 2.71-1.587 3.216-.642.506.946-3.49 2.056-3.522 2.064-1.29.33-4.568 1.028-5.713-.624"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../assets/safetune.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="../../javascripts/mathjax-tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

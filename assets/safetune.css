@@ -1,0 +1,737 @@
+/* ============================================================================
+   SafeTune — design system
+   Direction: precise, technical, honest. The product is a faithful audit of
+   safety methods; the site reads like a trustworthy engineering reference.
+   SafeTune purple dominates, the compass-logo amber appears as a sharp accent.
+   Type: Bricolage Grotesque (display) · Schibsted Grotesk (text, via theme)
+         · IBM Plex Mono (code, via theme)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&display=swap');
+
+:root {
+  --st-ink: #17141f;          /* wordmark ink-purple */
+  --st-ink-2: #2a2536;
+  --st-purple: #5B3DD6;        /* compass ring */
+  --st-purple-dark: #4A2FB0;
+  --st-purple-bright: #8b78f0; /* dark-scheme accent */
+  --st-amber: #F4A63C;         /* compass needle — sharp accent, used sparingly */
+  --st-paper: #faf9fd;         /* warm paper, light scheme */
+  --st-display: "Bricolage Grotesque", "Schibsted Grotesk", sans-serif;
+}
+
+/* ── Palette: light ─────────────────────────────────────────────────────── */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--st-ink);
+  --md-primary-fg-color--light: var(--st-ink-2);
+  --md-primary-fg-color--dark: #100c18;
+  --md-accent-fg-color: var(--st-purple);
+  --md-typeset-a-color: var(--st-purple-dark);
+  --md-default-bg-color: var(--st-paper);
+  --md-code-bg-color: #f1eff6;
+  --md-footer-bg-color: var(--st-ink);
+  --md-footer-bg-color--dark: #100c18;
+}
+
+/* ── Palette: dark (purple-tinted, not Material's blue slate) ───────────── */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #0f0c16;
+  --md-primary-fg-color--light: var(--st-ink-2);
+  --md-primary-fg-color--dark: #0a0810;
+  --md-accent-fg-color: var(--st-purple-bright);
+  --md-typeset-a-color: var(--st-purple-bright);
+  --md-default-bg-color: #110e1a;
+  --md-default-fg-color--lightest: rgba(190, 180, 220, 0.12);
+  --md-code-bg-color: #1a1626;
+  --md-footer-bg-color: #0f0c16;
+  --md-footer-bg-color--dark: #0a0810;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  font-family: var(--st-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.md-typeset h1 {
+  color: var(--md-default-fg-color);
+  font-weight: 700;
+}
+
+.md-header__topic,
+.md-tabs__link {
+  font-family: var(--st-display);
+  font-weight: 600;
+}
+
+/* ── Header & tabs ──────────────────────────────────────────────────────── */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 1.6rem;
+  width: auto;
+}
+
+/* brand hairline under the tab bar: purple flowing into amber */
+.md-tabs {
+  border-bottom: 2px solid transparent;
+  border-image: linear-gradient(90deg, var(--st-purple) 0%, var(--st-purple) 55%, var(--st-amber) 100%) 1;
+}
+
+/* center the tab list within the header.
+   Material wraps tabs in <div class="md-grid"> (NOT md-tabs__inner). */
+.md-tabs .md-grid {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+.md-tabs__list {
+  flex: 0 1 auto;
+  margin: 0 auto;
+}
+
+.md-header__title {
+  font-size: 0.95rem;
+}
+
+.md-tabs__link {
+  opacity: 0.78;
+  transition: color 150ms, opacity 150ms, box-shadow 150ms;
+}
+
+.md-tabs__link:hover {
+  color: var(--st-amber);
+  opacity: 1;
+}
+
+.md-tabs__link--active {
+  color: #fff;
+  opacity: 1;
+  box-shadow: 0 2px 0 0 var(--st-amber);
+}
+
+/* search field: rounder, calmer */
+.md-search__form {
+  border-radius: 0.3rem;
+}
+
+/* ── Landing hero ───────────────────────────────────────────────────────── */
+.st-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3.2rem 1rem 2.6rem;
+  margin: 0 0 1.6rem;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  /* subtle purple glow from the top */
+  background: radial-gradient(
+    ellipse 72% 55% at 50% -5%,
+    color-mix(in srgb, var(--st-purple) 9%, transparent),
+    transparent 70%
+  );
+}
+
+/* dot-grid motif — the compass particles (animated drift) */
+.st-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--st-purple) 1px, transparent 1.5px);
+  background-size: 26px 26px;
+  opacity: 0.10;
+  -webkit-mask-image: radial-gradient(ellipse 75% 90% at 50% 35%, black 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 75% 90% at 50% 35%, black 30%, transparent 75%);
+  pointer-events: none;
+  animation: st-grid-drift 28s linear infinite;
+}
+
+@keyframes st-grid-drift {
+  to { background-position: 26px 26px; }
+}
+
+/* three accent dots — deliberate, tiny, brand-true */
+.st-hero::after {
+  content: "";
+  position: absolute;
+  top: 2.0rem;
+  left: 50%;
+  width: 4rem;
+  height: 0.4rem;
+  transform: translateX(-50%);
+  background-image:
+    radial-gradient(circle at 12% 50%, var(--st-amber) 0 0.16rem, transparent 0.2rem),
+    radial-gradient(circle at 50% 50%, var(--st-purple) 0 0.13rem, transparent 0.17rem),
+    radial-gradient(circle at 88% 50%, var(--st-amber) 0 0.16rem, transparent 0.2rem);
+  pointer-events: none;
+}
+
+.st-hero > * {
+  position: relative;
+}
+
+.st-hero img.st-hero-mark {
+  width: 4.6rem;
+  height: auto;
+  margin-bottom: 0.6rem;
+}
+
+.st-hero h1.st-hero-title {
+  font-family: var(--st-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0.2rem auto 0.7rem;
+  max-width: 34rem;
+}
+
+.st-hero h1.st-hero-title em {
+  font-style: normal;
+  color: var(--st-purple);
+}
+
+[data-md-color-scheme="slate"] .st-hero h1.st-hero-title em {
+  color: var(--st-purple-bright);
+}
+
+.st-hero p.st-tagline {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  max-width: 34rem;
+  margin: 0 auto 1.5rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.st-hero .md-button {
+  margin: 0.2rem 0.3rem;
+}
+
+/* meta chips under the hero buttons */
+.st-chips {
+  margin-top: 1.1rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--md-default-fg-color--light);
+}
+
+.st-chips span {
+  display: inline-block;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 1rem;
+  padding: 0.15rem 0.65rem;
+  margin: 0.15rem 0.15rem;
+  background: var(--md-default-bg-color);
+}
+
+.st-hero .md-button--primary {
+  background-color: var(--st-purple);
+  border-color: var(--st-purple);
+  transition: background-color 125ms, border-color 125ms, transform 125ms;
+}
+
+.st-hero .md-button--primary:hover {
+  background-color: var(--st-purple-dark);
+  border-color: var(--st-amber);
+  transform: translateY(-1px);
+}
+
+/* secondary button must stay legible on the dark scheme */
+[data-md-color-scheme="slate"] .st-hero .md-button:not(.md-button--primary) {
+  color: var(--md-default-fg-color);
+  border-color: var(--md-default-fg-color--light);
+}
+
+[data-md-color-scheme="slate"] .st-hero .md-button:not(.md-button--primary):hover {
+  color: var(--st-purple-bright);
+  border-color: var(--st-purple-bright);
+  background-color: transparent;
+}
+
+/* ── Mermaid: publication-grade palette + container ──────────────────────── */
+:root,
+[data-md-color-scheme="default"] {
+  --md-mermaid-node-bg-color: #ece9ff;
+  --md-mermaid-node-fg-color: var(--st-ink);
+  --md-mermaid-edge-color: var(--st-purple-dark);
+  --md-mermaid-label-bg-color: var(--st-paper);
+  --md-mermaid-label-fg-color: var(--st-ink);
+  --md-mermaid-font-family: var(--st-display);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-mermaid-node-bg-color: #1d1730;
+  --md-mermaid-node-fg-color: #d4cde8;
+  --md-mermaid-edge-color: var(--st-purple-bright);
+  --md-mermaid-label-bg-color: #110e1a;
+  --md-mermaid-label-fg-color: #d4cde8;
+}
+
+/* figure-like container around every mermaid diagram */
+.md-typeset .mermaid {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background: var(--st-paper);
+  border: 1px solid color-mix(in srgb, var(--st-purple) 18%, transparent);
+  border-top: 3px solid var(--st-purple);
+  border-radius: 0 0 0.5rem 0.5rem;
+  box-shadow: 0 2px 12px rgba(23, 20, 31, 0.06);
+  margin: 1.4rem 0 1.8rem;
+  overflow-x: auto;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .mermaid {
+  background: #1a1626;
+  border-color: color-mix(in srgb, var(--st-purple-bright) 20%, transparent);
+  border-top-color: var(--st-purple-bright);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.md-typeset .mermaid svg {
+  max-width: min(100%, 640px);
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* dark mode: fallback SVG overrides for any chart not picking up themeVariables
+   covers both mermaid v9 (.node rect) and v10 (.label-container, foreignObject) */
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .node rect,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .node polygon,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .node circle,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .node ellipse,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg rect.label-container,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg rect.basic {
+  fill: var(--md-mermaid-node-bg-color) !important;
+  stroke: var(--md-mermaid-edge-color) !important;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg text,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .nodeLabel,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .node span,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg foreignObject div,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg foreignObject p {
+  fill: var(--md-mermaid-node-fg-color) !important;
+  color: var(--md-mermaid-node-fg-color) !important;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .edgePath .path,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .flowchart-link,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg path.edge-thickness-normal {
+  stroke: var(--md-mermaid-edge-color) !important;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg marker path {
+  fill: var(--md-mermaid-edge-color) !important;
+  stroke: var(--md-mermaid-edge-color) !important;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .edgeLabel,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .edgeLabel p,
+[data-md-color-scheme="slate"] .md-typeset .mermaid svg .edge-label {
+  background-color: var(--md-mermaid-label-bg-color) !important;
+  color: var(--md-mermaid-label-fg-color) !important;
+}
+
+/* light mode: mirror the dark overrides so a diagram that mermaid rendered
+   under the slate scheme is reset to legible dark-on-light when the user
+   toggles back to light (the SVG fills are inlined once at render time). */
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .node rect,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .node polygon,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .node circle,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .node ellipse,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg rect.label-container,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg rect.basic {
+  fill: var(--md-mermaid-node-bg-color) !important;
+  stroke: var(--md-mermaid-edge-color) !important;
+}
+
+[data-md-color-scheme="default"] .md-typeset .mermaid svg text,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .nodeLabel,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .node span,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg foreignObject div,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg foreignObject p {
+  fill: var(--md-mermaid-node-fg-color) !important;
+  color: var(--md-mermaid-node-fg-color) !important;
+}
+
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .edgePath .path,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .flowchart-link,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg path.edge-thickness-normal {
+  stroke: var(--md-mermaid-edge-color) !important;
+}
+
+[data-md-color-scheme="default"] .md-typeset .mermaid svg marker path {
+  fill: var(--md-mermaid-edge-color) !important;
+  stroke: var(--md-mermaid-edge-color) !important;
+}
+
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .edgeLabel,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .edgeLabel p,
+[data-md-color-scheme="default"] .md-typeset .mermaid svg .edge-label {
+  background-color: var(--md-mermaid-label-bg-color) !important;
+  color: var(--md-mermaid-label-fg-color) !important;
+}
+
+/* ── Full-width tables on the landing page ──────────────────────────────── */
+.st-wide table {
+  width: 100%;
+  display: table;
+}
+
+/* ── Content centering when both sidebars are hidden (home page) ─────────── */
+/* MkDocs Material can leave a left offset while its JS reflows the layout;
+   this removes it immediately so the page renders centred from first paint. */
+.md-main__inner {
+  justify-content: center;
+}
+.md-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Landing page (identified by its unique hero) uses a wider content column
+   than the default doc measure, so the pillar cards, tables and diagrams get
+   room to breathe. Free-flowing prose stays capped for readable line length. */
+.md-main__inner:has(.st-hero) {
+  max-width: 72rem;
+}
+.md-content:has(.st-hero) .md-typeset > p {
+  max-width: 48rem;
+}
+
+/* staggered load reveal — respects reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  .st-hero > * {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: st-rise 480ms cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+  }
+  .st-hero > *:nth-child(1) { animation-delay: 60ms; }
+  .st-hero > *:nth-child(2) { animation-delay: 140ms; }
+  .st-hero > *:nth-child(3) { animation-delay: 220ms; }
+  .st-hero > *:nth-child(4) { animation-delay: 300ms; }
+  .st-hero > *:nth-child(5) { animation-delay: 380ms; }
+}
+
+@keyframes st-rise {
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Grid cards (Material .grid.cards refinement) ───────────────────────── */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border-radius: 0.35rem;
+  border-color: var(--md-default-fg-color--lightest);
+  transition: border-color 180ms, box-shadow 180ms, transform 180ms;
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+  border-top: 2px solid var(--st-amber);
+  box-shadow: 0 6px 24px rgba(91, 61, 214, 0.13);
+  transform: translateY(-2px);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li:hover {
+  box-shadow: 0 6px 24px rgba(91, 61, 214, 0.28);
+}
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────── */
+.st-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 600ms cubic-bezier(0.2, 0.6, 0.2, 1),
+              transform 600ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.st-reveal.st-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Tabbed content fade ─────────────────────────────────────────────────── */
+.md-typeset .tabbed-content {
+  border-radius: 0 0.35rem 0.35rem 0.35rem;
+}
+.md-typeset .tabbed-block {
+  animation: st-tab-in 220ms ease;
+}
+@keyframes st-tab-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Primary button pulse on focus ──────────────────────────────────────── */
+.st-hero .md-button--primary:focus-visible {
+  outline: 2px solid var(--st-amber);
+  outline-offset: 3px;
+}
+.st-hero .md-button--primary:hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--st-purple) 22%, transparent);
+}
+
+/* icon medallion: soft purple disc behind each card icon */
+.md-typeset .grid.cards > ul > li .twemoji.lg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--st-purple) 12%, transparent);
+  vertical-align: middle;
+}
+
+.md-typeset .grid.cards > ul > li .twemoji svg {
+  color: var(--st-purple);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li .twemoji.lg {
+  background: color-mix(in srgb, var(--st-purple-bright) 16%, transparent);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li .twemoji svg {
+  color: var(--st-purple-bright);
+}
+
+/* ── Content details ────────────────────────────────────────────────────── */
+.md-typeset table:not([class]) th {
+  font-family: var(--st-display);
+  font-weight: 600;
+  background-color: transparent;
+  border-bottom: 2px solid var(--st-purple);
+}
+
+/* hide header rows where all th cells are empty (markdown `| | |` pattern) */
+.md-typeset table:not([class]) thead:has(th:empty) {
+  display: none;
+}
+
+/* st-wide link tables: first col fixed, second col expands */
+.st-wide table {
+  table-layout: fixed;
+}
+.st-wide table td:first-child {
+  width: 34%;
+  font-weight: 500;
+}
+.st-wide table td:last-child {
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset code {
+  border-radius: 0.18rem;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-left-color: var(--st-purple);
+}
+
+/* footer social icons pick up the accent on hover */
+.md-social__link:hover svg {
+  fill: var(--st-amber);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CUSTOM DIAGRAM COMPONENTS
+   Uses rgba() and explicit hex — no color-mix() — for max compatibility.
+   Uses span.st-tc-code instead of <code> to avoid Material CSS conflicts.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared: code-like label without Material .md-typeset code overrides ── */
+.st-tc-code {
+  font-family: var(--md-code-font-family);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #4A2FB0;
+}
+[data-md-color-scheme="slate"] .st-tc-code { color: #a78af0; }
+
+/* ── Google Colab button ─────────────────────────────────────────────────── */
+.st-colab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: #F9AB00;
+  color: #17141f !important;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  text-decoration: none !important;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-family: var(--st-display);
+  transition: background 120ms ease;
+}
+.st-colab-btn::before { content: '∞'; font-size: 1rem; font-weight: 900; line-height: 1; }
+.st-colab-btn:hover { background: #e6a000; color: #17141f !important; }
+
+/* ── Notebook table ──────────────────────────────────────────────────────── */
+.st-nb-table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.6rem; }
+.st-nb-table th {
+  text-align: left; padding: 0.55rem 0.9rem;
+  background: rgba(91,61,214,0.08); color: var(--st-purple);
+  font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase;
+  border-bottom: 2px solid var(--st-purple);
+}
+.st-nb-table td {
+  padding: 0.6rem 0.9rem; border-bottom: 1px solid rgba(91,61,214,0.12);
+  font-size: 0.88rem; vertical-align: middle;
+}
+.st-nb-table tr:last-child td { border-bottom: none; }
+
+/* narrow screens: 5 columns incl. a wide Colab button don't fit — scroll
+   horizontally within the table instead of forcing the whole page to */
+@media screen and (max-width: 44.9375em) {
+  .st-nb-table { display: block; overflow-x: auto; }
+}
+
+/* ── Custom taxonomy flowchart ───────────────────────────────────────────── */
+.st-taxchart {
+  border: 2px solid #5B3DD6;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 1.5rem 0 2rem;
+  font-family: var(--st-display);
+  box-shadow: 0 2px 12px rgba(91, 61, 214, 0.09);
+}
+
+.st-tc-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 16px;
+  background: #5B3DD6;
+  color: #fff;
+  text-align: center;
+  gap: 2px;
+}
+.st-tc-root > b { font-size: 1rem; font-weight: 700; color: #fff; }
+.st-tc-root > span { font-size: 0.71rem; opacity: 0.78; }
+
+.st-tc-conn {
+  display: flex;
+  background: rgba(91, 61, 214, 0.03);
+  border-bottom: 2px solid rgba(91, 61, 214, 0.15);
+}
+.st-tc-conn-branch {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 8px;
+  gap: 0;
+}
+.st-tc-conn-branch.st-tc-t1-branch { border-right: 3px solid #5B3DD6; }
+.st-tc-conn-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+.st-tc-t1-branch .st-tc-conn-label { color: #5B3DD6; }
+.st-tc-t2-branch .st-tc-conn-label { color: #7A5500; }
+[data-md-color-scheme="slate"] .st-tc-t2-branch .st-tc-conn-label { color: #F4A63C; }
+.st-tc-conn-arrow { font-size: 0.9rem; line-height: 1.2; }
+.st-tc-t1-branch .st-tc-conn-arrow { color: #5B3DD6; }
+.st-tc-t2-branch .st-tc-conn-arrow { color: #7A5500; }
+[data-md-color-scheme="slate"] .st-tc-t2-branch .st-tc-conn-arrow { color: #F4A63C; }
+
+.st-tc-branches { display: flex; }
+.st-tc-tier { flex: 1; min-width: 0; }
+/* T1 gets purple accent; T2 gets amber accent — strong visual separation */
+.st-tc-t1 {
+  flex: 2.1;
+  border-right: 3px solid #5B3DD6;
+  background: rgba(91, 61, 214, 0.03);
+}
+.st-tc-t2 { background: rgba(244, 166, 60, 0.05); }
+
+.st-tc-head {
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.st-tc-t1 .st-tc-head { background: rgba(91, 61, 214, 0.10); border-left: 4px solid #5B3DD6; }
+.st-tc-t2 .st-tc-head { background: rgba(244, 166, 60, 0.12); border-left: 4px solid #F4A63C; }
+.st-tc-head > b { font-size: 0.61rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+.st-tc-t1 .st-tc-head > b { color: #4A2FB0; }
+.st-tc-t2 .st-tc-head > b { color: #7A5500; }
+[data-md-color-scheme="slate"] .st-tc-t1 .st-tc-head > b { color: #a78af0; }
+[data-md-color-scheme="slate"] .st-tc-t2 .st-tc-head > b { color: #F4A63C; }
+.st-tc-head > span { font-size: 0.66rem; color: var(--md-default-fg-color--light); }
+
+.st-tc-cells { display: flex; padding: 8px; gap: 6px; flex-wrap: wrap; }
+
+.st-tc-cell {
+  flex: 1;
+  min-width: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 5px;
+  border-radius: 5px;
+  background: var(--md-default-bg-color);
+  gap: 2px;
+}
+.st-tc-t1 .st-tc-cell { border: 1px solid rgba(91, 61, 214, 0.22); }
+.st-tc-t2 .st-tc-cell { border: 1px solid rgba(244, 166, 60, 0.35); }
+.st-tc-cell > .st-tc-code { font-size: 0.79rem; }
+.st-tc-cell > small { font-size: 0.6rem; color: var(--md-default-fg-color--light); line-height: 1.2; }
+.st-tc-cell > em { font-style: normal; font-size: 0.59rem; font-weight: 600; color: #7A5500; }
+[data-md-color-scheme="slate"] .st-tc-cell > em { color: #F4A63C; }
+
+/* ── 4-column intervention pillar cards ──────────────────────────────────── */
+/* Material makes ul display:contents so grid must be on the div */
+.md-typeset .grid.cards.st-4col,
+.md-typeset .grid.cards.st-4col > ul {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+.md-typeset .grid.cards.st-4col > ul > li {
+  min-width: 0 !important;
+  font-size: 0.82rem;
+}
+.md-typeset .grid.cards.st-4col > ul > li .md-typeset,
+.md-typeset .grid.cards.st-4col > ul > li p {
+  font-size: 0.82rem;
+}
+@media screen and (max-width: 76.1875em) {
+  .md-typeset .grid.cards.st-4col,
+  .md-typeset .grid.cards.st-4col > ul {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media screen and (max-width: 44.9375em) {
+  .md-typeset .grid.cards.st-4col,
+  .md-typeset .grid.cards.st-4col > ul {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Lexsi footer block (landing page) ──────────────────────────────────── */
+.st-lexsi-footer {
+  text-align: center;
+  margin: 2.4rem 0 0.8rem;
+}
+
+.st-lexsi-footer p {
+  margin: 0.25rem 0;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.74rem;
+}
+
+.st-lexsi-on-dark { display: none; }
+[data-md-color-scheme="slate"] .st-lexsi-on-light { display: none; }
+[data-md-color-scheme="slate"] .st-lexsi-on-dark { display: inline; }
