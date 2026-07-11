@@ -1201,15 +1201,15 @@
 <p>SafeTune is a library of safety methods for LLMs, organized into
 a 2-tier, input-keyed taxonomy: Tier 1 interventions (Harden / Recover /
 Unlearn / Steer) and Tier 2 instrumentation (Interpret / Evaluate); see the
-<a href="../../getting-started/taxonomy/">Taxonomy</a>. It ships ~100 methods. They are
+<a href="../../getting-started/taxonomy/">Taxonomy</a>. The shipped methods are
 not all equal, and this page says which to trust.</p>
 <h2 id="trust-levels">Trust levels<a class="headerlink" href="#trust-levels" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TB
-    A["118 audited components"] --&gt; F["Faithful · 112&lt;br/&gt;implements the cited paper"]
-    A --&gt; S["Simplified · 1&lt;br/&gt;reduced but correct"]
-    A --&gt; V["Variant · 5&lt;br/&gt;heuristic · do not cite&lt;br/&gt;as the named method"]
-    A --&gt; W["Wrong · 0&lt;br/&gt;wrong algorithm"]
-    A --&gt; ST["Stub · 0&lt;br/&gt;not implemented"]</code></pre>
+    A["Audited components"] --&gt; F["Faithful&lt;br/&gt;implements the cited paper"]
+    A --&gt; S["Simplified&lt;br/&gt;reduced but correct"]
+    A --&gt; V["Variant&lt;br/&gt;heuristic · do not cite&lt;br/&gt;as the named method"]
+    A --&gt; W["Wrong&lt;br/&gt;wrong algorithm"]
+    A --&gt; ST["Stub&lt;br/&gt;not implemented"]</code></pre>
 <p>Every method has been faithfulness-audited against its cited paper. The verdict
 distribution:</p>
 <table>
@@ -1217,43 +1217,31 @@ distribution:</p>
 <tr>
 <th>Status</th>
 <th>Meaning</th>
-<th>Count</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Faithful</td>
 <td>implements the cited paper exactly</td>
-<td>112</td>
 </tr>
 <tr>
 <td>Simplified-correct</td>
 <td>reduced but algorithmically correct</td>
-<td>1</td>
 </tr>
 <tr>
 <td>Variant</td>
 <td>approximates the method; not the named algorithm</td>
-<td>5</td>
 </tr>
 <tr>
 <td>Wrong / buggy</td>
 <td>wrong algorithm or broken</td>
-<td>0</td>
 </tr>
 <tr>
 <td>Stub / missing</td>
 <td>not implemented</td>
-<td>0</td>
 </tr>
 </tbody>
 </table>
-<blockquote>
-<p><strong>Why 118, not 100?</strong> The 118 audited components include some methods that expose
-multiple independently-audited entry points (e.g. a trainer, a sweep helper,
-and a state-dict variant counted separately). The library ships ~100 methods in
-total; the audit counts each auditable surface.</p>
-</blockquote>
 <p><strong>"Runs" ≠ "correct."</strong> Every audited component runs on a real checkpoint, but
 running is not the bar — the Variant methods are internally sound yet implement a
 simplified or heuristic version of their paper's algorithm, so they must not be
