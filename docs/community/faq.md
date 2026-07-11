@@ -19,7 +19,7 @@ has been tested on real production checkpoints, not just academic benchmarks.
 
 ## What is SafeTune?
 
-A library of ~100 LLM-safety methods. Each task (harden, recover,
+A library of LLM-safety methods. Each task (harden, recover,
 steer, unlearn, interpret, evaluate) has many independent methods that solve
 it by different mechanisms. You pick one per task.
 

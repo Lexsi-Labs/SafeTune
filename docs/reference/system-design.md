@@ -4,7 +4,7 @@
 
 ### 1.1 Overview
 
-SafeTune is a PyPI library of ~100 LLM safety methods organized into a
+SafeTune is a PyPI library of LLM safety methods organized into a
 2-tier, input-keyed taxonomy. It is **not a pipeline** — each task has many
 independent methods that solve it by different mechanisms; users pick one per task.
 

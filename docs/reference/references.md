@@ -1,10 +1,10 @@
 # SafeTune — References
 
-This document lists the ~100 methods shipped in SafeTune, organized by pillar. Each row links the implementation to its originating paper and lists the non-obvious inputs required. For a runnable example and full parameter reference for any method, see its page under [User Guide](../user-guide/index.md).
+This document lists the methods shipped in SafeTune, organized by pillar. Each row links the implementation to its originating paper and lists the non-obvious inputs required. For a runnable example and full parameter reference for any method, see its page under [User Guide](../user-guide/index.md).
 
 ```mermaid
 flowchart TD
-    R["SafeTune · ~100 methods"]
+    R["SafeTune"]
     R --> HARD["Harden · 27<br/>training-time defenses"]
     R --> REC["Recover · 26<br/>training-free weight patching"]
     R --> EVAL["Evaluate · 24<br/>redteam + judges + benchmarks"]
