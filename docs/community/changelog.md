@@ -2,7 +2,7 @@
 
 ## v1.0.0 — Initial public release
 
-SafeTune ships ~100 LLM-safety methods, organized into a 2-tier taxonomy and
+SafeTune ships a broad roster of LLM-safety methods, organized into a 2-tier taxonomy and
 faithfulness-audited against their cited papers.
 
 ### Methods included

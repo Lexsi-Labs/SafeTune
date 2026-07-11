@@ -129,7 +129,7 @@ Two changes affect how you call the fixed methods:
 | RRFAEnsemble | Faithful |
 | CASTModel + fit_cast_probe | Faithful |
 
-## Evaluate — Redteam (2 methods)
+## Evaluate — Redteam
 
 | Method | Faithful? |
 |---|---|
@@ -201,21 +201,5 @@ Two changes affect how you call the fixed methods:
 
 ---
 
-## Totals
-
-| Status | Count |
-|---|---|
-| Faithful | 112 |
-| Simplified-correct | 1 |
-| Variant | 5 |
-| Wrong / buggy | 0 |
-| Stub / missing | 0 |
-| **Total audited** | **118** |
-
-Per-pillar breakdown: Recover 23 Faithful / 1 Simplified / 2 Variant ·
-Unlearn 5 Faithful / 1 Variant · Harden 26 Faithful / 1 Variant ·
-Steer 19 Faithful · Evaluate-redteam 2 Faithful · Evaluate-infra 22 Faithful ·
-Interpret 5 Faithful / 1 Variant · Runtime 10 Faithful.
-
-The 5 Variant methods run correctly but must not be cited as their named paper
+Variant methods run correctly but must not be cited as their named paper
 method — see [Scope & Limitations](../community/scope.md) for details on each one.

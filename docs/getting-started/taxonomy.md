@@ -196,7 +196,7 @@ drift/recovery study.
 ## Which methods to trust
 
 The taxonomy says *what a method is for*; it says nothing about whether it
-*works*. ~100 methods ship; a faithfulness audit labels each one against its
+*works*. Every shipped method carries a faithfulness-audit verdict against its
 cited paper.
 
 - Trust summary and faithful-method list: [Trust & Scope](../community/scope.md).

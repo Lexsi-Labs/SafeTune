@@ -13,7 +13,7 @@ hide:
 
 <p class="st-tagline">
 You fine-tuned an aligned model and it quietly stopped refusing harmful
-requests. SafeTune gives you ~100 methods to fix that — harden the
+requests. SafeTune gives you a broad registry of methods to fix that — harden the
 fine-tuning, recover drifted weights, steer at inference, or unlearn a
 capability — each audited against its source paper, so you know what you're
 actually running.
@@ -26,7 +26,6 @@ actually running.
 <span>v1.0.0</span>
 <span>LSAL v1.1 · source-available</span>
 <span>Python 3.12+</span>
-<span>~100 methods</span>
 <span>per-method audit verdicts</span>
 </p>
 
@@ -41,7 +40,7 @@ don't chain them.
 <div class="st-taxchart">
   <div class="st-tc-root">
     <b>◆ SafeTune</b>
-    <span>~100 audited LLM-safety methods</span>
+    <span>audited LLM-safety methods</span>
   </div>
   <div class="st-tc-conn">
     <div class="st-tc-conn-branch st-tc-t1-branch">
@@ -60,10 +59,10 @@ don't chain them.
         <span>CHANGE model safety</span>
       </div>
       <div class="st-tc-cells">
-        <div class="st-tc-cell"><span class="st-tc-code">harden</span><small>Train-time · base + FT data</small><em>27 methods</em></div>
-        <div class="st-tc-cell"><span class="st-tc-code">recover</span><small>Weight-space · drifted model</small><em>26 methods</em></div>
-        <div class="st-tc-cell"><span class="st-tc-code">unlearn</span><small>Forget-set · remove capability</small><em>6 methods</em></div>
-        <div class="st-tc-cell"><span class="st-tc-code">steer</span><small>Inference-time · frozen model</small><em>19 methods</em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">harden</span><small>Train-time · base + FT data</small><em></em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">recover</span><small>Weight-space · drifted model</small><em></em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">unlearn</span><small>Forget-set · remove capability</small><em></em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">steer</span><small>Inference-time · frozen model</small><em></em></div>
       </div>
     </div>
     <div class="st-tc-tier st-tc-t2">
@@ -72,8 +71,8 @@ don't chain them.
         <span>OBSERVE safety</span>
       </div>
       <div class="st-tc-cells">
-        <div class="st-tc-cell"><span class="st-tc-code">interpret</span><small>Diagnose · locate safety</small><em>6 methods</em></div>
-        <div class="st-tc-cell"><span class="st-tc-code">evaluate</span><small>Measure · red-team + eval</small><em>24 methods</em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">interpret</span><small>Diagnose · locate safety</small><em></em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">evaluate</span><small>Measure · red-team + eval</small><em></em></div>
       </div>
     </div>
   </div>
@@ -185,8 +184,7 @@ Methods that **change** a model's safety — train-time, weight-space, or infere
     ---
 
     Stop safety from breaking *during* fine-tuning. Trainers replace your SFT
-    loop — gradient surgery, data alternation, representation perturbation.
-    26 methods · 8 families.
+    loop — gradient surgery, data alternation, representation perturbation. 8 families.
 
     :octicons-arrow-right-24: [Harden guide](user-guide/harden.md)
 
@@ -195,8 +193,7 @@ Methods that **change** a model's safety — train-time, weight-space, or infere
     ---
 
     Safety already broke? Patch the weights directly — no retraining.
-    Whole-model arithmetic to neuron-level surgery.
-    24 methods · 6 granularities.
+    Whole-model arithmetic to neuron-level surgery. 6 granularities.
 
     :octicons-arrow-right-24: [Recover guide](user-guide/recover.md)
 
@@ -205,7 +202,7 @@ Methods that **change** a model's safety — train-time, weight-space, or infere
     ---
 
     Don't touch weights. Wrap any model with a refusal direction or logits
-    processor — active only while installed. 19 methods.
+    processor — active only while installed.
     Optional vLLM backend for faster batched throughput.
 
     :octicons-arrow-right-24: [Steer guide](user-guide/steer.md)
@@ -216,7 +213,6 @@ Methods that **change** a model's safety — train-time, weight-space, or infere
 
     Make a model forget a specific skill. Trains on a forget set + retain set
     to erase knowledge while preserving the rest.
-    6 methods.
 
     :octicons-arrow-right-24: [Unlearn guide](user-guide/unlearn.md)
 
@@ -234,7 +230,7 @@ Methods that **observe** safety — diagnose where it lives and measure whether 
 
     Find refusal directions, safety neurons, and circuits inside a model.
     The artifacts feed Steer and circuit-guided Recover — the same finding
-    has three uses: steer with it, mask a weight edit, or report it. 6 methods.
+    has three uses: steer with it, mask a weight edit, or report it.
 
     **`identify_safety_neurons`** · **`safety_circuit_info`** · **`eap_safety_circuit`**
 
@@ -246,7 +242,6 @@ Methods that **observe** safety — diagnose where it lives and measure whether 
 
     Red-team attacks and benchmark/judge evaluation. HarmBench, XSTest,
     AdvBench, WildJailbreak. WildGuard and LlamaGuard-3 judges. One call.
-    24 methods.
 
     **`evaluate(model, benchmarks=["harmbench"])`** · **`BoNAttack`**
 

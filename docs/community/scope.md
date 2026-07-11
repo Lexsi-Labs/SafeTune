@@ -3,35 +3,30 @@
 SafeTune is a library of safety methods for LLMs, organized into
 a 2-tier, input-keyed taxonomy: Tier 1 interventions (Harden / Recover /
 Unlearn / Steer) and Tier 2 instrumentation (Interpret / Evaluate); see the
-[Taxonomy](../getting-started/taxonomy.md). It ships ~100 methods. They are
+[Taxonomy](../getting-started/taxonomy.md). The shipped methods are
 not all equal, and this page says which to trust.
 
 ## Trust levels
 
 ```mermaid
 flowchart TB
-    A["118 audited components"] --> F["Faithful · 112<br/>implements the cited paper"]
-    A --> S["Simplified · 1<br/>reduced but correct"]
-    A --> V["Variant · 5<br/>heuristic · do not cite<br/>as the named method"]
-    A --> W["Wrong · 0<br/>wrong algorithm"]
-    A --> ST["Stub · 0<br/>not implemented"]
+    A["Audited components"] --> F["Faithful<br/>implements the cited paper"]
+    A --> S["Simplified<br/>reduced but correct"]
+    A --> V["Variant<br/>heuristic · do not cite<br/>as the named method"]
+    A --> W["Wrong<br/>wrong algorithm"]
+    A --> ST["Stub<br/>not implemented"]
 ```
 
 Every method has been faithfulness-audited against its cited paper. The verdict
 distribution:
 
-| Status | Meaning | Count |
-|---|---|---|
-| Faithful | implements the cited paper exactly | 112 |
-| Simplified-correct | reduced but algorithmically correct | 1 |
-| Variant | approximates the method; not the named algorithm | 5 |
-| Wrong / buggy | wrong algorithm or broken | 0 |
-| Stub / missing | not implemented | 0 |
-
-> **Why 118, not 100?** The 118 audited components include some methods that expose
-> multiple independently-audited entry points (e.g. a trainer, a sweep helper,
-> and a state-dict variant counted separately). The library ships ~100 methods in
-> total; the audit counts each auditable surface.
+| Status | Meaning |
+|---|---|
+| Faithful | implements the cited paper exactly |
+| Simplified-correct | reduced but algorithmically correct |
+| Variant | approximates the method; not the named algorithm |
+| Wrong / buggy | wrong algorithm or broken |
+| Stub / missing | not implemented |
 
 **"Runs" ≠ "correct."** Every audited component runs on a real checkpoint, but
 running is not the bar — the Variant methods are internally sound yet implement a

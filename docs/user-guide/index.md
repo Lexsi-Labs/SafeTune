@@ -7,7 +7,7 @@ and the catalog of methods.
 <div class="st-taxchart">
   <div class="st-tc-root">
     <b>◆ SafeTune</b>
-    <span>~100 audited LLM-safety methods</span>
+    <span>audited LLM-safety methods</span>
   </div>
   <div class="st-tc-conn">
     <div class="st-tc-conn-branch st-tc-t1-branch">
@@ -26,10 +26,10 @@ and the catalog of methods.
         <span>CHANGE model safety</span>
       </div>
       <div class="st-tc-cells">
-        <div class="st-tc-cell"><span class="st-tc-code">harden</span><small>Train-time · base + FT data</small><em>26 methods</em></div>
-        <div class="st-tc-cell"><span class="st-tc-code">recover</span><small>Weight-space · drifted model</small><em>24 methods</em></div>
-        <div class="st-tc-cell"><span class="st-tc-code">unlearn</span><small>Forget-set · remove capability</small><em>6 methods</em></div>
-        <div class="st-tc-cell"><span class="st-tc-code">steer</span><small>Inference-time · frozen model</small><em>19 methods</em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">harden</span><small>Train-time · base + FT data</small><em></em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">recover</span><small>Weight-space · drifted model</small><em></em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">unlearn</span><small>Forget-set · remove capability</small><em></em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">steer</span><small>Inference-time · frozen model</small><em></em></div>
       </div>
     </div>
     <div class="st-tc-tier st-tc-t2">
@@ -38,8 +38,8 @@ and the catalog of methods.
         <span>OBSERVE safety</span>
       </div>
       <div class="st-tc-cells">
-        <div class="st-tc-cell"><span class="st-tc-code">interpret</span><small>Diagnose · locate safety</small><em>6 methods</em></div>
-        <div class="st-tc-cell"><span class="st-tc-code">evaluate</span><small>Measure · red-team + eval</small><em>24 methods</em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">interpret</span><small>Diagnose · locate safety</small><em></em></div>
+        <div class="st-tc-cell"><span class="st-tc-code">evaluate</span><small>Measure · red-team + eval</small><em></em></div>
       </div>
     </div>
   </div>
@@ -52,41 +52,40 @@ and the catalog of methods.
     ---
 
     Keep safety during fine-tuning. A Harden trainer *replaces* your SFT
-    trainer — it IS the fine-tuning. 26 methods.
+    trainer — it IS the fine-tuning.
 
 -   :material-wrench:{ .lg .middle } **[Recover](recover.md)**
 
     ---
 
     Restore safety in a drifted model. Weight-space editing, no training.
-    24 methods across 6 granularities.
+    Methods across 6 granularities.
 
 -   :material-eraser:{ .lg .middle } **[Unlearn](unlearn.md)**
 
     ---
 
     Remove a capability from a finished model. Forget set + retain set.
-    6 methods.
 
 -   :material-compass:{ .lg .middle } **[Steer](steer.md)**
 
     ---
 
     Refuse harmful prompts at inference time. Wraps a frozen model, no weight
-    changes. 19 methods.
+    changes.
 
 -   :material-magnify-scan:{ .lg .middle } **[Interpret](interpret.md)**
 
     ---
 
     Locate where safety lives — directions, neurons, circuits. Feeds Steer and
-    localization-aware Recover. 6 methods.
+    localization-aware Recover.
 
 -   :material-test-tube:{ .lg .middle } **[Evaluate](evaluate.md)**
 
     ---
 
-    Measure safety with red-team attacks and benchmark/judge eval. 24 methods.
+    Measure safety with red-team attacks and benchmark/judge eval.
 
 </div>
 
