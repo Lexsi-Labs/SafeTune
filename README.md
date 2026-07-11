@@ -232,6 +232,8 @@ If you use SafeTune in research, please cite the main paper:
 ## License
 
 Lexsi Labs Source Available License (LSAL) v1.1 — see [LICENSE.md](LICENSE.md).
-Free for research, academic, and personal use; commercial use requires a
-separate license from Lexsi Labs (support@lexsi.ai). Drifted checkpoints may
-not be deployed in production systems (see the Responsible Use clause).
+LSAL grants the same permissions as the MIT License (free use, modification,
+and redistribution with attribution, same warranty disclaimer) and differs in
+exactly two respects: **commercial use requires a separate license** from
+Lexsi Labs (support@lexsi.ai), and **unrepaired drifted checkpoints may not be
+deployed in production systems** (see the Responsible Use clause).
