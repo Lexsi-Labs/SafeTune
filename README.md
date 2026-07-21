@@ -44,23 +44,24 @@ prints how refusal behaviour changes — no training, no checkpoints.
 
 ## Examples and notebooks
 
-Every intervention class has a runnable script and a matching Colab notebook.
-The scripts print results in a terminal; the notebooks show the same thing
-step by step in the browser. All default to `Qwen/Qwen2.5-0.5B-Instruct`.
+Every notebook below has a matching Colab link and a direct download.
+Where a script exists it's the source of truth; the notebook wraps the
+same code for interactive sessions. All default to
+`Qwen/Qwen2.5-0.5B-Instruct`. Steer, Recover, and Interpret run fine with
+no GPU; the others train for a few steps, so a Colab GPU runtime helps.
 
-| Pillar | What it does | Script | Notebook |
-|---|---|---|---|
-| **Steer** | extract a refusal direction and ablate it live | [`quickstart.py`](examples/quickstart/quickstart.py) | [`steer_demo.ipynb`](examples/notebooks/steer_demo.ipynb) |
-| **Recover** | `ReStaTrainer` weight patching on a drifted model | [`recover_quickstart.py`](examples/quickstart/recover_quickstart.py) | [`recover_demo.ipynb`](examples/notebooks/recover_demo.ipynb) |
-| **Harden** | `SafeGradTrainer` gradient-surgery fine-tune | [`harden_quickstart.py`](examples/quickstart/harden_quickstart.py) | [`harden_demo.ipynb`](examples/notebooks/harden_demo.ipynb) |
-| **Unlearn** | `GradientAscentTrainer` removes a capability | [`unlearn_quickstart.py`](examples/quickstart/unlearn_quickstart.py) | [`unlearn_demo.ipynb`](examples/notebooks/unlearn_demo.ipynb) |
-| **Interpret** | locate safety circuits and neurons | [`interpret_quickstart.py`](examples/quickstart/interpret_quickstart.py) | [`interpret_demo.ipynb`](examples/notebooks/interpret_demo.ipynb) |
-| **Evaluate** | benchmarks + red-team + spectral monitor | [`evaluate_quickstart.py`](examples/quickstart/evaluate_quickstart.py) | [`evaluate_demo.ipynb`](examples/notebooks/evaluate_demo.ipynb) |
-
-Steer, Recover, and Interpret run fine with no GPU; the others train for a few
-steps, so a Colab GPU runtime helps. Four more notebooks — method comparisons,
-a monitoring demo, and a full pipeline run — are documented in
-[Notebooks](docs/examples/notebooks.md).
+| # | Pillar | What it does | Script | 🔗 Colab | 📥 Download |
+|---|---|---|---|---|---|
+| 01 | **Steer** | extract a refusal direction and ablate it live | [`quickstart.py`](examples/quickstart/quickstart.py) | [Open](https://colab.research.google.com/drive/1k13VvrAk1NduSH_oJ-3okarnCfsrPYTB) | [Download](https://drive.google.com/uc?export=download&id=14LAu9_esWGwy1jSJH8oNpB21kZm8CJs2) |
+| 02 | **Recover** | `ReStaTrainer` weight patching on a drifted model | [`recover_quickstart.py`](examples/quickstart/recover_quickstart.py) | [Open](https://colab.research.google.com/drive/1_w5iaecOTJT8NXzcRZyaM7MzbHK14KvT) | [Download](https://drive.google.com/uc?export=download&id=1shseBo_grBN56EkR6zo_LmsUBgrZvKDv) |
+| 03 | **Harden** | `SafeGradTrainer` gradient-surgery fine-tune | [`harden_quickstart.py`](examples/quickstart/harden_quickstart.py) | [Open](https://colab.research.google.com/drive/1VGIS5Bk44mCrEqNKIIcbhimSAbFXRQl9) | [Download](https://drive.google.com/uc?export=download&id=1lVhtJeIpwsvHheIOFly5h-4prkEtygKs) |
+| 04 | **Unlearn** | `GradientAscentTrainer` removes a capability | [`unlearn_quickstart.py`](examples/quickstart/unlearn_quickstart.py) | [Open](https://colab.research.google.com/drive/1890EkUzDb9q5tNiTCRfI6GjpttTWiEvs) | [Download](https://drive.google.com/uc?export=download&id=1A-VgLamhFNyEdM9C8kADgB5bf0XCzyvg) |
+| 05 | **Interpret** | locate safety circuits and neurons | [`interpret_quickstart.py`](examples/quickstart/interpret_quickstart.py) | [Open](https://colab.research.google.com/drive/1pGKrf8Y9iQcOgR-5SdD3ABVC3cSFWnNT) | [Download](https://drive.google.com/uc?export=download&id=1kXVUEx-H6zJ-imVCFschwda0_yKbcE0U) |
+| 06 | **Evaluate** | benchmarks + red-team + spectral monitor | [`evaluate_quickstart.py`](examples/quickstart/evaluate_quickstart.py) | [Open](https://colab.research.google.com/drive/1LSTeRaMaImSLzEatePeZEcWRE2QQvfUl) | [Download](https://drive.google.com/uc?export=download&id=1_3vQdZ767WSpd6oekdtpBXEiJvdLKtvI) |
+| 07 | **Steer** | compare Steer methods on the same checkpoint | — | [Open](https://colab.research.google.com/drive/1QHqYJq-oZvVEGOoIDAI2dztQyppNitzk) | [Download](https://drive.google.com/uc?export=download&id=1vMUS6VxfmVcHfPA-RXmLkuP9-30XqJ9x) |
+| 08 | **Recover** | compare Recover methods on the same checkpoint | — | [Open](https://colab.research.google.com/drive/1o3dV9RhEuyc2wkkm_Vun4Lq0jhka7Max) | [Download](https://drive.google.com/uc?export=download&id=1iREUZRpK-jKvFOzctENRb-WFGo6dUymd) |
+| 09 | **Evaluate** | live spectral-entropy safety monitor | — | [Open](https://colab.research.google.com/drive/1fcfaA-IhEfLpOpjOYdCLtjRDHsc63sA1) | [Download](https://drive.google.com/uc?export=download&id=1JUNqd6EKzTsXtufJFvP83Yhch6vmTOTn) |
+| 10 | **All pillars** | harden → recover → unlearn → steer → interpret → evaluate, back to back | [`full_pipeline.py`](examples/demos/full_pipeline.py) | [Open](https://colab.research.google.com/drive/1sqWUHknK9reYS3qqEVl75BTFn8DgMADm) | [Download](https://drive.google.com/uc?export=download&id=1fSN67lrtVXWstmNfyR1s-gt_yo6GqnTj) |
 
 ## Pick one per task
 
