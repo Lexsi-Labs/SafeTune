@@ -52,16 +52,16 @@ a few steps, so a GPU runtime helps.
 
 | # | Pillar | What it does | Script | 🔗 Colab |
 |---|---|---|---|---|
-| 01 | **Steer** | extract a refusal direction and ablate it live | [`quickstart.py`](examples/quickstart/quickstart.py) | [Open in Colab](https://drive.google.com/uc?export=download&id=14LAu9_esWGwy1jSJH8oNpB21kZm8CJs2) |
-| 02 | **Recover** | `ReStaTrainer` weight patching on a drifted model | [`recover_quickstart.py`](examples/quickstart/recover_quickstart.py) | [Open in Colab](https://drive.google.com/uc?export=download&id=1shseBo_grBN56EkR6zo_LmsUBgrZvKDv) |
-| 03 | **Harden** | `SafeGradTrainer` gradient-surgery fine-tune | [`harden_quickstart.py`](examples/quickstart/harden_quickstart.py) | [Open in Colab](https://drive.google.com/uc?export=download&id=1lVhtJeIpwsvHheIOFly5h-4prkEtygKs) |
-| 04 | **Unlearn** | `GradientAscentTrainer` removes a capability | [`unlearn_quickstart.py`](examples/quickstart/unlearn_quickstart.py) | [Open in Colab](https://drive.google.com/uc?export=download&id=1A-VgLamhFNyEdM9C8kADgB5bf0XCzyvg) |
-| 05 | **Interpret** | locate safety circuits and neurons | [`interpret_quickstart.py`](examples/quickstart/interpret_quickstart.py) | [Open in Colab](https://drive.google.com/uc?export=download&id=1kXVUEx-H6zJ-imVCFschwda0_yKbcE0U) |
-| 06 | **Evaluate** | benchmarks + red-team + spectral monitor | [`evaluate_quickstart.py`](examples/quickstart/evaluate_quickstart.py) | [Open in Colab](https://drive.google.com/uc?export=download&id=1_3vQdZ767WSpd6oekdtpBXEiJvdLKtvI) |
-| 07 | **Steer** | compare Steer methods on the same checkpoint | — | [Open in Colab](https://drive.google.com/uc?export=download&id=1vMUS6VxfmVcHfPA-RXmLkuP9-30XqJ9x) |
-| 08 | **Recover** | compare Recover methods on the same checkpoint | — | [Open in Colab](https://drive.google.com/uc?export=download&id=1iREUZRpK-jKvFOzctENRb-WFGo6dUymd) |
-| 09 | **Evaluate** | live spectral-entropy safety monitor | — | [Open in Colab](https://drive.google.com/uc?export=download&id=1JUNqd6EKzTsXtufJFvP83Yhch6vmTOTn) |
-| 10 | **All pillars** | harden → recover → unlearn → steer → interpret → evaluate, back to back | [`full_pipeline.py`](examples/demos/full_pipeline.py) | [Open in Colab](https://drive.google.com/uc?export=download&id=1fSN67lrtVXWstmNfyR1s-gt_yo6GqnTj) |
+| 01 | **Steer** | extract a refusal direction and ablate it live | [`quickstart.py`](examples/quickstart/quickstart.py) | [Open](https://drive.google.com/uc?export=download&id=14LAu9_esWGwy1jSJH8oNpB21kZm8CJs2) |
+| 02 | **Recover** | `ReStaTrainer` weight patching on a drifted model | [`recover_quickstart.py`](examples/quickstart/recover_quickstart.py) | [Open](https://drive.google.com/uc?export=download&id=1shseBo_grBN56EkR6zo_LmsUBgrZvKDv) |
+| 03 | **Harden** | `SafeGradTrainer` gradient-surgery fine-tune | [`harden_quickstart.py`](examples/quickstart/harden_quickstart.py) | [Open](https://drive.google.com/uc?export=download&id=1lVhtJeIpwsvHheIOFly5h-4prkEtygKs) |
+| 04 | **Unlearn** | `GradientAscentTrainer` removes a capability | [`unlearn_quickstart.py`](examples/quickstart/unlearn_quickstart.py) | [Open](https://drive.google.com/uc?export=download&id=1A-VgLamhFNyEdM9C8kADgB5bf0XCzyvg) |
+| 05 | **Interpret** | locate safety circuits and neurons | [`interpret_quickstart.py`](examples/quickstart/interpret_quickstart.py) | [Open](https://drive.google.com/uc?export=download&id=1kXVUEx-H6zJ-imVCFschwda0_yKbcE0U) |
+| 06 | **Evaluate** | benchmarks + red-team + spectral monitor | [`evaluate_quickstart.py`](examples/quickstart/evaluate_quickstart.py) | [Open](https://drive.google.com/uc?export=download&id=1_3vQdZ767WSpd6oekdtpBXEiJvdLKtvI) |
+| 07 | **Steer** | compare Steer methods on the same checkpoint | — | [Open](https://drive.google.com/uc?export=download&id=1vMUS6VxfmVcHfPA-RXmLkuP9-30XqJ9x) |
+| 08 | **Recover** | compare Recover methods on the same checkpoint | — | [Open](https://drive.google.com/uc?export=download&id=1iREUZRpK-jKvFOzctENRb-WFGo6dUymd) |
+| 09 | **Evaluate** | live spectral-entropy safety monitor | — | [Open](https://drive.google.com/uc?export=download&id=1JUNqd6EKzTsXtufJFvP83Yhch6vmTOTn) |
+| 10 | **All pillars** | harden → recover → unlearn → steer → interpret → evaluate, back to back | [`full_pipeline.py`](examples/demos/full_pipeline.py) | [Open](https://drive.google.com/uc?export=download&id=1fSN67lrtVXWstmNfyR1s-gt_yo6GqnTj) |
 
 ## Pick one per task
 
