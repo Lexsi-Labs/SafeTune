@@ -65,6 +65,9 @@ jobs:
     needs: classify
     if: needs.classify.outputs.kind == 'normal'
     runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.current-release.outputs.decision }}
+      version: ${{ steps.current-release.outputs.version }}
     permissions:
       contents: read
       pull-requests: read
@@ -123,8 +126,8 @@ jobs:
             --tag "$tag_exists" --release "$release_exists" --pypi "$pypi")
           echo "decision=$decision" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if [[ "$decision" == skip ]]; then
-            echo "::notice::No patch PR created because $version has not yet been tagged, released on GitHub, and completely published to PyPI."
+          if [[ "$decision" == bootstrap ]]; then
+            echo "::notice::$version is not yet fully released; the release job will bootstrap or resume it before any later patch is proposed."
           fi
 
       - name: Check for an existing version-bump pull request
@@ -193,8 +196,15 @@ jobs:
 
   release:
     name: Tag, release, and publish
-    needs: classify
-    if: needs.classify.outputs.kind == 'release'
+    needs:
+      - classify
+      - propose-patch
+    if: >-
+      always() &&
+      needs.classify.result == 'success' &&
+      (needs.classify.outputs.kind == 'release' ||
+      (needs.classify.outputs.kind == 'normal' &&
+      needs.propose-patch.outputs.decision == 'bootstrap'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -217,20 +227,27 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.classify.outputs.version }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          BOOTSTRAP: ${{ needs.classify.outputs.kind == 'normal' }}
         run: |
           python scripts/release.py verify --expected "$VERSION" --tag "$VERSION"
           git fetch --force --tags origin
 
           tag_exists=false
+          release_sha=$(git rev-parse "$MERGE_SHA^{commit}")
           if git show-ref --verify --quiet "refs/tags/$VERSION"; then
             if [[ $(git cat-file -t "refs/tags/$VERSION") != tag ]]; then
               echo "::error::Tag $VERSION exists but is not annotated."
               exit 1
             fi
             tag_commit=$(git rev-parse "$VERSION^{commit}")
-            expected_commit=$(git rev-parse "$MERGE_SHA^{commit}")
-            if [[ "$tag_commit" != "$expected_commit" ]]; then
-              echo "::error::Tag $VERSION points to $tag_commit, expected release commit $expected_commit."
+            if [[ "$BOOTSTRAP" == true ]]; then
+              if ! git merge-base --is-ancestor "$tag_commit" "$release_sha"; then
+                echo "::error::Bootstrap tag $VERSION does not point to an ancestor of the default branch."
+                exit 1
+              fi
+              release_sha=$tag_commit
+            elif [[ "$tag_commit" != "$release_sha" ]]; then
+              echo "::error::Tag $VERSION points to $tag_commit, expected release commit $release_sha."
               exit 1
             fi
             python scripts/release.py verify-ref --ref "$VERSION" --expected "$VERSION"
@@ -256,9 +273,14 @@ jobs:
           action=$(python scripts/release.py release-state \
             --tag "$tag_exists" --release "$release_exists" --pypi "$pypi")
           echo "action=$action" >> "$GITHUB_OUTPUT"
+          echo "release_sha=$release_sha" >> "$GITHUB_OUTPUT"
           if [[ "$action" == complete ]]; then
             echo "::notice::Release $VERSION is already complete; this rerun has nothing to mutate."
           fi
+
+      - name: Check out the exact release source
+        if: steps.state.outputs.action != 'complete'
+        run: git checkout --detach "${{ steps.state.outputs.release_sha }}"
 
       - name: Install project and release tooling
         if: steps.state.outputs.action != 'complete'
@@ -283,11 +305,11 @@ jobs:
         if: steps.state.outputs.action == 'create-tag'
         env:
           VERSION: ${{ needs.classify.outputs.version }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RELEASE_SHA: ${{ steps.state.outputs.release_sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag --annotate "$VERSION" "$MERGE_SHA" --message "SafeTune $VERSION"
+          git tag --annotate "$VERSION" "$RELEASE_SHA" --message "SafeTune $VERSION"
           git push origin "refs/tags/$VERSION"
 
       - name: Create the GitHub release

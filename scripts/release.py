@@ -253,13 +253,17 @@ def is_open_bump_pr(pull_request: dict[str, object]) -> bool:
 
 
 def decide_bump_state(*, tag: bool, release: bool, pypi: str) -> str:
-    """Decide whether the current version is complete enough to bump."""
+    """Decide whether to bootstrap the current version or propose its successor."""
     if pypi not in {"absent", "complete", "partial"}:
         raise ReleaseError(f"Unknown PyPI state {pypi!r}")
     if tag and release and pypi == "complete":
         return "create"
-    if not tag and not release and pypi == "absent":
-        return "skip"
+    if pypi == "absent" and (tag, release) in {
+        (False, False),
+        (True, False),
+        (True, True),
+    }:
+        return "bootstrap"
     raise ReleaseError(
         "Current version is only partially released: "
         f"tag={tag}, github_release={release}, pypi={pypi}"
