@@ -211,7 +211,7 @@ forwarded to the trainer constructor, so method-specific hyperparameters
 
 ## 4. Backward Compatibility Policy
 
-- SemVer since v1.0.0 (current: 1.0.0)
+- SemVer since v0.1.0 (current: 0.1.0)
 - `safetune.evaluate` is the Measure pillar; the old `verify` name was removed
   (not aliased — `import safetune.verify` raises `ModuleNotFoundError`)
 - `safetune.core.unlearn` → `safetune.unlearn` (shim maintained at old path)

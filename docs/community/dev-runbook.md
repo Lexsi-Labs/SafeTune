@@ -172,17 +172,17 @@ jobs:
 
 ### 4.3 Versioning
 
-- Current: `1.0.0` (SemVer)
+- Current: `0.1.0` (SemVer)
 - PyPI release: `python -m build && twine upload dist/*`
-- Version pinned in `src/safetune/__init__.py`: `__version__ = "1.0.0"`
-- Mirrored in `pyproject.toml`: `version = "1.0.0"`
+- Version pinned in `src/safetune/__init__.py`: `__version__ = "0.1.0"`
+- Mirrored in `pyproject.toml`: `version = "0.1.0"`
 
 ### 4.4 Wheel Build
 
 ```bash
 pip install build
 python -m build
-# Produces dist/safetune-1.0.0-py3-none-any.whl + dist/safetune-1.0.0.tar.gz
+# Produces dist/safetune-0.1.0-py3-none-any.whl + dist/safetune-0.1.0.tar.gz
 ```
 
 ## 5. Dependency Management

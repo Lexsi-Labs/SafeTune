@@ -8,7 +8,7 @@
 <h3 align="center">A library of LLM-safety methods. Pick the one that fits your task — and know exactly what it implements.</h3>
 
 <p align="center">
-  <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.0-5B3DD6.svg" alt="Version 1.0.0"/></a>
+  <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.0-5B3DD6.svg" alt="Version 0.1.0"/></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+"/></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-LSAL%20v1.1%20(source--available)-blue.svg" alt="License: LSAL v1.1"/></a>
 </p>

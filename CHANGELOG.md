@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   referring to the MIT License describe pre-LSAL releases. Commercial
   licensing: support@lexsi.ai.
 
-## [1.0.1] - 2026-06-29
+## [0.1.1] - 2026-06-29
 
 ### Added
 
@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `runner/recover/_base.py` (subclass files already imported directly).
 - Stray multi-line bug-fix comment removed from `LoXHardenTrainer.train()`.
 
-## [1.0.0] - 2026-06-24
+## [0.1.0] - 2026-06-24
 
 **First public release.** SafeTune is a library of ~100 alternative LLM-safety
 methods — train-time hardening, weight-space recovery and unlearning,
@@ -124,7 +124,7 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
 - **CLI rewritten** to dispatch to harden / evaluate / recover pillar APIs
   instead of the old SFT/DPO/PPO/GRPO orchestrator stubs.
 - **`verify` → `evaluate` rename**: `safetune.evaluate` is the current name;
-  `safetune.verify` was later removed in v1.0.0.
+  `safetune.verify` was later removed in v0.1.0.
 - **Recover uniform input contract**: every `apply_*` accepts `target=`
   (`model=` / `finetuned=` kept as aliases).
 - **2-tier, input-keyed taxonomy**: Tier 1 Interventions (harden / recover /

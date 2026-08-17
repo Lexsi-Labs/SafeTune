@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "safetune"
-version = "1.0.0"
+version = "0.1.0"
 description = "SafeTune: a unified library for preserving and restoring safety in fine-tuned LLMs — train-time (harden), weight-space (recover, unlearn), inference-time (steer) interventions plus diagnosis (interpret) and evaluation, for the Hugging Face ecosystem."
 readme = "README.md"
 requires-python = ">=3.12"
