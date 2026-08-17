@@ -137,11 +137,18 @@ def test_open_bump_pr_detection_requires_all_markers() -> None:
     assert not is_open_bump_pr({**pull_request, "body": ""})
 
 
-def test_bump_requires_a_fully_released_current_version() -> None:
+def test_bump_bootstraps_an_unreleased_current_version() -> None:
     assert decide_bump_state(tag=True, release=True, pypi="complete") == "create"
-    assert decide_bump_state(tag=False, release=False, pypi="absent") == "skip"
+    assert decide_bump_state(tag=False, release=False, pypi="absent") == "bootstrap"
+    assert decide_bump_state(tag=True, release=False, pypi="absent") == "bootstrap"
+    assert decide_bump_state(tag=True, release=True, pypi="absent") == "bootstrap"
+
+
+def test_bump_rejects_an_inconsistent_current_release() -> None:
     with pytest.raises(ReleaseError, match="partially released"):
-        decide_bump_state(tag=True, release=True, pypi="absent")
+        decide_bump_state(tag=False, release=True, pypi="absent")
+    with pytest.raises(ReleaseError, match="partially released"):
+        decide_bump_state(tag=True, release=True, pypi="partial")
 
 
 @pytest.mark.parametrize(
