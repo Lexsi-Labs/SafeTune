@@ -17,12 +17,12 @@ it exercises all six pillars back to back.
     <tr><th>#</th><th>Notebook</th><th>Pillar</th><th>GPU</th><th>Link</th></tr>
   </thead>
   <tbody>
-    <tr><td>01</td><td><code>steer_demo</code> <strong>&larr; start here</strong></td><td>Steer</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1k13VvrAk1NduSH_oJ-3okarnCfsrPYTB" target="_blank">OPEN IN COLAB</a></td></tr>
-    <tr><td>02</td><td><code>recover_demo</code></td><td>Recover</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1_w5iaecOTJT8NXzcRZyaM7MzbHK14KvT" target="_blank">OPEN IN COLAB</a></td></tr>
-    <tr><td>03</td><td><code>harden_demo</code></td><td>Harden</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1VGIS5Bk44mCrEqNKIIcbhimSAbFXRQl9" target="_blank">OPEN IN COLAB</a></td></tr>
-    <tr><td>04</td><td><code>unlearn_demo</code></td><td>Unlearn</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1890EkUzDb9q5tNiTCRfI6GjpttTWiEvs" target="_blank">OPEN IN COLAB</a></td></tr>
-    <tr><td>05</td><td><code>interpret_demo</code></td><td>Interpret</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1pGKrf8Y9iQcOgR-5SdD3ABVC3cSFWnNT" target="_blank">OPEN IN COLAB</a></td></tr>
-    <tr><td>06</td><td><code>evaluate_demo</code></td><td>Evaluate</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1LSTeRaMaImSLzEatePeZEcWRE2QQvfUl" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>01</td><td><code>steer_demo</code> <strong>&larr; start here</strong></td><td>Steer</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>02</td><td><code>recover_demo</code></td><td>Recover</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>03</td><td><code>harden_demo</code></td><td>Harden</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/harden_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>04</td><td><code>unlearn_demo</code></td><td>Unlearn</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/unlearn_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>05</td><td><code>interpret_demo</code></td><td>Interpret</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/interpret_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>06</td><td><code>evaluate_demo</code></td><td>Evaluate</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/evaluate_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
   </tbody>
 </table>
 
@@ -35,8 +35,8 @@ Side-by-side runs of multiple methods on the same checkpoint.
     <tr><th>#</th><th>Notebook</th><th>Pillar</th><th>GPU</th><th>Link</th></tr>
   </thead>
   <tbody>
-    <tr><td>07</td><td><code>steer_comparison</code></td><td>Steer</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1QHqYJq-oZvVEGOoIDAI2dztQyppNitzk" target="_blank">OPEN IN COLAB</a></td></tr>
-    <tr><td>08</td><td><code>recover_comparison</code></td><td>Recover</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1o3dV9RhEuyc2wkkm_Vun4Lq0jhka7Max" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>07</td><td><code>steer_comparison</code></td><td>Steer</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_comparison.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>08</td><td><code>recover_comparison</code></td><td>Recover</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_comparison.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
   </tbody>
 </table>
 
@@ -47,8 +47,8 @@ Side-by-side runs of multiple methods on the same checkpoint.
     <tr><th>#</th><th>Notebook</th><th>Pillar</th><th>GPU</th><th>Link</th></tr>
   </thead>
   <tbody>
-    <tr><td>09</td><td><code>safety_monitoring</code></td><td>Evaluate</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1fcfaA-IhEfLpOpjOYdCLtjRDHsc63sA1" target="_blank">OPEN IN COLAB</a></td></tr>
-    <tr><td>10</td><td><code>full_pipeline</code></td><td>All pillars</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/drive/1sqWUHknK9reYS3qqEVl75BTFn8DgMADm" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>09</td><td><code>safety_monitoring</code></td><td>Evaluate</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/safety_monitoring.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>10</td><td><code>full_pipeline</code></td><td>All pillars</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/full_pipeline.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
   </tbody>
 </table>
 

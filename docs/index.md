@@ -357,6 +357,33 @@ Four common situations and which method fits each. Code snippets use placeholder
     Trains only on the forget/retain split — not a full retrain.
     [:octicons-arrow-right-24: 6 unlearn methods](user-guide/unlearn.md)
 
+## Run it in Colab — no install, no local GPU
+
+10 notebooks, one per demo/comparison/deep-dive, each opens straight into a
+Colab runtime. Start with **steer_demo** — no GPU needed, ~2 minutes.
+
+<table class="st-nb-table">
+  <thead>
+    <tr><th>#</th><th>Notebook</th><th>Pillar</th><th>GPU</th><th>Link</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>01</td><td><code>steer_demo</code> <strong>&larr; start here</strong></td><td>Steer</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>02</td><td><code>recover_demo</code></td><td>Recover</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>03</td><td><code>harden_demo</code></td><td>Harden</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/harden_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>04</td><td><code>unlearn_demo</code></td><td>Unlearn</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/unlearn_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>05</td><td><code>interpret_demo</code></td><td>Interpret</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/interpret_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>06</td><td><code>evaluate_demo</code></td><td>Evaluate</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/evaluate_demo.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>07</td><td><code>steer_comparison</code></td><td>Steer</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_comparison.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>08</td><td><code>recover_comparison</code></td><td>Recover</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_comparison.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>09</td><td><code>safety_monitoring</code></td><td>Evaluate</td><td>No GPU</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/safety_monitoring.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+    <tr><td>10</td><td><code>full_pipeline</code></td><td>All pillars</td><td>GPU helps</td><td><a class="st-colab-btn" href="https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/full_pipeline.ipynb" target="_blank">OPEN IN COLAB</a></td></tr>
+  </tbody>
+</table>
+
+Each notebook opens straight from `main` — no separate copy to keep in sync.
+Full breakdown (demos vs. comparisons vs. advanced, script equivalents) on the
+[Notebooks](examples/notebooks.md) page.
+
 ## Where next
 
 <div class="st-wide" markdown>

@@ -44,22 +44,35 @@ prints how refusal behaviour changes — no training, no checkpoints.
 
 ## Examples and notebooks
 
-Every intervention class has a runnable script and a matching Colab notebook.
-The scripts print results in a terminal; the notebooks show the same thing
-step by step in the browser. All default to `Qwen/Qwen2.5-0.5B-Instruct`.
+Every intervention class also has a runnable script under
+[`examples/`](examples/) — same code, terminal output instead of a browser;
+see [Python Scripts](docs/examples/scripts.md) for the full list. The table
+below is the notebook side: all 10 ship in
+[`examples/notebooks/`](examples/notebooks/), each opens straight into a free
+Colab runtime (no local install), and all default to
+`Qwen/Qwen2.5-0.5B-Instruct`.
 
-| Pillar | What it does | Script | Notebook |
-|---|---|---|---|
-| **Steer** | extract a refusal direction and ablate it live | [`quickstart.py`](examples/quickstart/quickstart.py) | [`steer_demo.ipynb`](examples/notebooks/steer_demo.ipynb) |
-| **Recover** | `ReStaTrainer` weight patching on a drifted model | [`recover_quickstart.py`](examples/quickstart/recover_quickstart.py) | [`recover_demo.ipynb`](examples/notebooks/recover_demo.ipynb) |
-| **Harden** | `SafeGradTrainer` gradient-surgery fine-tune | [`harden_quickstart.py`](examples/quickstart/harden_quickstart.py) | [`harden_demo.ipynb`](examples/notebooks/harden_demo.ipynb) |
-| **Unlearn** | `GradientAscentTrainer` removes a capability | [`unlearn_quickstart.py`](examples/quickstart/unlearn_quickstart.py) | [`unlearn_demo.ipynb`](examples/notebooks/unlearn_demo.ipynb) |
-| **Interpret** | locate safety circuits and neurons | [`interpret_quickstart.py`](examples/quickstart/interpret_quickstart.py) | [`interpret_demo.ipynb`](examples/notebooks/interpret_demo.ipynb) |
-| **Evaluate** | benchmarks + red-team + spectral monitor | [`evaluate_quickstart.py`](examples/quickstart/evaluate_quickstart.py) | [`evaluate_demo.ipynb`](examples/notebooks/evaluate_demo.ipynb) |
+- **01–06 · Demos** — one per pillar, runs to completion with printed output.
+  Start with `steer_demo`.
+- **07–08 · Comparisons** — several methods run side by side on the same
+  checkpoint, so you can see the trade-off directly.
+- **09–10 · Advanced** — a live monitoring demo and the full six-pillar
+  pipeline chained end to end.
 
-Steer, Recover, and Interpret run fine with no GPU; the others train for a few
-steps, so a Colab GPU runtime helps. Four more notebooks — method comparisons,
-a monitoring demo, and a full pipeline run — are documented in
+| # | Notebook | Pillar | What it shows | GPU | Open |
+|---|---|---|---|---|---|
+| <sub>01</sub> | <sub>[`steer_demo`](examples/notebooks/steer_demo.ipynb)</sub> | <sub>Steer</sub> | <sub>extract a refusal direction and ablate it live — no training</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_demo.ipynb) |
+| <sub>02</sub> | <sub>[`recover_demo`](examples/notebooks/recover_demo.ipynb)</sub> | <sub>Recover</sub> | <sub>`ReStaTrainer` weight patching on a drifted model — no training</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_demo.ipynb) |
+| <sub>03</sub> | <sub>[`harden_demo`](examples/notebooks/harden_demo.ipynb)</sub> | <sub>Harden</sub> | <sub>`SafeGradTrainer` gradient-surgery fine-tune</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/harden_demo.ipynb) |
+| <sub>04</sub> | <sub>[`unlearn_demo`](examples/notebooks/unlearn_demo.ipynb)</sub> | <sub>Unlearn</sub> | <sub>`GradientAscentTrainer` removes a capability via forget/retain sets</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/unlearn_demo.ipynb) |
+| <sub>05</sub> | <sub>[`interpret_demo`](examples/notebooks/interpret_demo.ipynb)</sub> | <sub>Interpret</sub> | <sub>locate safety circuits and neurons from contrast prompts</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/interpret_demo.ipynb) |
+| <sub>06</sub> | <sub>[`evaluate_demo`](examples/notebooks/evaluate_demo.ipynb)</sub> | <sub>Evaluate</sub> | <sub>benchmarks + red-team attacks + spectral entropy monitor</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/evaluate_demo.ipynb) |
+| <sub>07</sub> | <sub>[`steer_comparison`](examples/notebooks/steer_comparison.ipynb)</sub> | <sub>Steer</sub> | <sub>CAA vs RefusalDirection vs CAST vs AdaSteer, same checkpoint</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_comparison.ipynb) |
+| <sub>08</sub> | <sub>[`recover_comparison`](examples/notebooks/recover_comparison.ipynb)</sub> | <sub>Recover</sub> | <sub>RESTA vs C-ΔΘ vs LoX, same drifted checkpoint</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_comparison.ipynb) |
+| <sub>09</sub> | <sub>[`safety_monitoring`](examples/notebooks/safety_monitoring.ipynb)</sub> | <sub>Evaluate</sub> | <sub>`SpectralEntropyMonitor` catches safety drift mid-fine-tune</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/safety_monitoring.ipynb) |
+| <sub>10</sub> | <sub>[`full_pipeline`](examples/notebooks/full_pipeline.ipynb)</sub> | <sub>All pillars</sub> | <sub>Measure → Diagnose → Recover → Verify → Deploy, chained end to end</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/full_pipeline.ipynb) |
+
+Full write-up, including which script mirrors which notebook, is in
 [Notebooks](docs/examples/notebooks.md).
 
 ## Pick one per task
