@@ -6,197 +6,147 @@ from pathlib import Path
 import pytest
 
 from scripts.release import (
-    INIT_PATH,
-    PR_MARKER,
-    PYPROJECT_PATH,
+    Presence,
+    ReleaseAction,
     ReleaseError,
-    classify_merged_pr,
-    classify_pypi_files,
-    decide_bump_state,
-    decide_release_state,
-    is_open_bump_pr,
+    ReleaseState,
+    classify_release_state,
+    current_version,
+    decide_action,
     next_patch,
-    package_version,
-    parse_semver,
+    parse_version,
+    set_version,
+    validate_distributions,
     validate_requested_version,
-    verify_distributions,
-    write_next_patch,
 )
+
+
+def _version_tree(root: Path, version: str = "1.0.0") -> Path:
+    (root / "src/safetune").mkdir(parents=True)
+    (root / "pyproject.toml").write_text(f'[project]\nversion = "{version}"\n')
+    (root / "src/safetune/__init__.py").write_text(f'__version__ = "{version}"\n')
+    (root / "CITATION.cff").write_text(f'version: "{version}"\n')
+    return root
 
 
 @pytest.mark.parametrize(
     ("current", "expected"),
-    [("0.0.0", "0.0.1"), ("1.2.9", "1.2.10"), ("10.20.99", "10.20.100")],
+    [("0.1.0", "0.1.1"), ("1.9.99", "1.9.100"), ("10.0.8", "10.0.9")],
 )
-def test_next_patch_only_increments_patch(current: str, expected: str) -> None:
+def test_next_patch_increments_only_patch(current, expected):
     assert next_patch(current) == expected
 
 
+def test_successive_merges_advance_patch_releases():
+    latest = "0.1.0"
+    for expected in ("0.1.1", "0.1.2", "0.1.3"):
+        requested = next_patch(latest)
+        assert requested == expected
+        decision = decide_action(trigger="normal", version=requested, state=ReleaseState.READY)
+        assert decision.action is ReleaseAction.RELEASE
+        assert decision.version == expected
+        latest = requested
+
+
 @pytest.mark.parametrize(
-    "version",
-    ["v1.2.3", "1.2", "1.2.3.4", "01.2.3", "1.02.3", "1.2.03", "1.2.3-rc.1", "1.2.3+build", ""],
+    "invalid",
+    ["v1.2.3", "1.2", "1.2.3.4", "01.2.3", "1.02.3", "1.2.03", "1.2.3rc1", "1.2.3+meta", ""],
 )
-def test_invalid_plain_semver_is_rejected(version: str) -> None:
+def test_plain_semver_rejects_invalid_versions(invalid):
     with pytest.raises(ReleaseError):
-        parse_semver(version)
+        parse_version(invalid)
 
 
-def _write_version_files(root: Path, pyproject_version: str, runtime_version: str) -> None:
-    (root / INIT_PATH).parent.mkdir(parents=True)
-    (root / PYPROJECT_PATH).write_text(
-        f'[build-system]\nrequires = ["setuptools"]\n\n[project]\nname = "demo"\nversion = "{pyproject_version}"\n',
-        encoding="utf-8",
-    )
-    (root / INIT_PATH).write_text(
-        f'"""Demo."""\n\n__version__ = "{runtime_version}"\n', encoding="utf-8"
-    )
+def test_initial_version_is_preserved_for_bootstrap(tmp_path):
+    root = _version_tree(tmp_path, "0.1.0")
+    state = classify_release_state(Presence(False, False, False))
+    decision = decide_action(trigger="dispatch", version=current_version(root), state=state)
+    assert decision.action is ReleaseAction.RELEASE
+    assert decision.version == "0.1.0"
+    assert decision.state is ReleaseState.READY
 
 
-def test_write_next_patch_updates_both_version_sources(tmp_path: Path) -> None:
-    _write_version_files(tmp_path, "2.4.9", "2.4.9")
-
-    assert write_next_patch(tmp_path) == "2.4.10"
-    assert package_version(tmp_path) == "2.4.10"
-
-
-def test_mismatched_tracked_versions_are_rejected(tmp_path: Path) -> None:
-    _write_version_files(tmp_path, "2.4.9", "2.4.8")
-
-    with pytest.raises(ReleaseError, match="do not match"):
-        package_version(tmp_path)
+def test_set_version_updates_every_authoritative_location(tmp_path):
+    root = _version_tree(tmp_path)
+    set_version("1.0.1", root)
+    assert current_version(root) == "1.0.1"
+    assert "1.0.1" in (root / "pyproject.toml").read_text()
+    assert "1.0.1" in (root / "src/safetune/__init__.py").read_text()
+    assert "1.0.1" in (root / "CITATION.cff").read_text()
 
 
-def test_requested_tag_and_package_must_match() -> None:
-    assert validate_requested_version("1.2.3", "1.2.3", "1.2.3") == "1.2.3"
-    with pytest.raises(ReleaseError, match="Requested version"):
-        validate_requested_version("1.2.3", "1.2.4", "1.2.4")
-    with pytest.raises(ReleaseError, match="Tag"):
-        validate_requested_version("1.2.3", "1.2.3", "1.2.4")
-
-
-def test_normal_merge_is_not_treated_as_a_release() -> None:
-    assert classify_merged_pr(
-        base_version="1.2.3",
-        merged_version="1.2.3",
-        head_ref="feature/useful-change",
-        title="Add a useful change",
-        body="",
-        head_repository="owner/repo",
-        repository="owner/repo",
-        files={"src/safetune/feature.py"},
-    ) == ("normal", "1.2.3")
-
-
-def test_valid_generated_bump_merge_is_recognized() -> None:
-    assert classify_merged_pr(
-        base_version="1.2.3",
-        merged_version="1.2.4",
-        head_ref="automation/patch-v1.2.4",
-        title="chore(release): bump version to 1.2.4",
-        body=PR_MARKER,
-        head_repository="owner/repo",
-        repository="owner/repo",
-        files={str(PYPROJECT_PATH), str(INIT_PATH)},
-    ) == ("release", "1.2.4")
+def test_requested_version_must_match_all_package_metadata(tmp_path):
+    root = _version_tree(tmp_path)
+    with pytest.raises(ReleaseError, match="does not match"):
+        validate_requested_version("1.0.1", root)
+    (root / "CITATION.cff").write_text("version: 1.0.1\n")
+    with pytest.raises(ReleaseError, match="disagree"):
+        current_version(root)
 
 
 @pytest.mark.parametrize(
-    "changes",
+    ("presence", "expected"),
     [
-        {"merged_version": "1.3.0"},
-        {"title": "chore(release): bump version to 9.9.9"},
-        {"body": ""},
-        {"head_repository": "fork/repo"},
-        {"files": {str(PYPROJECT_PATH), str(INIT_PATH), "README.md"}},
+        (Presence(False, False, False), ReleaseState.READY),
+        (Presence(True, False, False), ReleaseState.RESUMABLE),
+        (Presence(True, True, False), ReleaseState.RESUMABLE),
+        (Presence(True, True, True), ReleaseState.COMPLETE),
+        (Presence(False, True, False), ReleaseState.CONFLICT),
+        (Presence(False, False, True), ReleaseState.CONFLICT),
+        (Presence(True, False, True), ReleaseState.CONFLICT),
     ],
 )
-def test_malformed_generated_bump_merge_is_rejected(changes: dict[str, object]) -> None:
-    values: dict[str, object] = {
-        "base_version": "1.2.3",
-        "merged_version": "1.2.4",
-        "head_ref": "automation/patch-v1.2.4",
-        "title": "chore(release): bump version to 1.2.4",
-        "body": PR_MARKER,
-        "head_repository": "owner/repo",
-        "repository": "owner/repo",
-        "files": {str(PYPROJECT_PATH), str(INIT_PATH)},
-    }
-    values.update(changes)
-
-    with pytest.raises(ReleaseError):
-        classify_merged_pr(**values)  # type: ignore[arg-type]
+def test_release_completeness_states(presence, expected):
+    assert classify_release_state(presence) is expected
 
 
-def test_open_bump_pr_detection_requires_all_markers() -> None:
-    pull_request = {
-        "headRefName": "automation/patch-v1.2.4",
-        "title": "chore(release): bump version to 1.2.4",
-        "body": PR_MARKER,
-    }
-    assert is_open_bump_pr(pull_request)
-    assert not is_open_bump_pr({**pull_request, "body": ""})
+def test_mismatched_or_lightweight_tag_is_conflicting():
+    presence = Presence(True, False, False)
+    assert classify_release_state(presence, tag_is_annotated=False) is ReleaseState.CONFLICT
+    assert classify_release_state(presence, tag_matches_source=False) is ReleaseState.CONFLICT
 
 
-def test_bump_bootstraps_an_unreleased_current_version() -> None:
-    assert decide_bump_state(tag=True, release=True, pypi="complete") == "create"
-    assert decide_bump_state(tag=False, release=False, pypi="absent") == "bootstrap"
-    assert decide_bump_state(tag=True, release=False, pypi="absent") == "bootstrap"
-    assert decide_bump_state(tag=True, release=True, pypi="absent") == "bootstrap"
+def test_normal_merge_bootstraps_incomplete_current_version():
+    decision = decide_action(trigger="normal", version="1.0.0", state=ReleaseState.READY)
+    assert decision.action is ReleaseAction.RELEASE
+    assert decision.version == "1.0.0"
 
 
-def test_bump_rejects_an_inconsistent_current_release() -> None:
-    with pytest.raises(ReleaseError, match="partially released"):
-        decide_bump_state(tag=False, release=True, pypi="absent")
-    with pytest.raises(ReleaseError, match="partially released"):
-        decide_bump_state(tag=True, release=True, pypi="partial")
+def test_normal_merge_resumes_partial_current_release():
+    decision = decide_action(trigger="normal", version="1.0.0", state=ReleaseState.RESUMABLE)
+    assert decision.action is ReleaseAction.RELEASE
+    assert decision.version == "1.0.0"
 
 
-@pytest.mark.parametrize(
-    ("tag", "release", "pypi", "expected"),
-    [
-        (False, False, "absent", "create-tag"),
-        (True, False, "absent", "create-release"),
-        (True, True, "absent", "publish"),
-        (True, True, "complete", "complete"),
-    ],
-)
-def test_release_rerun_states_are_safe(tag: bool, release: bool, pypi: str, expected: str) -> None:
-    assert decide_release_state(tag=tag, release=release, pypi=pypi) == expected
+def test_complete_current_release_is_a_noop():
+    decision = decide_action(trigger="normal", version="1.0.0", state=ReleaseState.COMPLETE)
+    assert decision.action is ReleaseAction.NOOP
+    assert decision.version == "1.0.0"
 
 
-@pytest.mark.parametrize(
-    ("tag", "release", "pypi"),
-    [(False, True, "absent"), (False, False, "complete"), (True, True, "partial")],
-)
-def test_inconsistent_release_states_are_rejected(tag: bool, release: bool, pypi: str) -> None:
-    with pytest.raises(ReleaseError, match="Inconsistent release state"):
-        decide_release_state(tag=tag, release=release, pypi=pypi)
+def test_conflicting_state_fails_decision():
+    with pytest.raises(ReleaseError, match="manual repair"):
+        decide_action(trigger="dispatch", version="1.0.0", state=ReleaseState.CONFLICT)
 
 
-def test_pypi_version_requires_wheel_and_sdist() -> None:
-    assert classify_pypi_files([]) == "absent"
-    assert classify_pypi_files(["safetune-1.2.3.tar.gz"]) == "partial"
-    assert (
-        classify_pypi_files(["safetune-1.2.3.tar.gz", "safetune-1.2.3-py3-none-any.whl"])
-        == "complete"
-    )
-
-
-def test_distribution_metadata_must_match_requested_version(tmp_path: Path) -> None:
-    wheel = tmp_path / "safetune-1.2.3-py3-none-any.whl"
+def _write_distributions(root: Path, version: str) -> list[Path]:
+    metadata = f"Metadata-Version: 2.1\nName: safetune\nVersion: {version}\n\n"
+    wheel = root / f"safetune-{version}-py3-none-any.whl"
     with zipfile.ZipFile(wheel, "w") as archive:
-        archive.writestr("safetune-1.2.3.dist-info/METADATA", "Version: 1.2.3\n")
-
-    sdist = tmp_path / "safetune-1.2.3.tar.gz"
-    metadata = b"Version: 1.2.3\n"
+        archive.writestr(f"safetune-{version}.dist-info/METADATA", metadata)
+    sdist = root / f"safetune-{version}.tar.gz"
     with tarfile.open(sdist, "w:gz") as archive:
-        canonical = tarfile.TarInfo("safetune-1.2.3/PKG-INFO")
-        canonical.size = len(metadata)
-        archive.addfile(canonical, io.BytesIO(metadata))
-        duplicate = tarfile.TarInfo("safetune-1.2.3/src/safetune.egg-info/PKG-INFO")
-        duplicate.size = len(metadata)
-        archive.addfile(duplicate, io.BytesIO(metadata))
+        payload = metadata.encode()
+        info = tarfile.TarInfo(f"safetune-{version}/PKG-INFO")
+        info.size = len(payload)
+        archive.addfile(info, io.BytesIO(payload))
+        nested = tarfile.TarInfo(f"safetune-{version}/src/safetune.egg-info/PKG-INFO")
+        nested.size = len(payload)
+        archive.addfile(nested, io.BytesIO(payload))
+    return [wheel, sdist]
 
-    verify_distributions([wheel, sdist], "1.2.3")
-    with pytest.raises(ReleaseError, match="expected '1.2.4'"):
-        verify_distributions([wheel, sdist], "1.2.4")
+
+def test_distribution_metadata_must_match_requested_version(tmp_path):
+    validate_distributions("1.0.0", _write_distributions(tmp_path, "1.0.0"))
+    with pytest.raises(ReleaseError, match="expected exact version"):
+        validate_distributions("1.0.1", list(tmp_path.iterdir()))
