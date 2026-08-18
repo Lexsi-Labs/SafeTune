@@ -136,7 +136,7 @@ def set_version(requested: str, root: Path | str = Path(".")) -> None:
 
     parse_version(requested)
     root = Path(root)
-    current_version(root)  # Refuse to update a repository that is already inconsistent.
+    read_versions(root)  # Validate every source independently, while allowing normalization.
     patterns = {
         VERSION_FILES[0]: _PYPROJECT_VERSION,
         VERSION_FILES[1]: _INIT_VERSION,
