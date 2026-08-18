@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.0 — Initial public release
+## v0.1.0 — Initial public release
 
 SafeTune ships a broad roster of LLM-safety methods, organized into a 2-tier taxonomy and
 faithfulness-audited against their cited papers.

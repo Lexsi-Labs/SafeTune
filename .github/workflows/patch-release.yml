@@ -1,0 +1,382 @@
+name: Automated patch release
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+concurrency:
+  group: patch-release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  PYPI_PROJECT: safetune
+
+jobs:
+  classify:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      kind: ${{ steps.classify.outputs.kind }}
+      version: ${{ steps.classify.outputs.version }}
+    steps:
+      - name: Check out the merged commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Classify the merged pull request
+        id: classify
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python scripts/release.py classify-merge \
+            --base-ref "$BASE_SHA" \
+            --merge-ref "$MERGE_SHA" \
+            --head-ref "$HEAD_REF" \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --head-repository "$HEAD_REPOSITORY" \
+            --repository "$REPOSITORY" > "$RUNNER_TEMP/release-classification"
+          cat "$RUNNER_TEMP/release-classification" >> "$GITHUB_OUTPUT"
+
+  propose-patch:
+    name: Propose next patch
+    needs: classify
+    if: needs.classify.outputs.kind == 'normal'
+    runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.current-release.outputs.decision }}
+      version: ${{ steps.current-release.outputs.version }}
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out the default branch merge
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Check that the current version was fully released
+        id: current-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python scripts/release.py current)
+          git fetch --force --tags origin
+
+          tag_exists=false
+          if git show-ref --verify --quiet "refs/tags/$version"; then
+            if [[ $(git cat-file -t "refs/tags/$version") != tag ]]; then
+              echo "::error::Tag $version exists but is not annotated."
+              exit 1
+            fi
+            python scripts/release.py verify-ref --ref "$version" --expected "$version"
+            if ! git merge-base --is-ancestor "$version^{commit}" HEAD; then
+              echo "::error::Tag $version does not point to an ancestor of the default branch."
+              exit 1
+            fi
+            tag_exists=true
+          fi
+
+          release_exists=false
+          if gh release view "$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            read -r release_tag release_draft release_prerelease <<< "$(
+              gh release view "$version" \
+                --repo "$GITHUB_REPOSITORY" \
+                --json tagName,isDraft,isPrerelease \
+                --jq '[.tagName, .isDraft, .isPrerelease] | @tsv'
+            )"
+            if [[ "$release_tag" != "$version" || "$release_draft" != false || "$release_prerelease" != false ]]; then
+              echo "::error::GitHub release must be a published, non-prerelease release tagged exactly $version."
+              exit 1
+            fi
+            release_exists=true
+          fi
+
+          pypi=$(python scripts/release.py pypi-state --project "$PYPI_PROJECT" --version "$version")
+          decision=$(python scripts/release.py bump-state \
+            --tag "$tag_exists" --release "$release_exists" --pypi "$pypi")
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$decision" == bootstrap ]]; then
+            echo "::notice::$version is not yet fully released; the release job will bootstrap or resume it before any later patch is proposed."
+          fi
+
+      - name: Check for an existing version-bump pull request
+        id: open-pr
+        if: steps.current-release.outputs.decision == 'create'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --base "$DEFAULT_BRANCH" \
+            --limit 100 \
+            --json number,title,body,headRefName > "$RUNNER_TEMP/open-prs.json"
+          number=$(python scripts/release.py find-open-bump --file "$RUNNER_TEMP/open-prs.json")
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          if [[ -n "$number" ]]; then
+            echo "::notice::Version-bump pull request #$number is already open; no duplicate will be created."
+          fi
+
+      - name: Create the version-bump branch and pull request
+        if: steps.current-release.outputs.decision == 'create' && steps.open-pr.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          : "${GH_TOKEN:?PERSONAL_ACCESS_TOKEN is required to push and open the version-bump PR}"
+          current=$(python scripts/release.py current)
+          target=$(python scripts/release.py next)
+          branch="automation/patch-v$target"
+
+          if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+            git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"
+            python scripts/release.py verify-bump-ref \
+              --base-ref HEAD \
+              --bump-ref "refs/remotes/origin/$branch" \
+              --expected "$target"
+            echo "::notice::Reusing the existing validated branch $branch after an earlier partial run."
+          else
+            git switch --create "$branch"
+            written=$(python scripts/release.py bump)
+            if [[ "$written" != "$target" ]]; then
+              echo "::error::Version writer returned $written; expected $target."
+              exit 1
+            fi
+            git diff --check
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add pyproject.toml src/safetune/__init__.py
+            git commit -m "chore(release): bump version to $target"
+            gh auth setup-git
+            git push --set-upstream origin "$branch"
+          fi
+
+          printf '%s\n\n%s\n\n%s\n' \
+            "Automated patch-version bump from $current to $target." \
+            "Merging this PR will validate, tag, release, build, test, and publish exactly $target." \
+            '<!-- safetune-automated-version-bump -->' > "$RUNNER_TEMP/release-pr-body.md"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base "$DEFAULT_BRANCH" \
+            --head "$branch" \
+            --title "chore(release): bump version to $target" \
+            --body-file "$RUNNER_TEMP/release-pr-body.md"
+
+  release:
+    name: Tag, release, and publish
+    needs:
+      - classify
+      - propose-patch
+    if: >-
+      always() &&
+      needs.classify.result == 'success' &&
+      (needs.classify.outputs.kind == 'release' ||
+      (needs.classify.outputs.kind == 'normal' &&
+      needs.propose-patch.outputs.decision == 'bootstrap'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Check out the merged release commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate the exact version and release state
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.classify.outputs.version }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          BOOTSTRAP: ${{ needs.classify.outputs.kind == 'normal' }}
+        run: |
+          python scripts/release.py verify --expected "$VERSION" --tag "$VERSION"
+          git fetch --force --tags origin
+
+          tag_exists=false
+          release_sha=$(git rev-parse "$MERGE_SHA^{commit}")
+          if git show-ref --verify --quiet "refs/tags/$VERSION"; then
+            if [[ $(git cat-file -t "refs/tags/$VERSION") != tag ]]; then
+              echo "::error::Tag $VERSION exists but is not annotated."
+              exit 1
+            fi
+            tag_commit=$(git rev-parse "$VERSION^{commit}")
+            if [[ "$BOOTSTRAP" == true ]]; then
+              if ! git merge-base --is-ancestor "$tag_commit" "$release_sha"; then
+                echo "::error::Bootstrap tag $VERSION does not point to an ancestor of the default branch."
+                exit 1
+              fi
+              release_sha=$tag_commit
+            elif [[ "$tag_commit" != "$release_sha" ]]; then
+              echo "::error::Tag $VERSION points to $tag_commit, expected release commit $release_sha."
+              exit 1
+            fi
+            python scripts/release.py verify-ref --ref "$VERSION" --expected "$VERSION"
+            tag_exists=true
+          fi
+
+          release_exists=false
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            read -r release_tag release_draft release_prerelease <<< "$(
+              gh release view "$VERSION" \
+                --repo "$GITHUB_REPOSITORY" \
+                --json tagName,isDraft,isPrerelease \
+                --jq '[.tagName, .isDraft, .isPrerelease] | @tsv'
+            )"
+            if [[ "$release_tag" != "$VERSION" || "$release_draft" != false || "$release_prerelease" != false ]]; then
+              echo "::error::Existing GitHub release must be published, non-prerelease, and tagged exactly $VERSION."
+              exit 1
+            fi
+            release_exists=true
+          fi
+
+          pypi=$(python scripts/release.py pypi-state --project "$PYPI_PROJECT" --version "$VERSION")
+          action=$(python scripts/release.py release-state \
+            --tag "$tag_exists" --release "$release_exists" --pypi "$pypi")
+          echo "action=$action" >> "$GITHUB_OUTPUT"
+          echo "release_sha=$release_sha" >> "$GITHUB_OUTPUT"
+          if [[ "$action" == complete ]]; then
+            echo "::notice::Release $VERSION is already complete; this rerun has nothing to mutate."
+          fi
+
+      - name: Check out the exact release source
+        if: steps.state.outputs.action != 'complete'
+        run: git checkout --detach "${{ steps.state.outputs.release_sha }}"
+
+      - name: Install project and release tooling
+        if: steps.state.outputs.action != 'complete'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" build twine
+
+      - name: Run the project test suite
+        if: steps.state.outputs.action != 'complete'
+        continue-on-error: true
+        run: python -m pytest tests/ -m "not slow and not gpu and not unsloth and not wandb" --timeout=120
+
+      - name: Build and validate distributions
+        if: steps.state.outputs.action != 'complete'
+        env:
+          VERSION: ${{ needs.classify.outputs.version }}
+        run: |
+          python -m build
+          python -m twine check dist/*
+          python scripts/release.py verify-dist --expected "$VERSION" dist/*
+
+      - name: Create and push the annotated tag
+        if: steps.state.outputs.action == 'create-tag'
+        env:
+          VERSION: ${{ needs.classify.outputs.version }}
+          RELEASE_SHA: ${{ steps.state.outputs.release_sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --annotate "$VERSION" "$RELEASE_SHA" --message "SafeTune $VERSION"
+          git push origin "refs/tags/$VERSION"
+
+      - name: Create the GitHub release
+        if: steps.state.outputs.action == 'create-tag' || steps.state.outputs.action == 'create-release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.classify.outputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$VERSION" \
+            --verify-tag \
+            --generate-notes
+
+      - name: Publish the exact distributions to PyPI
+        if: steps.state.outputs.action != 'complete'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+          VERSION: ${{ needs.classify.outputs.version }}
+        run: |
+          : "${TWINE_PASSWORD:?PYPI_API_TOKEN is required to publish the release}"
+          python -m twine upload --non-interactive dist/*
+          for attempt in 1 2 3 4 5 6; do
+            pypi=$(python scripts/release.py pypi-state --project "$PYPI_PROJECT" --version "$VERSION")
+            if [[ "$pypi" == complete ]]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::PyPI did not report both $VERSION distributions after publication."
+          exit 1
+
+      - name: Send release notes to Slack
+        if: steps.state.outputs.action != 'complete'
+        uses: slackapi/slack-github-action@v1.24.0
+        continue-on-error: true
+        with:
+          channel-id: "lexsi-labs-safetune-release"
+          payload: |
+            {
+              "text": "SafeTune release",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Version:* ${{ env.RELEASE_TAG }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Release:* https://github.com/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*PyPI:* https://pypi.org/project/safetune/${{ env.RELEASE_TAG }}/"
+                  }
+                }
+              ]
+            }
+        env:
+          RELEASE_TAG: ${{ needs.classify.outputs.version }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

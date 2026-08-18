@@ -5,12 +5,12 @@ the verdict for each audited component.
 
 For an explanation of each verdict, see [Scope & Limitations](../community/scope.md).
 
-## Audit status (v1.0.0) { #audit-status-v100 }
+## Audit status (v0.1.0) { #audit-status-v010 }
 
 A full pre-release code audit (2026-07) found and **fixed** a set of defects
 where several methods silently did less than documented: wrong-quantity math,
 gradient-accumulation breakage, and wiring/default no-ops. All fixes ship in
-v1.0.0.
+v0.1.0.
 
 Two changes affect how you call the fixed methods:
 
