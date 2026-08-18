@@ -75,6 +75,17 @@ def test_set_version_updates_every_authoritative_location(tmp_path):
     assert "1.0.1" in (root / "CITATION.cff").read_text()
 
 
+def test_set_version_repairs_partially_bumped_metadata(tmp_path):
+    root = _version_tree(tmp_path, "0.1.0")
+    (root / "pyproject.toml").write_text('[project]\nversion = "0.1.1"\n')
+
+    with pytest.raises(ReleaseError, match="disagree"):
+        current_version(root)
+
+    set_version("0.1.1", root)
+    assert current_version(root) == "0.1.1"
+
+
 def test_requested_version_must_match_all_package_metadata(tmp_path):
     root = _version_tree(tmp_path)
     with pytest.raises(ReleaseError, match="does not match"):

@@ -52,10 +52,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          current_version=$(python scripts/release.py current-version)
           source_sha=$(git rev-parse HEAD)
           trigger=dispatch
-          requested_version=$current_version
+          requested_version=
 
           if [[ "$EVENT_NAME" == "pull_request_target" ]]; then
             trigger=normal
@@ -82,7 +81,9 @@ jobs:
                 requested_version=$latest_version
               fi
             fi
-          elif [[ "$latest_status" != "404" ]]; then
+          elif [[ "$latest_status" == "404" ]]; then
+            requested_version=$(python scripts/release.py current-version)
+          else
             echo "::error::Latest GitHub release lookup failed with HTTP $latest_status."
             exit 1
           fi
@@ -213,15 +214,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          current_version=$(python scripts/release.py current-version)
-          if [[ "$current_version" != "$RELEASE_TAG" ]]; then
-            python scripts/release.py set-version "$RELEASE_TAG"
-            expected_files=$'CITATION.cff\npyproject.toml\nsrc/safetune/__init__.py'
-            actual_files=$(git diff --name-only | sort)
-            if [[ "$actual_files" != "$expected_files" ]]; then
-              echo "::error::Version helper changed files outside the authoritative version set."
-              exit 1
-            fi
+          python scripts/release.py set-version "$RELEASE_TAG"
+          actual_files=$(git diff --name-only | sort)
+          unexpected_files=$(printf '%s\n' "$actual_files" | grep -Ev \
+            '^(CITATION\.cff|pyproject\.toml|src/safetune/__init__\.py)$' || true)
+          if [[ -n "$unexpected_files" ]]; then
+            echo "::error::Version helper changed files outside the authoritative version set:"
+            echo "$unexpected_files"
+            exit 1
+          fi
+          if [[ -n "$actual_files" ]]; then
             git config user.name github-actions[bot]
             git config user.email 41898282+github-actions[bot]@users.noreply.github.com
             git add CITATION.cff pyproject.toml src/safetune/__init__.py
