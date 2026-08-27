@@ -29,7 +29,7 @@ keywords:
   - interpretability
 license-url: "https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md"
 repository-code: "https://github.com/Lexsi-Labs/SafeTune"
-version: "0.1.0"
+version: 0.1.2
 date-released: "2026-06-29"
 preferred-citation:
   type: unpublished
