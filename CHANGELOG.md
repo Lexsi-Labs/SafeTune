@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-30
+
+### Added
+- **Docs**: EMNLP 2026 Demo tab with the accepted paper, walkthrough, and
+  artifacts (`docs/emnlp-2026-demo/`).
+
 ### Changed
 - **License**: updated to **LSAL v1.2** (see `LICENSE.md`). Academic research
   and teaching remain free on MIT-like terms. Organizations must now acknowledge
