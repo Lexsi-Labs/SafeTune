@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 812" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#37474F"/>
+    </marker>
+    <marker id="ahp" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#8E5BA6"/>
+    </marker>
+    <linearGradient id="drift" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#CFE8D6"/>
+      <stop offset="50%" stop-color="#FBEFC8"/>
+      <stop offset="100%" stop-color="#F4D2C4"/>
+    </linearGradient>
+    <style>
+      text { fill:#263238; }
+      .ttl   { font-size:21px; font-weight:700; fill:#1A2A4A; }
+      .sub   { font-size:12.5px; fill:#5B6B7B; }
+      .hdr   { font-size:13.5px; font-weight:700; fill:#FFFFFF; letter-spacing:.3px; }
+      .ctitle{ font-size:12px; font-weight:700; }
+      .cns   { font-size:9.5px; font-weight:600; fill:#607D8B; font-style:italic; }
+      .grp   { font-size:9px;  font-weight:700; fill:#90A4AE; letter-spacing:.4px; }
+      .it    { font-size:10px; fill:#37474F; }
+      .itm   { font-size:9px;  fill:#546E7A; }
+      .meta  { font-size:9px;  fill:#78909C; font-style:italic; }
+      .lab   { font-size:9px;  fill:#455A64; }
+      .cap   { font-size:11px; fill:#37474F; }
+      .capb  { font-size:11px; font-weight:700; fill:#1A2A4A; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="812" fill="#FFFFFF"/>
+
+  <!-- ===== Title ===== -->
+  <text x="40" y="34" class="ttl">SafeTune</text>
+  <text x="142" y="34" class="sub">&#8212; a unified library of LLM-safety methods spanning the fine-tuning lifecycle.</text>
+  <text x="40" y="54" class="sub">Two tiers: <tspan font-weight="700" fill="#2E5E8C">Interventions</tspan> (apply one) and <tspan font-weight="700" fill="#2E7D5B">Instrumentation</tspan> (diagnose &amp; measure). Each method carries a faithfulness badge audited against its source paper.</text>
+
+  <!-- ============ INPUTS ============ -->
+  <g>
+    <rect x="40" y="78" width="150" height="496" rx="9" fill="#F1ECF7" stroke="#8E5BA6" stroke-width="1.5"/>
+    <path d="M40,87 a9,9 0 0 1 9,-9 h132 a9,9 0 0 1 9,9 v21 h-150 Z" fill="#8E5BA6"/>
+    <text x="115" y="100" text-anchor="middle" class="hdr">INPUTS</text>
+
+    <g class="it" text-anchor="middle">
+      <rect x="52" y="120" width="126" height="30" rx="5" fill="#FFFFFF" stroke="#C9AED9"/>
+      <text x="115" y="139">Base model</text>
+      <rect x="52" y="156" width="126" height="30" rx="5" fill="#FFFFFF" stroke="#C9AED9"/>
+      <text x="115" y="175">Task FT data</text>
+      <rect x="52" y="192" width="126" height="30" rx="5" fill="#FFFFFF" stroke="#C9AED9"/>
+      <text x="115" y="211">Drifted checkpoint</text>
+      <rect x="52" y="228" width="126" height="30" rx="5" fill="#FFFFFF" stroke="#C9AED9"/>
+      <text x="115" y="247">Aligned reference</text>
+      <rect x="52" y="264" width="126" height="30" rx="5" fill="#FFFFFF" stroke="#C9AED9"/>
+      <text x="115" y="283">Steering artifacts</text>
+      <rect x="52" y="300" width="126" height="30" rx="5" fill="#FFFFFF" stroke="#C9AED9"/>
+      <text x="115" y="319">Forget / retain set</text>
+      <rect x="52" y="336" width="126" height="30" rx="5" fill="#FFFFFF" stroke="#C9AED9"/>
+      <text x="115" y="355">Contrast prompts</text>
+    </g>
+
+    <line x1="52" y1="384" x2="178" y2="384" stroke="#DCC9E8" stroke-width="1"/>
+    <text x="115" y="402" text-anchor="middle" class="grp">ROUTING (input &#8594; pillar)</text>
+    <g class="lab">
+      <text x="58" y="421">base + FT data <tspan fill="#2E5E8C" font-weight="700">&#8594; harden</tspan></text>
+      <text x="58" y="437">drifted + refs <tspan fill="#2E5E8C" font-weight="700">&#8594; recover</tspan></text>
+      <text x="58" y="453">drifted + forget <tspan fill="#2E5E8C" font-weight="700">&#8594; unlearn</tspan></text>
+      <text x="58" y="469">any + artifact <tspan fill="#2E5E8C" font-weight="700">&#8594; steer</tspan></text>
+      <text x="58" y="485">any model <tspan fill="#2E7D5B" font-weight="700">&#8594; interpret / evaluate</tspan></text>
+    </g>
+
+    <line x1="52" y1="500" x2="178" y2="500" stroke="#DCC9E8" stroke-width="1"/>
+    <text x="115" y="518" text-anchor="middle" class="meta">&#952; = model weights</text>
+    <text x="115" y="534" text-anchor="middle" class="meta">aligned &#8722; base = safety vector</text>
+    <text x="115" y="550" text-anchor="middle" class="meta">drifted &#8722; base = drift vector</text>
+  </g>
+
+  <!-- arrow inputs -> tier1 -->
+  <line x1="190" y1="322" x2="214" y2="322" stroke="#37474F" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- ============ TIER-1 ============ -->
+  <g>
+    <rect x="218" y="78" width="752" height="496" rx="9" fill="#EAF2FA" stroke="#2E5E8C" stroke-width="1.5"/>
+    <path d="M218,87 a9,9 0 0 1 9,-9 h734 a9,9 0 0 1 9,9 v21 h-752 Z" fill="#2E5E8C"/>
+    <text x="594" y="100" text-anchor="middle" class="hdr">TIER 1 &#183; INTERVENTIONS &#8212; pick one method per task (do not chain)</text>
+
+    <!-- col harden -->
+    <rect x="230" y="120" width="178" height="398" rx="7" fill="#FFFFFF" stroke="#A9C4DE"/>
+    <text x="319" y="139" text-anchor="middle" class="ctitle" fill="#2E5E8C">Train-time &#183; Harden</text>
+    <text x="319" y="153" text-anchor="middle" class="cns">safetune.harden</text>
+    <text x="319" y="170" text-anchor="middle" class="itm">Trainer subclasses &#8212; replace SFT</text>
+    <line x1="244" y1="178" x2="394" y2="178" stroke="#EAF2FA"/>
+    <g class="it">
+      <text x="244" y="195">SafeGradTrainer</text>
+      <text x="244" y="211">LisaTrainer &#183; DeRTaTrainer</text>
+      <text x="244" y="227">AsFTTrainer &#183; SAPTrainer</text>
+      <text x="244" y="243">SEALTrainer &#183; SEAMTrainer</text>
+      <text x="244" y="259">STARDSSTrainer &#183; DOORTrainer</text>
+      <text x="244" y="275">SPPFTTrainer &#183; CSTTrainer</text>
+      <text x="244" y="291">RepNoiseTrainer &#183; CTRAPTrainer</text>
+      <text x="244" y="307">ConstrainedSFTTrainer</text>
+      <text x="244" y="323">LookAhead &#183; MART &#183; tar_outer_loss</text>
+      <text x="244" y="339" class="itm">+ SaLoRA, CSFT ... (16 trainers)</text>
+    </g>
+    <line x1="244" y1="352" x2="394" y2="352" stroke="#EAF2FA"/>
+    <text x="244" y="370" class="lab" fill="#2E5E8C" font-weight="700">When: during fine-tuning</text>
+    <text x="244" y="386" class="lab">Needs: base + task data + aux</text>
+    <text x="244" y="402" class="lab">(safety set / reference model)</text>
+    <rect x="244" y="486" width="150" height="22" rx="4" fill="#E9F4ED" stroke="#9CCBAE"/>
+    <text x="319" y="501" text-anchor="middle" class="itm" fill="#2E7D5B">&#8594; defended checkpoint</text>
+
+    <!-- col recover -->
+    <rect x="416" y="120" width="178" height="398" rx="7" fill="#FFFFFF" stroke="#A9C4DE"/>
+    <text x="505" y="139" text-anchor="middle" class="ctitle" fill="#2E5E8C">Weight-space &#183; Recover</text>
+    <text x="505" y="153" text-anchor="middle" class="cns">safetune.recover</text>
+    <text x="505" y="170" text-anchor="middle" class="itm">apply_* &#8212; training-free patches</text>
+    <line x1="430" y1="178" x2="580" y2="178" stroke="#EAF2FA"/>
+    <g>
+      <text x="430" y="194" class="grp">MODEL</text>
+      <text x="430" y="208" class="it">task_arithmetic &#183; somf_merge</text>
+      <text x="430" y="224" class="grp">SUBSPACE</text>
+      <text x="430" y="238" class="it">apply_lox &#183; apply_lssf</text>
+      <text x="430" y="254" class="grp">LAYER</text>
+      <text x="430" y="268" class="it">apply_resta &#183; apply_safemerge</text>
+      <text x="430" y="282" class="it">apply_safe_lora &#183; apply_safe_delta</text>
+      <text x="430" y="296" class="it">apply_qresafe &#183; apply_aaq</text>
+      <text x="430" y="312" class="grp">NEURON</text>
+      <text x="430" y="326" class="it">apply_nlsr &#183; apply_pke &#183; apply_mscp</text>
+      <text x="430" y="340" class="it">apply_antidote &#183; apply_safereact</text>
+      <text x="430" y="354" class="grp">CIRCUIT</text>
+      <text x="430" y="368" class="it">apply_ctheta</text>
+    </g>
+    <text x="430" y="392" class="lab" fill="#2E5E8C" font-weight="700">When: mild&#8211;moderate drift</text>
+    <text x="430" y="408" class="lab">Needs: drifted + base + aligned</text>
+    <rect x="430" y="486" width="150" height="22" rx="4" fill="#E9F4ED" stroke="#9CCBAE"/>
+    <text x="505" y="501" text-anchor="middle" class="itm" fill="#2E7D5B">&#8594; patched checkpoint</text>
+
+    <!-- col unlearn -->
+    <rect x="602" y="120" width="178" height="398" rx="7" fill="#FFFFFF" stroke="#A9C4DE"/>
+    <text x="691" y="139" text-anchor="middle" class="ctitle" fill="#2E5E8C">Weight-space &#183; Unlearn</text>
+    <text x="691" y="153" text-anchor="middle" class="cns">safetune.unlearn</text>
+    <text x="691" y="170" text-anchor="middle" class="itm">*_unlearn &#8212; gradient forgetting</text>
+    <line x1="616" y1="178" x2="766" y2="178" stroke="#EAF2FA"/>
+    <g class="it">
+      <text x="616" y="195">npo_unlearn</text>
+      <text x="616" y="211">gradient_ascent_unlearn</text>
+      <text x="616" y="227">rmu_unlearn</text>
+      <text x="616" y="243">flat_unlearn</text>
+      <text x="616" y="259">simdpo_unlearn</text>
+      <text x="616" y="275">scrub_unlearn</text>
+      <text x="616" y="291">crisp_unlearn  <tspan class="itm">(SAE)</tspan></text>
+    </g>
+    <line x1="616" y1="304" x2="766" y2="304" stroke="#EAF2FA"/>
+    <text x="616" y="322" class="lab">Forget set + optional retain set</text>
+    <text x="616" y="338" class="lab">No aligned reference required</text>
+    <text x="616" y="370" class="lab" fill="#2E5E8C" font-weight="700">When: severe drift</text>
+    <text x="616" y="386" class="lab">Needs: drifted + forget batches</text>
+    <rect x="616" y="486" width="150" height="22" rx="4" fill="#E9F4ED" stroke="#9CCBAE"/>
+    <text x="691" y="501" text-anchor="middle" class="itm" fill="#2E7D5B">&#8594; unlearned checkpoint</text>
+
+    <!-- col steer -->
+    <rect x="788" y="120" width="170" height="398" rx="7" fill="#FFFFFF" stroke="#A9C4DE"/>
+    <text x="873" y="139" text-anchor="middle" class="ctitle" fill="#2E5E8C">Inference-time &#183; Steer</text>
+    <text x="873" y="153" text-anchor="middle" class="cns">safetune.steer</text>
+    <text x="873" y="170" text-anchor="middle" class="itm">wrappers &#8212; no weight edits</text>
+    <line x1="800" y1="178" x2="946" y2="178" stroke="#EAF2FA"/>
+    <g>
+      <text x="800" y="194" class="grp">ACTIVATION</text>
+      <text x="800" y="208" class="it">RefusalDirection &#183; CAA</text>
+      <text x="800" y="222" class="it">CAST &#183; LinearProbeGuard</text>
+      <text x="800" y="236" class="it">AdaSteer &#183; AlphaSteer &#183; TAR</text>
+      <text x="800" y="250" class="it">SafeSteer &#183; SafeSwitch &#183; STA</text>
+      <text x="800" y="264" class="it">CircuitBreaker &#183; RepBend &#183; RRFA</text>
+      <text x="800" y="280" class="grp">DECODING</text>
+      <text x="800" y="294" class="it">SafeDecoding &#183; Contrastive</text>
+      <text x="800" y="308" class="it">ProxyTuning &#183; Nudging</text>
+      <text x="800" y="324" class="grp">BACKENDS</text>
+      <text x="800" y="338" class="it">HF &#183; vLLM-hook &#183; vLLM-logits</text>
+    </g>
+    <text x="800" y="370" class="lab" fill="#2E5E8C" font-weight="700">When: weights locked</text>
+    <text x="800" y="386" class="lab">Needs: model + steering artifact</text>
+    <rect x="800" y="486" width="146" height="22" rx="4" fill="#E9F4ED" stroke="#9CCBAE"/>
+    <text x="873" y="501" text-anchor="middle" class="itm" fill="#2E7D5B">&#8594; live wrapped model</text>
+  </g>
+
+  <!-- arrow tier1 -> tier2 -->
+  <line x1="970" y1="322" x2="994" y2="322" stroke="#37474F" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- ============ TIER-2 ============ -->
+  <g>
+    <rect x="998" y="78" width="372" height="496" rx="9" fill="#E9F4ED" stroke="#2E7D5B" stroke-width="1.5"/>
+    <path d="M998,87 a9,9 0 0 1 9,-9 h354 a9,9 0 0 1 9,9 v21 h-372 Z" fill="#2E7D5B"/>
+    <text x="1184" y="100" text-anchor="middle" class="hdr">TIER 2 &#183; INSTRUMENTATION</text>
+
+    <!-- interpret -->
+    <rect x="1010" y="120" width="348" height="190" rx="7" fill="#FFFFFF" stroke="#9CCBAE"/>
+    <text x="1184" y="139" text-anchor="middle" class="ctitle" fill="#2E7D5B">Diagnose &#183; Interpret</text>
+    <text x="1184" y="153" text-anchor="middle" class="cns">safetune.interpret</text>
+    <line x1="1024" y1="161" x2="1344" y2="161" stroke="#E9F4ED"/>
+    <g class="it">
+      <text x="1024" y="179">identify_safety_neurons</text>
+      <text x="1024" y="195">safety_circuit_info</text>
+      <text x="1024" y="211">eap_safety_circuit  <tspan class="itm">(EAP / EAP-IG)</tspan></text>
+      <text x="1024" y="227">extract_refusal_direction</text>
+    </g>
+    <text x="1024" y="249" class="lab">Outputs: neuron masks &#183; circuit maps &#183;</text>
+    <text x="1024" y="263" class="lab">refusal directions &#183; layer suggestions</text>
+    <rect x="1024" y="276" width="320" height="22" rx="4" fill="#F4EEF8" stroke="#C9AED9"/>
+    <text x="1184" y="291" text-anchor="middle" class="itm" fill="#8E5BA6">feeds Recover (LSSF &#183; NLSR &#183; PKE) &amp; Steer</text>
+
+    <!-- evaluate -->
+    <rect x="1010" y="322" width="348" height="196" rx="7" fill="#FFFFFF" stroke="#9CCBAE"/>
+    <text x="1184" y="341" text-anchor="middle" class="ctitle" fill="#2E7D5B">Measure &#183; Evaluate</text>
+    <text x="1184" y="355" text-anchor="middle" class="cns">safetune.evaluate</text>
+    <line x1="1024" y1="363" x2="1344" y2="363" stroke="#E9F4ED"/>
+    <text x="1024" y="380" class="grp">SAFETY  (7-benchmark suite)</text>
+    <text x="1024" y="394" class="it">HarmBench &#183; WildJailbreak &#183; AdvBench</text>
+    <text x="1024" y="408" class="it">SorryBench &#183; HEx-PHI &#183; OR-Bench &#183; AILuminate</text>
+    <text x="1024" y="426" class="grp">UTILITY</text>
+    <text x="1024" y="440" class="it">GSM8K &#183; IFEval &#183; HumanEval &#183; MBPP</text>
+    <text x="1024" y="454" class="it">MMLU-law &#183; MedMCQA &#183; WikiText</text>
+    <text x="1024" y="472" class="grp">REDTEAM</text>
+    <text x="1024" y="486" class="it">AbliterationAttack &#183; BoNAttack</text>
+    <rect x="1024" y="494" width="320" height="20" rx="4" fill="#FBF4E1" stroke="#EBD79B"/>
+    <text x="1184" y="508" text-anchor="middle" class="itm" fill="#A9791C">&#8594; refusal rate &#183; ASR &#183; capability scores</text>
+  </g>
+
+  <!-- interpret feedback dashed -->
+  <path d="M1010,287 C 940,287 940,300 594,300" fill="none" stroke="#8E5BA6" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#ahp)"/>
+  <path d="M1010,287 C 950,287 950,250 958,250" fill="none" stroke="#8E5BA6" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#ahp)"/>
+
+  <!-- arrow tier2 -> outputs -->
+  <line x1="1370" y1="322" x2="1394" y2="322" stroke="#37474F" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- ============ OUTPUTS ============ -->
+  <g>
+    <rect x="1398" y="78" width="162" height="496" rx="9" fill="#F6F6F6" stroke="#607078" stroke-width="1.5"/>
+    <path d="M1398,87 a9,9 0 0 1 9,-9 h144 a9,9 0 0 1 9,9 v21 h-162 Z" fill="#607078"/>
+    <text x="1479" y="100" text-anchor="middle" class="hdr">OUTPUTS</text>
+
+    <g text-anchor="middle">
+      <rect x="1410" y="122" width="138" height="40" rx="5" fill="#FFFFFF" stroke="#C7CDD1"/>
+      <text x="1479" y="140" class="it">Defended ckpt</text>
+      <text x="1479" y="154" class="itm" fill="#2E5E8C">&#8594; harden</text>
+      <rect x="1410" y="168" width="138" height="40" rx="5" fill="#FFFFFF" stroke="#C7CDD1"/>
+      <text x="1479" y="186" class="it">Patched ckpt</text>
+      <text x="1479" y="200" class="itm" fill="#2E5E8C">&#8594; recover</text>
+      <rect x="1410" y="214" width="138" height="40" rx="5" fill="#FFFFFF" stroke="#C7CDD1"/>
+      <text x="1479" y="232" class="it">Unlearned ckpt</text>
+      <text x="1479" y="246" class="itm" fill="#2E5E8C">&#8594; unlearn</text>
+      <rect x="1410" y="260" width="138" height="40" rx="5" fill="#FFFFFF" stroke="#C7CDD1"/>
+      <text x="1479" y="278" class="it">Live wrapped model</text>
+      <text x="1479" y="292" class="itm" fill="#2E5E8C">&#8594; steer</text>
+      <rect x="1410" y="306" width="138" height="40" rx="5" fill="#FFFFFF" stroke="#C7CDD1"/>
+      <text x="1479" y="324" class="it">Circuit / neuron report</text>
+      <text x="1479" y="338" class="itm" fill="#2E7D5B">&#8594; interpret</text>
+      <rect x="1410" y="352" width="138" height="40" rx="5" fill="#FFFFFF" stroke="#C7CDD1"/>
+      <text x="1479" y="370" class="it">Safety + utility scores</text>
+      <text x="1479" y="384" class="itm" fill="#2E7D5B">&#8594; evaluate</text>
+    </g>
+
+    <!-- badge legend -->
+    <rect x="1410" y="404" width="138" height="158" rx="6" fill="#FFFFFF" stroke="#E0E4E6"/>
+    <text x="1479" y="422" text-anchor="middle" class="grp">FAITHFULNESS BADGE</text>
+    <circle cx="1424" cy="440" r="5.5" fill="#43A047"/>
+    <text x="1436" y="444" class="itm">Faithful to paper</text>
+    <circle cx="1424" cy="462" r="5.5" fill="#F4B400"/>
+    <text x="1436" y="466" class="itm">Corrected / simplified</text>
+    <circle cx="1424" cy="484" r="5.5" fill="#EF6C00"/>
+    <text x="1436" y="488" class="itm">Approximation</text>
+    <text x="1424" y="510" class="itm" fill="#90A4AE">(do not cite as named</text>
+    <text x="1424" y="522" class="itm" fill="#90A4AE">method)</text>
+    <text x="1479" y="548" text-anchor="middle" class="meta">shown on every</text>
+    <text x="1479" y="560" text-anchor="middle" class="meta">method page</text>
+  </g>
+
+  <!-- ============ DRIFT-SEVERITY BAND ============ -->
+  <text x="40" y="604" class="capb">Key finding &#8212; paradigm rank is set by drift severity:</text>
+  <rect x="40" y="614" width="1520" height="34" rx="6" fill="url(#drift)" stroke="#CBD3D8"/>
+  <line x1="546" y1="616" x2="546" y2="646" stroke="#FFFFFF" stroke-width="1.5"/>
+  <line x1="1053" y1="616" x2="1053" y2="646" stroke="#FFFFFF" stroke-width="1.5"/>
+  <text x="293" y="630" text-anchor="middle" class="cap" font-weight="700">Mild drift  (e.g. math FT)</text>
+  <text x="293" y="643" text-anchor="middle" class="itm">Recover wins &#8212; sub-minute CPU weight arithmetic</text>
+  <text x="799" y="630" text-anchor="middle" class="cap" font-weight="700">Moderate drift</text>
+  <text x="799" y="643" text-anchor="middle" class="itm">Harden or Recover competitive</text>
+  <text x="1306" y="630" text-anchor="middle" class="cap" font-weight="700">Severe drift  (broad instruction / code)</text>
+  <text x="1306" y="643" text-anchor="middle" class="itm">Unlearn wins &#8212; gradient-based forgetting (e.g. NPO)</text>
+
+  <!-- ============ CAPTION ============ -->
+  <line x1="40" y1="668" x2="1560" y2="668" stroke="#E2E6E9"/>
+  <text x="40" y="690" class="cap"><tspan class="capb">Figure 1.</tspan> The SafeTune architecture. Inputs are routed to exactly one Tier-1 intervention &#8212; train-time <tspan font-weight="700">Harden</tspan>, weight-space <tspan font-weight="700">Recover</tspan> or <tspan font-weight="700">Unlearn</tspan>, or inference-time <tspan font-weight="700">Steer</tspan> &#8212; each a catalog of independent</text>
+  <text x="40" y="708" class="cap">alternatives rather than a pipeline. Tier-2 <tspan font-weight="700">Interpret</tspan> locates safety-relevant directions, neurons, and circuits (dashed arrows show how these feed Recover and Steer), while <tspan font-weight="700">Evaluate</tspan> scores safety</text>
+  <text x="40" y="726" class="cap">and capability on a shared benchmark suite. The recommended paradigm depends on how far the model has drifted from its aligned reference; every method is audited for faithfulness against its source paper.</text>
+</svg>

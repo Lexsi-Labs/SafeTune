@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 120" width="430" height="120">
+  <style>
+    .fg { fill: #17141F; }
+    @media (prefers-color-scheme: dark) {
+      .fg { fill: #E8E6F0; }
+    }
+  </style>
+  <g transform="translate(6,12)">
+    <circle cx="48" cy="48" r="29" stroke="#5B3DD6" stroke-width="7" fill="none"/>
+    <polygon points="48,28 55,49 41,49" fill="#F4A63C"/>
+    <polygon points="48,68 55,49 41,49" class="fg" opacity="0.85"/>
+    <circle cx="48" cy="49" r="4" fill="#5B3DD6"/>
+  </g>
+  <text x="124" y="62" dominant-baseline="middle" font-size="48px" font-family="sans-serif" font-weight="bold">
+    <tspan class="fg">Safe</tspan><tspan fill="#5B3DD6">Tune</tspan>
+  </text>
+</svg>

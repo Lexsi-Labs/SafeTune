@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 120" width="430" height="120">
+  <!-- Light-background variant: "Safe" in ink so it reads on white. -->
+  <g transform="translate(6,12)">
+    <circle cx="48" cy="48" r="29" stroke="#5B3DD6" stroke-width="7" fill="none"/>
+    <polygon points="48,28 55,49 41,49" fill="#F4A63C"/>
+    <polygon points="48,68 55,49 41,49" fill="#17141F" opacity="0.85"/>
+    <circle cx="48" cy="49" r="4" fill="#5B3DD6"/>
+  </g>
+  <text x="124" y="62" dominant-baseline="middle" font-size="48px" font-family="sans-serif" font-weight="bold">
+    <tspan fill="#17141F">Safe</tspan><tspan fill="#5B3DD6">Tune</tspan>
+  </text>
+</svg>

@@ -1,0 +1,43 @@
+# SafeTune
+
+> SafeTune is a unified Python library for preserving and restoring safety in fine-tuned LLMs. Fine-tuning an aligned model often erodes its safety (it stops refusing harmful requests); SafeTune collects ~100 published safety methods behind one consistent API so you can prevent, diagnose, and repair that. It is a library, not a pipeline: each task has several methods that solve it by different mechanisms, and you pick one — you do not chain them.
+
+The methods are organized into six pillars (packages under `safetune.runner` / `safetune`):
+
+- **harden** — train-time defenses that keep safety intact through fine-tuning (replaces your SFT loop).
+- **recover** — weight-space patching that restores safety in an already-drifted model, no retraining.
+- **unlearn** — remove a specific capability via forget/retain training.
+- **steer** — inference-time control (activation steering, decoding steering) on a frozen model; weights untouched.
+- **interpret** — locate where safety lives: refusal directions, safety neurons, circuits.
+- **evaluate** — measure safety: benchmarks, red-team attacks, and judge-based scoring.
+
+Every method is checked against the paper it comes from and carries a badge for how faithfully it implements it, so you know what you are actually running before you cite it.
+
+## Docs
+
+- [Getting started](https://lexsi-labs.github.io/SafeTune/getting-started/): install, quickstart, and the taxonomy
+- [Installation](https://lexsi-labs.github.io/SafeTune/getting-started/installation/): pip install and optional extras
+- [Quick start](https://lexsi-labs.github.io/SafeTune/getting-started/quickstart/): run the first method in ~60 seconds
+- [Taxonomy / core concepts](https://lexsi-labs.github.io/SafeTune/getting-started/taxonomy/): the 2-tier method taxonomy (source of truth)
+- [User guide](https://lexsi-labs.github.io/SafeTune/user-guide/): per-pillar usage guides with code
+- [Audit your model](https://lexsi-labs.github.io/SafeTune/user-guide/audit-your-model/): measure → attack → interpret → intervene walkthrough
+- [CLI, YAML, and Python usage](https://lexsi-labs.github.io/SafeTune/user-guide/usage/): the three ways to run any method
+
+## Reference
+
+- [Feature Map](https://lexsi-labs.github.io/SafeTune/reference/feature-map/): every method with its faithfulness badge
+- [References](https://lexsi-labs.github.io/SafeTune/reference/references/): per-method paper / venue / arXiv / repo table
+- [CLI reference](https://lexsi-labs.github.io/SafeTune/reference/cli/): full command-line reference
+- [API reference](https://lexsi-labs.github.io/SafeTune/reference/api/): harden, recover, unlearn, steer, interpret, evaluate, config
+- [System design](https://lexsi-labs.github.io/SafeTune/reference/system-design/): architecture and API contracts
+
+## Examples
+
+- [Examples index](https://lexsi-labs.github.io/SafeTune/examples/): runnable scripts and notebooks
+- [Notebooks](https://lexsi-labs.github.io/SafeTune/examples/notebooks/): Colab notebooks, one per pillar
+- [Case study: refusal rides on a single direction](https://lexsi-labs.github.io/SafeTune/examples/single-direction-jailbreak/): a reproducible, judge-free red-team run
+
+## Optional
+
+- [GitHub repository](https://github.com/Lexsi-Labs/SafeTune)
+- [PyPI package](https://pypi.org/project/safetune/)

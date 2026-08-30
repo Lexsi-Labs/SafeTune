@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 860" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#90A4AE"/>
+    </marker>
+    <marker id="ap" markerWidth="10" markerHeight="10" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#64748B"/>
+    </marker>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#0F9D8F"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#E08600"/>
+    </linearGradient>
+    <style>
+      text { fill:#1F2937; }
+      .h1   { font-size:24px; font-weight:700; fill:#111827; }
+      .sub  { font-size:13.5px; fill:#6B7280; }
+      .ct   { font-size:17px; font-weight:700; fill:#FFFFFF; }
+      .ns   { font-size:11px; font-style:italic; }
+      .desc { font-size:12.5px; fill:#374151; }
+      .chip { font-size:11.5px; font-weight:600; }
+      .pill { font-size:11px; font-weight:700; }
+      .ic   { font-size:13px; font-weight:700; fill:#374151; }
+      .ics  { font-size:11px; fill:#6B7280; }
+      .grp  { font-size:12px; font-weight:700; letter-spacing:1px; }
+      .t2t  { font-size:15px; font-weight:700; fill:#FFFFFF; }
+      .t2d  { font-size:12px; fill:#374151; }
+      .cap  { font-size:11.5px; fill:#374151; }
+    </style>
+  </defs>
+  <rect width="1600" height="860" fill="#FFFFFF"/>
+
+  <!-- ===== Header ===== -->
+  <text x="40" y="44" class="h1">How SafeTune keeps an LLM safe</text>
+  <text x="40" y="66" class="sub">Pick <tspan font-weight="700" fill="#111827">one</tspan> intervention based on how far your model has drifted &#8212; then measure the result. Each method is audited against its source paper.</text>
+
+  <!-- ===== INPUTS ===== -->
+  <g>
+    <rect x="40" y="150" width="200" height="248" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+    <g transform="translate(56,168)">
+      <rect x="0" y="6" width="22" height="15" rx="3" fill="none" stroke="#475569" stroke-width="2"/>
+      <rect x="4" y="2" width="22" height="15" rx="3" fill="#F8FAFC" stroke="#475569" stroke-width="2"/>
+    </g>
+    <text x="92" y="184" class="grp" fill="#475569">INPUTS</text>
+    <g class="ic" text-anchor="middle">
+      <text x="140" y="218">Base model</text>
+      <text x="140" y="244">Fine-tuning data</text>
+      <text x="140" y="270">Drifted checkpoint</text>
+      <text x="140" y="296">Aligned reference</text>
+      <text x="140" y="322">Forget / retain set</text>
+      <text x="140" y="348">Steering artifacts</text>
+    </g>
+    <text x="140" y="378" text-anchor="middle" class="ics">what you already have</text>
+  </g>
+  <line x1="244" y1="274" x2="280" y2="274" stroke="#90A4AE" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- ===== TIER 1 band ===== -->
+  <rect x="288" y="120" width="1018" height="300" rx="14" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1.5"/>
+  <text x="797" y="110" text-anchor="middle" class="grp" fill="#374151">TIER&#160;1 &#183; INTERVENTIONS &#8212; choose exactly one (they are alternatives, not a pipeline)</text>
+
+  <!-- Card: HARDEN -->
+  <g>
+    <rect x="304" y="150" width="234" height="252" rx="11" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.6"/>
+    <path d="M304,161 a11,11 0 0 1 11,-11 h212 a11,11 0 0 1 11,11 v33 h-234 Z" fill="#2563EB"/>
+    <g transform="translate(318,160)" stroke="#FFFFFF" stroke-width="2" fill="none">
+      <path d="M11 2 L19 5 V11 C19 16 11 21 11 21 C11 21 3 16 3 11 V5 Z"/>
+    </g>
+    <text x="350" y="182" class="ct">Harden</text>
+    <text x="320" y="216" class="ns" fill="#2563EB">safetune.harden</text>
+    <text x="320" y="238" class="desc">Defend the model</text>
+    <text x="320" y="254" class="desc"><tspan font-weight="700">while</tspan> you fine-tune.</text>
+    <text x="320" y="270" class="desc">Drop-in SFT trainer.</text>
+    <g class="chip" fill="#1D4ED8" text-anchor="middle">
+      <rect x="320" y="282" width="202" height="22" rx="11" fill="#EAF1FE"/>
+      <text x="421" y="297">SafeGrad &#183; Vaccine &#183; LISA</text>
+      <rect x="320" y="308" width="202" height="22" rx="11" fill="#EAF1FE"/>
+      <text x="421" y="323">+ 13 more trainers</text>
+    </g>
+    <rect x="320" y="362" width="202" height="26" rx="13" fill="#2563EB"/>
+    <text x="421" y="379" text-anchor="middle" class="pill" fill="#FFFFFF">best for: moderate drift</text>
+  </g>
+
+  <!-- Card: RECOVER -->
+  <g>
+    <rect x="548" y="150" width="234" height="252" rx="11" fill="#FFFFFF" stroke="#0F9D8F" stroke-width="1.6"/>
+    <path d="M548,161 a11,11 0 0 1 11,-11 h212 a11,11 0 0 1 11,11 v33 h-234 Z" fill="#0F9D8F"/>
+    <g transform="translate(562,162)" fill="#FFFFFF">
+      <path d="M10 3 L3 9 L10 15 Z"/>
+      <path d="M19 3 L12 9 L19 15 Z"/>
+    </g>
+    <text x="594" y="182" class="ct">Recover</text>
+    <text x="564" y="216" class="ns" fill="#0F9D8F">safetune.recover</text>
+    <text x="564" y="238" class="desc">Patch weights back</text>
+    <text x="564" y="254" class="desc">toward an aligned ref.</text>
+    <text x="564" y="270" class="desc"><tspan font-weight="700">Training-free.</tspan></text>
+    <g class="chip" fill="#0B7C71" text-anchor="middle">
+      <rect x="564" y="282" width="202" height="22" rx="11" fill="#E1F5F2"/>
+      <text x="665" y="297">Task Arithmetic &#183; RESTA</text>
+      <rect x="564" y="308" width="202" height="22" rx="11" fill="#E1F5F2"/>
+      <text x="665" y="323">LoX &#183; + 12 more patches</text>
+    </g>
+    <rect x="564" y="362" width="202" height="26" rx="13" fill="#0F9D8F"/>
+    <text x="665" y="379" text-anchor="middle" class="pill" fill="#FFFFFF">best for: mild drift</text>
+  </g>
+
+  <!-- Card: UNLEARN -->
+  <g>
+    <rect x="792" y="150" width="234" height="252" rx="11" fill="#FFFFFF" stroke="#E08600" stroke-width="1.6"/>
+    <path d="M792,161 a11,11 0 0 1 11,-11 h212 a11,11 0 0 1 11,11 v33 h-234 Z" fill="#E08600"/>
+    <g transform="translate(806,161)" stroke="#FFFFFF" stroke-width="2" fill="none">
+      <circle cx="11" cy="11" r="8.5"/>
+      <line x1="6" y1="11" x2="16" y2="11"/>
+    </g>
+    <text x="838" y="182" class="ct">Unlearn</text>
+    <text x="808" y="216" class="ns" fill="#C77400">safetune.unlearn</text>
+    <text x="808" y="238" class="desc">Erase unsafe behavior</text>
+    <text x="808" y="254" class="desc">from weights via</text>
+    <text x="808" y="270" class="desc"><tspan font-weight="700">gradient forgetting.</tspan></text>
+    <g class="chip" fill="#B36500" text-anchor="middle">
+      <rect x="808" y="282" width="202" height="22" rx="11" fill="#FCF1DE"/>
+      <text x="909" y="297">NPO &#183; RMU &#183; FLAT</text>
+      <rect x="808" y="308" width="202" height="22" rx="11" fill="#FCF1DE"/>
+      <text x="909" y="323">+ 4 more methods</text>
+    </g>
+    <rect x="808" y="362" width="202" height="26" rx="13" fill="#E08600"/>
+    <text x="909" y="379" text-anchor="middle" class="pill" fill="#FFFFFF">best for: severe drift</text>
+  </g>
+
+  <!-- Card: STEER -->
+  <g>
+    <rect x="1036" y="150" width="234" height="252" rx="11" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.6"/>
+    <path d="M1036,161 a11,11 0 0 1 11,-11 h212 a11,11 0 0 1 11,11 v33 h-234 Z" fill="#7C3AED"/>
+    <g transform="translate(1050,161)" fill="#FFFFFF">
+      <path d="M3 10 L20 3 L12 20 L10 12 Z"/>
+    </g>
+    <text x="1082" y="182" class="ct">Steer</text>
+    <text x="1052" y="216" class="ns" fill="#7C3AED">safetune.steer</text>
+    <text x="1052" y="238" class="desc">Adjust activations or</text>
+    <text x="1052" y="254" class="desc">decoding at runtime.</text>
+    <text x="1052" y="270" class="desc"><tspan font-weight="700">No weight changes.</tspan></text>
+    <g class="chip" fill="#6D28D9" text-anchor="middle">
+      <rect x="1052" y="282" width="202" height="22" rx="11" fill="#F1EAFC"/>
+      <text x="1153" y="297">RefusalDir &#183; CAA</text>
+      <rect x="1052" y="308" width="202" height="22" rx="11" fill="#F1EAFC"/>
+      <text x="1153" y="323">SafeDecoding &#183; + 15 more</text>
+    </g>
+    <rect x="1052" y="362" width="202" height="26" rx="13" fill="#7C3AED"/>
+    <text x="1153" y="379" text-anchor="middle" class="pill" fill="#FFFFFF">best for: weights locked</text>
+  </g>
+
+  <line x1="1306" y1="274" x2="1342" y2="274" stroke="#90A4AE" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- ===== OUTPUT ===== -->
+  <g>
+    <rect x="1346" y="150" width="214" height="248" rx="12" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.6"/>
+    <g transform="translate(1362,170)" stroke="#16A34A" stroke-width="2.4" fill="none">
+      <rect x="0" y="0" width="20" height="20" rx="4"/>
+      <path d="M5 10 L9 14 L16 6"/>
+    </g>
+    <text x="1394" y="186" class="grp" fill="#15803D">SAFER MODEL</text>
+    <text x="1453" y="220" text-anchor="middle" class="t2d">Defended, patched, or</text>
+    <text x="1453" y="238" text-anchor="middle" class="t2d">unlearned checkpoint</text>
+    <text x="1453" y="262" text-anchor="middle" class="t2d">&#8212; or a live</text>
+    <text x="1453" y="280" text-anchor="middle" class="t2d">wrapped model</text>
+    <line x1="1366" y1="300" x2="1540" y2="300" stroke="#BBF7D0"/>
+    <text x="1453" y="324" text-anchor="middle" class="ics">capability preserved</text>
+    <text x="1453" y="342" text-anchor="middle" class="ics">safety restored</text>
+  </g>
+
+  <!-- ===== TIER 2 ===== -->
+  <text x="40" y="470" class="grp" fill="#374151">TIER&#160;2 &#183; INSTRUMENTATION</text>
+
+  <!-- Interpret -->
+  <g>
+    <rect x="304" y="482" width="478" height="120" rx="11" fill="#FFFFFF" stroke="#64748B" stroke-width="1.5"/>
+    <path d="M304,493 a11,11 0 0 1 11,-11 h456 a11,11 0 0 1 11,11 v30 h-478 Z" fill="#64748B"/>
+    <g transform="translate(318,489)" stroke="#FFFFFF" stroke-width="2" fill="none">
+      <circle cx="9" cy="9" r="6"/>
+      <line x1="13.5" y1="13.5" x2="19" y2="19"/>
+    </g>
+    <text x="350" y="510" class="t2t">Interpret &#8212; find where safety lives</text>
+    <text x="320" y="544" class="t2d">Locate refusal directions, safety neurons, and circuits.</text>
+    <g class="chip" fill="#475569">
+      <rect x="320" y="556" width="150" height="22" rx="11" fill="#EEF1F5"/>
+      <text x="395" y="571" text-anchor="middle">identify_safety_neurons</text>
+      <rect x="478" y="556" width="130" height="22" rx="11" fill="#EEF1F5"/>
+      <text x="543" y="571" text-anchor="middle">safety_circuit_info</text>
+      <rect x="616" y="556" width="150" height="22" rx="11" fill="#EEF1F5"/>
+      <text x="691" y="571" text-anchor="middle">eap_safety_circuit</text>
+    </g>
+  </g>
+  <!-- dashed feed to recover & steer -->
+  <path d="M543,482 C 543,440 665,430 665,404" fill="none" stroke="#64748B" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ap)"/>
+  <path d="M700,482 C 900,445 1153,440 1153,404" fill="none" stroke="#64748B" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ap)"/>
+  <text x="690" y="460" class="ics" fill="#64748B">feeds Recover &amp; Steer</text>
+
+  <!-- Evaluate -->
+  <g>
+    <rect x="828" y="482" width="478" height="120" rx="11" fill="#FFFFFF" stroke="#15803D" stroke-width="1.5"/>
+    <path d="M828,493 a11,11 0 0 1 11,-11 h456 a11,11 0 0 1 11,11 v30 h-478 Z" fill="#15803D"/>
+    <g transform="translate(842,489)" stroke="#FFFFFF" stroke-width="2" fill="none">
+      <line x1="2" y1="18" x2="20" y2="18"/>
+      <rect x="3"  y="11" width="4" height="7" fill="#FFFFFF" stroke="none"/>
+      <rect x="9"  y="7"  width="4" height="11" fill="#FFFFFF" stroke="none"/>
+      <rect x="15" y="3"  width="4" height="15" fill="#FFFFFF" stroke="none"/>
+    </g>
+    <text x="874" y="510" class="t2t">Evaluate &#8212; measure safety + capability</text>
+    <text x="844" y="544" class="t2d">One shared suite scores refusal rate, ASR, and utility.</text>
+    <g class="chip" fill="#15803D">
+      <rect x="844" y="556" width="200" height="22" rx="11" fill="#EAF6EE"/>
+      <text x="944" y="571" text-anchor="middle">HarmBench &#183; WildJailbreak</text>
+      <rect x="1052" y="556" width="120" height="22" rx="11" fill="#EAF6EE"/>
+      <text x="1112" y="571" text-anchor="middle">AdvBench &#183; +4</text>
+      <rect x="1180" y="556" width="118" height="22" rx="11" fill="#FBF4E1"/>
+      <text x="1239" y="571" text-anchor="middle" fill="#A9791C">GSM8K &#183; utility</text>
+    </g>
+  </g>
+  <line x1="1453" y1="398" x2="1453" y2="482" stroke="#90A4AE" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- ===== DRIFT SPECTRUM ===== -->
+  <text x="40" y="652" class="grp" fill="#374151">THE RULE OF THUMB</text>
+  <text x="270" y="652" class="cap" fill="#6B7280">the more your model has drifted, the heavier the intervention it needs</text>
+  <rect x="40" y="664" width="1520" height="14" rx="7" fill="url(#g)"/>
+  <polygon points="1560,671 1545,663 1545,679" fill="#E08600"/>
+  <g text-anchor="middle">
+    <circle cx="220" cy="671" r="6" fill="#FFFFFF" stroke="#0F9D8F" stroke-width="2.5"/>
+    <text x="220" y="704" class="chip" fill="#0B7C71">MILD drift</text>
+    <text x="220" y="722" class="ics">e.g. math fine-tune &#8594; <tspan font-weight="700">Recover</tspan></text>
+
+    <circle cx="800" cy="671" r="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="2.5"/>
+    <text x="800" y="704" class="chip" fill="#1D4ED8">MODERATE drift</text>
+    <text x="800" y="722" class="ics">&#8594; <tspan font-weight="700">Harden</tspan> or <tspan font-weight="700">Recover</tspan></text>
+
+    <circle cx="1380" cy="671" r="6" fill="#FFFFFF" stroke="#E08600" stroke-width="2.5"/>
+    <text x="1380" y="704" class="chip" fill="#B36500">SEVERE drift</text>
+    <text x="1380" y="722" class="ics">broad instruction / code &#8594; <tspan font-weight="700">Unlearn</tspan></text>
+  </g>
+
+  <!-- ===== Caption / badge note ===== -->
+  <line x1="40" y1="752" x2="1560" y2="752" stroke="#E5E7EB"/>
+  <g transform="translate(40,772)">
+    <circle cx="6" cy="-4" r="6" fill="#16A34A"/><text x="18" y="0" class="cap">faithful to paper</text>
+    <circle cx="156" cy="-4" r="6" fill="#F4B400"/><text x="168" y="0" class="cap">corrected / simplified</text>
+    <circle cx="332" cy="-4" r="6" fill="#EF6C00"/><text x="344" y="0" class="cap">approximation (do not cite as the named method)</text>
+  </g>
+  <text x="40" y="800" class="cap"><tspan font-weight="700" fill="#111827">Figure.</tspan> SafeTune in one glance. From your inputs, choose a single Tier&#8209;1 intervention sized to the model's drift; Tier&#8209;2 tools locate where safety lives and verify the outcome.</text>
+</svg>
