@@ -32,7 +32,7 @@ license: LicenseRef-LSAL-1.2
 license-url: "https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md"
 repository-code: "https://github.com/Lexsi-Labs/SafeTune"
 url: "https://lexsi-labs.github.io/SafeTune"
-version: "0.1.3"
+version: 0.1.3
 date-released: "2026-08-30"
 preferred-citation:
   type: conference-paper
