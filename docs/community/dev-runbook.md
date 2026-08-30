@@ -182,7 +182,7 @@ jobs:
 ```bash
 pip install build
 python -m build
-# Produces dist/safetune-0.1.0-py3-none-any.whl + dist/safetune-0.1.0.tar.gz
+# Produces dist/safetune-0.1.3-py3-none-any.whl + dist/safetune-0.1.3.tar.gz
 ```
 
 ## 5. Dependency Management
