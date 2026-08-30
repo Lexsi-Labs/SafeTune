@@ -172,10 +172,10 @@ jobs:
 
 ### 4.3 Versioning
 
-- Current: `0.1.0` (SemVer)
+- Current: `0.1.3` (SemVer)
 - PyPI release: `python -m build && twine upload dist/*`
-- Version pinned in `src/safetune/__init__.py`: `__version__ = "0.1.0"`
-- Mirrored in `pyproject.toml`: `version = "0.1.0"`
+- Version pinned in `src/safetune/__init__.py`: `__version__ = "0.1.3"`
+- Mirrored in `pyproject.toml`: `version = "0.1.3"`
 
 ### 4.4 Wheel Build
 
