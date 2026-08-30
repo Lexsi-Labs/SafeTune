@@ -26,7 +26,7 @@ def _print_banner() -> None:
     sep = D + "─" * 52 + R
     print(
         f"\n"
-        f"  {A}◆{R}  {B}{P}S A F E T U N E{R}  {D}v{__version__} · LSAL v1.1 · Python 3.12+{R}\n"
+        f"  {A}◆{R}  {B}{P}S A F E T U N E{R}  {D}v{__version__} · LSAL v1.2 · Python 3.12+{R}\n"
         f"     {D}Fine-tuning breaks safety. SafeTune fixes it.{R}\n"
         f"  {sep}\n"
         f"  {P}harden{R} · {P}recover{R} · {P}unlearn{R} · {P}steer{R}"

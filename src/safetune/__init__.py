@@ -40,7 +40,7 @@ Quickstart:
     >>> results = safetune.evaluate.evaluate(model, benchmarks=["harmbench"])
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.3"
 __author__ = "Lexsi Labs"
 
 # ── Backend guards ──────────────────────────────────────────────────────────

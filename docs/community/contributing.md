@@ -100,4 +100,4 @@ See [System Design](../reference/system-design.md) and
 ## License
 
 By contributing, you agree that your contributions are licensed under the
-[Lexsi Labs Source Available License (LSAL) v1.1](https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md).
+[Lexsi Labs Source Available License (LSAL) v1.2](https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md).

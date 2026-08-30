@@ -1,6 +1,6 @@
 # Installation
 
-SafeTune will be published on PyPI with the 0.1.0 release; you can also install from source (below). The core library installs cleanly on CPU; the
+SafeTune will be published on PyPI with the 0.1.3 release; you can also install from source (below). The core library installs cleanly on CPU; the
 GPU-heavy backends (vLLM, Unsloth, TransformerLens) are optional extras you add
 only when a method needs them.
 

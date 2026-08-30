@@ -249,6 +249,8 @@ nav:
       - Notebooks: examples/notebooks.md
       - Case Study — Single-Direction Jailbreak: examples/single-direction-jailbreak.md
 
+  - EMNLP 2026 Demo: emnlp-2026-demo/index.md
+
   - Community:
       - FAQ: community/faq.md
       - Contributing: community/contributing.md

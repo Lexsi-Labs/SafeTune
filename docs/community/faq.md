@@ -7,8 +7,10 @@ SafeTune is developed and maintained by **Lexsi Labs**, the AI research arm of
 technology company (USD 140M revenue) with operations in banking, transit,
 capital markets, healthcare, and legal verticals.
 
-SafeTune is **source-available under LSAL v1.1 and free to use independently
-for research, academic, and personal purposes**. For commercial licensing,
+SafeTune is **source-available under LSAL v1.2. Academic research and teaching
+are free on MIT-like terms.** Organizations must acknowledge their use or obtain
+permission before internal evaluation or use on their own models (write to
+support@lexsi.ai). For commercial licensing,
 enterprise support, custom deployment, compliance consulting, or custom method
 development on your own models and data, contact Lexsi Labs through
 [lexsi.ai](https://www.lexsi.ai).

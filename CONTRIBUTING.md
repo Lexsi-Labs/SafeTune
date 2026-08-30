@@ -223,7 +223,7 @@ def test_feature_description():
 By contributing to SafeTune, you agree that:
 
 1. **Your contributions** will be licensed under the **Lexsi Labs Source
-   Available License (LSAL) v1.1** (see [LICENSE.md](LICENSE.md)), the same
+   Available License (LSAL) v1.2** (see [LICENSE.md](LICENSE.md)), the same
    license that covers the rest of SafeTune.
 2. **You have the right** to submit the contribution.
 3. **You grant** Lexsi Labs a perpetual, worldwide, royalty-free right to use,
