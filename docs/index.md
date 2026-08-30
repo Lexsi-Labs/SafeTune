@@ -24,7 +24,7 @@ actually running.
 
 <p class="st-chips">
 <span>v0.1.0</span>
-<span>LSAL v1.1 · source-available</span>
+<span>LSAL v1.2 · source-available</span>
 <span>Python 3.12+</span>
 <span>per-method audit verdicts</span>
 </p>

@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.0-5B3DD6.svg" alt="Version 0.1.0"/></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+"/></a>
-  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-LSAL%20v1.1%20(source--available)-blue.svg" alt="License: LSAL v1.1"/></a>
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-LSAL%20v1.2%20(source--available)-blue.svg" alt="License: LSAL v1.2"/></a>
 </p>
 
 <br>
@@ -232,22 +232,30 @@ list of faithful methods are in [Trust & Scope](docs/community/scope.md).
 If you use SafeTune in research, please cite the main paper:
 
 ```bibtex
-@misc{seth2026safetune,
-  title  = {SafeTune: A Unified Library for Preserving and Restoring
-            Safety in Fine-Tuned {LLM}s},
-  author = {Seth, Pratinav and Kaushal, Anshul and Sadhu, Saisab and
-            Sankarapu, Vinay Kumar},
-  year   = {2026},
-  note   = {Pratinav Seth, Anshul Kaushal, and Saisab Sadhu contributed equally.},
+@inproceedings{seth2026safetune,
+  title     = {SafeTune: A Unified, Faithful Library for Auditing and
+               Repairing Safety Drift in Fine-Tuned {LLM}s},
+  author    = {Seth, Pratinav and Sadhu, Saisab and Kaushal, Anshul and
+               Sankarapu, Vinay Kumar},
+  booktitle = {Proceedings of the 2026 Conference on Empirical Methods in
+               Natural Language Processing: System Demonstrations},
+  publisher = {Association for Computational Linguistics},
+  year      = {2026},
+  note      = {Pratinav Seth, Saisab Sadhu, and Anshul Kaushal contributed equally.},
 }
 ```
 
 ## License
 
-Lexsi Labs Source Available License (LSAL) v1.1 — see [LICENSE.md](LICENSE.md).
-LSAL grants the same permissions as the MIT License (free use, modification,
-and redistribution with attribution, same warranty disclaimer) and differs in
-exactly two respects: **commercial use requires a separate license** from
-Lexsi Labs (support@lexsi.ai), and **unrepaired drifted checkpoints may not be
-deployed in production systems** (see the Responsible Use clause).
+Lexsi Labs Source Available License (LSAL) v1.2, see [LICENSE.md](LICENSE.md).
+
+- **Academic research and teaching** are free on MIT-like terms: use, modify,
+  and redistribute with the notice intact.
+- **Organizations** (companies, institutions, public bodies) must acknowledge
+  their use to Lexsi Labs or obtain permission before internal evaluation,
+  auditing, or use on their own models (Section 1A). Write to support@lexsi.ai.
+- **Commercial use** (selling, SaaS, embedding) requires a separate commercial
+  license from Lexsi Labs (support@lexsi.ai).
+- **Unrepaired drifted checkpoints may not be deployed in production systems**
+  (Responsible Use clause).
 

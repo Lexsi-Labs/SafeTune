@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **License**: updated to **LSAL v1.2** (see `LICENSE.md`). Academic research
+  and teaching remain free on MIT-like terms. Organizations must now acknowledge
+  their use to Lexsi Labs or obtain permission before internal evaluation,
+  auditing, or use on their own models (Section 1A). Commercial use still
+  requires a separate license. The patent clause now reserves all patent rights
+  (Clear BSD style) instead of granting a noncommercial patent license. New
+  clauses: users bear responsibility for their own use and deployment decisions
+  (Section 7, with an indemnity limited to organizational and commercial use),
+  third-party base-model and benchmark licenses continue to apply (Section 4A),
+  modified redistributions must be marked as modified (Section 2), and
+  survival, severability, and version-applicability terms (Sections 8 and 9).
 - **License**: SafeTune is now released under the **Lexsi Labs Source Available
   License (LSAL) v1.1** (see `LICENSE.md`) — an MIT-style grant restricted to
   noncommercial purposes, with a Responsible Use clause barring production
