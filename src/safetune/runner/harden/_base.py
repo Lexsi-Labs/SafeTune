@@ -11,6 +11,7 @@ from transformers import default_data_collator
 from safetune.runner.utils.eval_runner import eval_safety, eval_utility, all_metrics
 from safetune.runner.utils.results_writer import ResultsWriter, DEFAULT_RESULTS_DIR
 from safetune.runner.utils.model_utils import lora_wrap, free, derive_model_id
+from safetune.utils.hf_publish import HubPushMixin
 
 _BFLOAT16 = torch.bfloat16
 _LORA_METHODS = {"NPO", "FLAT", "SimDPO"}
@@ -30,7 +31,10 @@ def _keep_model_columns(ds):
 
 def _make_training_args(out_dir, epochs=1, batch_size=4, lr=1e-4,
                         bf16=True, optimizer="adamw_torch", logging_steps=10,
-                        fp16=False, wandb=False):
+                        fp16=False, wandb=False, *,
+                        warmup_ratio=0.0, weight_decay=0.0, max_grad_norm=1.0,
+                        gradient_accumulation_steps=1, lr_scheduler_type="linear",
+                        seed=42, logging_first_step=True):
     """Build a bare TrainingArguments with the standard SafeTune defaults."""
     from transformers import TrainingArguments
     return TrainingArguments(
@@ -46,12 +50,22 @@ def _make_training_args(out_dir, epochs=1, batch_size=4, lr=1e-4,
         dataloader_num_workers=0,
         remove_unused_columns=False,
         optim=optimizer,
+        warmup_ratio=warmup_ratio,
+        weight_decay=weight_decay,
+        max_grad_norm=max_grad_norm,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        lr_scheduler_type=lr_scheduler_type,
+        seed=seed,
+        logging_first_step=logging_first_step,
     )
 
 
 def _apply_training_args(config, out_dir, epochs=1, batch_size=4, lr=1e-4,
                          bf16=True, optimizer="adamw_torch", logging_steps=10,
-                         fp16=False, wandb=False):
+                         fp16=False, wandb=False, *,
+                         warmup_ratio=0.0, weight_decay=0.0, max_grad_norm=1.0,
+                         gradient_accumulation_steps=1, lr_scheduler_type="linear",
+                         seed=42):
     """Stamp the standard SafeTune training settings onto an existing config object."""
     for k, v in dict(
         output_dir=out_dir, num_train_epochs=epochs,
@@ -59,6 +73,10 @@ def _apply_training_args(config, out_dir, epochs=1, batch_size=4, lr=1e-4,
         logging_steps=logging_steps, save_strategy="no", bf16=bf16, fp16=fp16,
         report_to=(["wandb"] if wandb else []), remove_unused_columns=False,
         dataloader_num_workers=0, optim=optimizer,
+        warmup_ratio=warmup_ratio, weight_decay=weight_decay,
+        max_grad_norm=max_grad_norm,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        lr_scheduler_type=lr_scheduler_type, seed=seed,
     ).items():
         setattr(config, k, v)
     return config
@@ -115,7 +133,7 @@ def _to_dev(batch, device):
 
 # ── Base class ────────────────────────────────────────────────────────────────
 
-class _HardenBase:
+class _HardenBase(HubPushMixin):
     PILLAR = "harden"
     METHOD: str = ""
 
@@ -135,6 +153,12 @@ class _HardenBase:
         logging_steps: int = 10,
         results_dir: str = None,
         drift_task: str = None,
+        warmup_ratio: float = 0.03,
+        weight_decay: float = 0.01,
+        max_grad_norm: float = 1.0,
+        gradient_accumulation_steps: int = 1,
+        lr_scheduler_type: str = "linear",
+        seed: int = 42,
         **kwargs,
     ):
         self.model_id = derive_model_id(model_id, model, tokenizer)
@@ -150,6 +174,12 @@ class _HardenBase:
         self.logging_steps = logging_steps
         self.results_dir = results_dir or DEFAULT_RESULTS_DIR
         self.drift_task = drift_task
+        self.warmup_ratio = warmup_ratio
+        self.weight_decay = weight_decay
+        self.max_grad_norm = max_grad_norm
+        self.gradient_accumulation_steps = gradient_accumulation_steps
+        self.lr_scheduler_type = lr_scheduler_type
+        self.seed = seed
         self._extra = kwargs
 
     @property
@@ -195,8 +225,10 @@ class _HardenBase:
         """Merge LoRA adapter (if present) and save checkpoint; return the path."""
         from safetune.runner.utils.model_utils import save_checkpoint
         merged = model.merge_and_unload() if hasattr(model, "merge_and_unload") else model
-        return save_checkpoint(merged, self.tok, os.path.basename(out_dir),
+        path = save_checkpoint(merged, self.tok, os.path.basename(out_dir),
                                out_dir=os.path.dirname(out_dir))
+        self._last_ckpt = path
+        return path
 
     def _training_args(self, out_dir):
         """Build TrainingArguments using this trainer's configured settings."""
@@ -204,6 +236,10 @@ class _HardenBase:
             out_dir, self.epochs, self.batch_size, self.lr,
             self.bf16, self.optimizer, self.logging_steps,
             fp16=self.fp16, wandb=self.wandb,
+            warmup_ratio=self.warmup_ratio, weight_decay=self.weight_decay,
+            max_grad_norm=self.max_grad_norm,
+            gradient_accumulation_steps=self.gradient_accumulation_steps,
+            lr_scheduler_type=self.lr_scheduler_type, seed=self.seed,
         )
 
     def _configure_args(self, config, out_dir):
@@ -212,6 +248,10 @@ class _HardenBase:
             config, out_dir, self.epochs, self.batch_size, self.lr,
             self.bf16, self.optimizer, self.logging_steps,
             fp16=self.fp16, wandb=self.wandb,
+            warmup_ratio=self.warmup_ratio, weight_decay=self.weight_decay,
+            max_grad_norm=self.max_grad_norm,
+            gradient_accumulation_steps=self.gradient_accumulation_steps,
+            lr_scheduler_type=self.lr_scheduler_type, seed=self.seed,
         )
 
     def eval(

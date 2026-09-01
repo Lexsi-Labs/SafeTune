@@ -184,6 +184,7 @@ where = ["src"]
     "*.md",
     "*.txt",
     "py.typed",
+    "assets/*.png",
 ]
 
 

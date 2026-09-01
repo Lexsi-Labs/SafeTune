@@ -10,6 +10,7 @@ from safetune.runner.utils.eval_runner import (
 )
 from safetune.runner.utils.results_writer import ResultsWriter, DEFAULT_RESULTS_DIR
 from safetune.runner.utils.model_utils import free
+from safetune.utils.hf_publish import HubPushMixin
 
 
 S = None
@@ -33,7 +34,7 @@ def _derive_model_id(model_id, model=None, tokenizer=None) -> str:
     return str(cand) if cand else "model"
 
 
-class _SteerBase:
+class _SteerBase(HubPushMixin):
     PILLAR = "steer"
     METHOD: str = ""
 

@@ -335,8 +335,10 @@ examples/*/wandb/
 examples/*/cache/
 examples/*/tensorboard/
 examples/my_sft_output/
-# SafeTune session: local scratch.
-temp/
+# SafeTune session scratch — keep the catalog notebooks, ignore everything else.
+temp/**
+!temp/
+!temp/*.ipynb
 **/.ipynb_checkpoints/
 site/
 uv.lock

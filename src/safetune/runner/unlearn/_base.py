@@ -7,6 +7,7 @@ from typing import Optional
 from safetune.runner.utils.eval_runner import eval_safety, eval_utility, all_metrics
 from safetune.runner.utils.results_writer import ResultsWriter, DEFAULT_RESULTS_DIR
 from safetune.runner.utils.model_utils import lora_wrap, free
+from safetune.utils.hf_publish import HubPushMixin
 
 
 U = None
@@ -48,7 +49,7 @@ def _derive_model_id(model_id, model=None, tokenizer=None) -> str:
     return str(cand) if cand else "model"
 
 
-class _UnlearnBase:
+class _UnlearnBase(HubPushMixin):
     PILLAR = "unlearn"
     METHOD: str = ""
     USE_LORA: bool = False
@@ -156,7 +157,9 @@ class _UnlearnBase:
         from safetune.runner.utils.model_utils import save_checkpoint, load_tok
         tok = tokenizer or load_tok(self.model_id)
         ckpt_dir = os.path.join(self.results_dir, "checkpoints")
-        return save_checkpoint(unlearned_model, tok, name, out_dir=ckpt_dir)
+        ckpt = save_checkpoint(unlearned_model, tok, name, out_dir=ckpt_dir)
+        self._last_ckpt = ckpt
+        return ckpt
 
     def save_results(
         self,

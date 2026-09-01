@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/safetune-compass-logo-dark.svg">
-    <img src="docs/assets/safetune-compass-logo-light.svg" alt="SafeTune" width="360"/>
-  </picture>
+  <img src="docs/assets/safetune-logo-white.png" alt="SafeTune" width="480"/>
 </p>
 
 <h3 align="center">A library of LLM-safety methods. Pick the one that fits your task — and know exactly what it implements.</h3>

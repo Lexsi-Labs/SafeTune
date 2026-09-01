@@ -52,6 +52,18 @@ from .config_utils import (
     export_config_summary
 )
 
+from .hf_publish import (
+    brand_hf_repo,
+    load_finetuned_model,
+    push_model_to_hf,
+    push_folder_to_hub,
+    push_model_path_to_hub,
+    push_quantized_path_to_hub,
+    push_gguf_path_to_hub,
+    HubPushMixin,
+    FolderPublisher,
+)
+
 from .colored_logging import (
     print_SafeTune_banner,
     print_section_banner,
@@ -113,6 +125,17 @@ __all__ = [
     "create_config_template",
     "update_config_paths",
     "export_config_summary",
+
+    # HF Hub branding
+    "brand_hf_repo",
+    "load_finetuned_model",
+    "push_model_to_hf",
+    "push_folder_to_hub",
+    "push_model_path_to_hub",
+    "push_quantized_path_to_hub",
+    "push_gguf_path_to_hub",
+    "HubPushMixin",
+    "FolderPublisher",
     
     # Colored logging utilities
     "print_SafeTune_banner",

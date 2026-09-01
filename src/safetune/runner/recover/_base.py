@@ -9,11 +9,10 @@ import torch
 from safetune.runner.utils.eval_runner import eval_safety, eval_utility, all_metrics
 from safetune.runner.utils.results_writer import ResultsWriter, DEFAULT_RESULTS_DIR
 from safetune.runner.utils.model_utils import free, derive_model_id
+from safetune.utils.hf_publish import HubPushMixin
 
 
-
-
-class _RecoverBase:
+class _RecoverBase(HubPushMixin):
     PILLAR = "recover"
     METHOD: str = ""
 
@@ -88,7 +87,9 @@ class _RecoverBase:
         from safetune.runner.utils.model_utils import save_checkpoint, load_tok
         tok = tokenizer or load_tok(self.model_id)
         ckpt_dir = os.path.join(self.results_dir, "checkpoints")
-        return save_checkpoint(patched_model, tok, name, out_dir=ckpt_dir)
+        ckpt = save_checkpoint(patched_model, tok, name, out_dir=ckpt_dir)
+        self._last_ckpt = ckpt
+        return ckpt
 
     def save_results(
         self,
