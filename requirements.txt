@@ -11,6 +11,7 @@ transformers>=4.48.3,<6
 datasets>=2.14.0,<6
 accelerate>=0.24.0,<2
 peft>=0.6.0,<1
+torchao>=0.17.0,<0.18
 bitsandbytes>=0.41.0
 trl>=0.12,<2
 numpy>=1.21.0

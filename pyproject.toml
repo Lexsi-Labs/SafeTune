@@ -63,7 +63,14 @@ dependencies = [
     "datasets>=2.14.0,<6",
     "accelerate>=0.24.0,<2",
     "peft>=0.6.0,<1",
+    # peft 0.19+ calls is_torchao_available() on trainer.train() and raises if
+    # torchao is installed below 0.16. Colab GPU ships torchao==0.10.0.
+    # 0.17 is the torch==2.11.0 matching release (ABI-stable from 0.17 onward).
+    "torchao>=0.17.0,<0.18",
     "bitsandbytes>=0.41.0",
+    # Do not use trl[vllm]: GRPOTrainer/RLOOTrainer import VLLMGeneration, and a
+    # CUDA-13 vLLM wheel then crashes Colab (`libcudart.so.13`). HF rollout
+    # does not need vLLM; install it separately if you want it.
     "trl>=0.12,<2",
 
     # Core Python dependencies
