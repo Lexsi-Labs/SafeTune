@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from safetune.core.eval.metrics.safety import compute_safety_gates, compute_safety_suite
+from safetune.data.dataset_ids import HARMBENCH
 
 
 @dataclass
@@ -104,7 +105,7 @@ def run_hhrlhf(
 # Maps pack name -> HF dataset id + split + column mappings
 _HF_PACK_MAP: Dict[str, Dict[str, Any]] = {
     "harmbench": {
-        "dataset_id": "walledai/HarmBench",
+        "dataset_id": HARMBENCH,
         "split": "standard",
         "response_col": "response",
         "prompt_col": "behavior",
