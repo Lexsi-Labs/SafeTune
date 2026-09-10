@@ -10,7 +10,7 @@ from transformers import default_data_collator
 
 from safetune.runner.utils.eval_runner import eval_safety, eval_utility, all_metrics
 from safetune.runner.utils.results_writer import ResultsWriter, DEFAULT_RESULTS_DIR
-from safetune.runner.utils.model_utils import lora_wrap, free, derive_model_id
+from safetune.runner.utils.model_utils import lora_wrap, free, derive_model_id, place_model
 from safetune.utils.hf_publish import HubPushMixin
 
 _BFLOAT16 = torch.bfloat16
@@ -195,7 +195,7 @@ class _HardenBase(HubPushMixin):
 
     @model.setter
     def model(self, v):
-        self._model = v
+        self._model = place_model(v) if v is not None else v
 
     @property
     def tok(self):
@@ -223,7 +223,7 @@ class _HardenBase(HubPushMixin):
                     "Cannot determine base model: pass model= or model_id= to the trainer."
                 )
             m = load_model(base_name)
-        return lora_wrap(m)
+        return lora_wrap(place_model(m))
 
     def _save_merged(self, model, out_dir: str) -> str:
         """Merge LoRA adapter (if present) and save checkpoint; return the path."""

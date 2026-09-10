@@ -64,7 +64,8 @@ class _SteerBase(HubPushMixin):
 
     @model.setter
     def model(self, v):
-        self._model = v
+        from safetune.runner.utils.model_utils import place_model
+        self._model = place_model(v) if v is not None else v
 
     @property
     def tok(self):

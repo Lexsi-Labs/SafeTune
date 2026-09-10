@@ -11,6 +11,8 @@ from safetune.runner.utils.model_utils import (
     free,
     lora_wrap,
     save_checkpoint,
+    accelerator_device,
+    place_model,
 )
 from safetune.runner.utils.data_utils import (
     build_sft_dataset,
@@ -54,7 +56,7 @@ from safetune.runner.utils.results_writer import (
 __all__ = [
     # model
     "load_model", "load_model_cpu", "load_tok", "free", "lora_wrap",
-    "save_checkpoint",
+    "save_checkpoint", "accelerator_device", "place_model",
     # data — shared / smoke sets
     "build_sft_dataset", "build_safety_dataset",
     "refusal_prompt_pairs", "refusal_prompt_pairs_large",

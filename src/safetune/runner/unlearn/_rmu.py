@@ -23,8 +23,12 @@ class RMUTrainer(_UnlearnBase):
 
     def unlearn(self, forget, retain, *, frozen_model=None, **kwargs):
         import copy
+        from safetune.runner.utils.model_utils import place_model
+        self._prepare_model()
         if frozen_model is None:
             frozen_model = copy.deepcopy(self.model)
+        else:
+            frozen_model = place_model(frozen_model)
         cfg = U.RMUConfig(
             layer_id=self.layer_id,
             update_layer_ids=self.update_layer_ids,

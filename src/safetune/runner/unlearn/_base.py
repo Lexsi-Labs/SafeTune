@@ -6,7 +6,7 @@ from typing import Optional
 
 from safetune.runner.utils.eval_runner import eval_safety, eval_utility, all_metrics
 from safetune.runner.utils.results_writer import ResultsWriter, DEFAULT_RESULTS_DIR
-from safetune.runner.utils.model_utils import lora_wrap, free
+from safetune.runner.utils.model_utils import lora_wrap, free, place_model
 from safetune.utils.hf_publish import HubPushMixin
 
 
@@ -78,9 +78,24 @@ class _UnlearnBase(HubPushMixin):
 
     @model.setter
     def model(self, v):
-        self._model = v
+        self._model = place_model(v) if v is not None else v
+
+    def _prepare_model(self, model=None):
+        """Put the live model on CUDA / MPS / CPU. Does not change dtype."""
+        m = place_model(model if model is not None else self.model)
+        self.model = m
+        try:
+            p = next(m.parameters())
+            print(
+                f"[{self.METHOD or 'unlearn'}] device={p.device} dtype={p.dtype}",
+                flush=True,
+            )
+        except StopIteration:
+            pass
+        return m
 
     def _wrap_lora(self, model):
+        model = self._prepare_model(model)
         if self.USE_LORA:
             return lora_wrap(model)
         return model

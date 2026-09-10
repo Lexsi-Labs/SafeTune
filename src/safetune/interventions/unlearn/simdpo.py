@@ -238,6 +238,13 @@ def simdpo_unlearn(
             "SimDPOUnlearnConfig.variant='simdpo_retain' requires retain_batches."
         )
 
+    model.train()
+    try:
+        p = next(model.parameters())
+        print(f"simdpo_unlearn device={p.device} dtype={p.dtype}", flush=True)
+    except StopIteration:
+        pass
+
     def _logits(batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         out = model(**{k: v for k, v in batch.items() if k != "labels"})
         return out.logits if hasattr(out, "logits") else out
@@ -304,6 +311,11 @@ def simdpo_unlearn(
             opt.step()
             steps += 1
             total_steps += 1
+            print(
+                f"simdpo epoch {epoch}/{cfg.epochs} step {total_steps} "
+                f"loss={float(loss.detach()):.4f}",
+                flush=True,
+            )
 
         logger.info(
             "simdpo_unlearn: epoch %d/%d (%s) — %d steps.",

@@ -20,6 +20,7 @@ class GradientAscentTrainer(_UnlearnBase):
         self.forget_clip = forget_clip
 
     def unlearn(self, forget, retain, **kwargs):
+        self._prepare_model()
         cfg = U.GradientAscentConfig(
             forget_loss=self.forget_loss,
             epochs=self.epochs,
@@ -52,6 +53,7 @@ class GradDiffTrainer(_UnlearnBase):
         self.forget_clip = forget_clip
 
     def unlearn(self, forget, retain, **kwargs):
+        self._prepare_model()
         for param in self.model.parameters():
             param.requires_grad = True
             

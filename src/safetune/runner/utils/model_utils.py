@@ -7,11 +7,39 @@ from pathlib import Path
 
 import torch
 
-_DT = torch.bfloat16
-_DEV = "cuda" if torch.cuda.is_available() else "cpu"
-
 # Module-level tokenizer cache (same pattern as harness.py _TOK dict).
 _TOK_CACHE: dict = {}
+
+
+def accelerator_device() -> torch.device:
+    """CUDA if present, else MPS, else CPU. Never invent a dtype."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    mps = getattr(torch.backends, "mps", None)
+    if mps is not None and mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def place_model(model):
+    """Move ``model`` onto the available accelerator. Leaves dtype alone.
+
+    ``from_pretrained`` with no ``device_map`` lands on CPU. Custom training
+    loops then follow ``next(parameters()).device`` and burn system RAM.
+    Skip models already dispatched via ``hf_device_map``.
+    """
+    if model is None:
+        return model
+    if getattr(model, "hf_device_map", None):
+        return model
+    target = accelerator_device()
+    try:
+        param = next(model.parameters())
+    except StopIteration:
+        return model
+    if param.device.type == target.type:
+        return model
+    return model.to(target)
 
 
 def derive_model_id(model_id, model=None, tokenizer=None) -> str:
@@ -58,13 +86,16 @@ def _fix_pad_token(model, tok=None):
 
 
 def load_model(name: str, *, dtype=None, device: str = None):
-    """Load a fresh model on GPU (never cached — callers mutate them)."""
+    """Load a fresh model onto the available accelerator (never cached).
+
+    Does not force a dtype. Pass ``dtype=`` only if the caller asked for one.
+    """
     from transformers import AutoModelForCausalLM
-    m = AutoModelForCausalLM.from_pretrained(
-        name,
-        dtype=dtype or _DT,
-        device_map=device or _DEV,
-    )
+    kw = {}
+    if dtype is not None:
+        kw["dtype"] = dtype
+    m = AutoModelForCausalLM.from_pretrained(name, **kw)
+    m = m.to(device) if device is not None else place_model(m)
     m.eval()
     tok = _TOK_CACHE.get(name)
     return _fix_pad_token(m, tok)
@@ -73,11 +104,10 @@ def load_model(name: str, *, dtype=None, device: str = None):
 def load_model_cpu(name: str, *, dtype=None):
     """Load a model on CPU — for reference/state-dict-donor models."""
     from transformers import AutoModelForCausalLM
-    m = AutoModelForCausalLM.from_pretrained(
-        name,
-        dtype=dtype or _DT,
-        device_map="cpu",
-    )
+    kw = {"device_map": "cpu"}
+    if dtype is not None:
+        kw["dtype"] = dtype
+    m = AutoModelForCausalLM.from_pretrained(name, **kw)
     m.eval()
     tok = _TOK_CACHE.get(name)
     return _fix_pad_token(m, tok)
