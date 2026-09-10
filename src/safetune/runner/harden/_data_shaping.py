@@ -183,11 +183,17 @@ class DeRTaTrainer(_HardenBase):
 
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.DeRTaConfig(), out_dir)
+        args = self._configure_args(
+            HARD.DeRTaConfig(**self._extra_kw(
+                "enable_rto", "rto_weight", "rto_refusal_token_id", "rto_refusal_text",
+            )),
+            out_dir,
+        )
 
         if contamination_pairs is None or refusal_pairs is None:
             from safetune.runner.utils.data_utils import harden_contamination_pairs
-            _cont, _, _ref = harden_contamination_pairs(256)
+            n_pairs = len(train_dataset) if hasattr(train_dataset, "__len__") else 20
+            _cont, _, _ref = harden_contamination_pairs(n_pairs)
             contamination_pairs = _cont
             refusal_pairs = _ref
 

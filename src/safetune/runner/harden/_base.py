@@ -182,6 +182,10 @@ class _HardenBase(HubPushMixin):
         self.seed = seed
         self._extra = kwargs
 
+    def _extra_kw(self, *keys):
+        """Pick named keys from trainer kwargs so method configs stay wired."""
+        return {k: self._extra[k] for k in keys if k in self._extra}
+
     @property
     def model(self):
         if getattr(self, '_model', None) is None:

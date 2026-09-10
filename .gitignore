@@ -180,6 +180,9 @@ cython_debug/
 .vscode/
 *.code-workspace
 
+# Cursor local rules / state
+.cursor/
+
 # Claude Code local state
 .claude/
 

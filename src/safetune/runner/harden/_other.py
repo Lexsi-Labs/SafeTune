@@ -184,7 +184,12 @@ class SEALTrainer(_HardenBase):
             safety_dataset = build_safety_dataset(self.tok)
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.SEALConfig(), out_dir)
+        args = self._configure_args(
+            HARD.SEALConfig(**self._extra_kw(
+                "seal_temperature", "seal_rescore_every", "seal_top_k_ratio",
+            )),
+            out_dir,
+        )
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
         tr = HARD.SEALTrainer(
@@ -205,7 +210,12 @@ class ConstrainedSFTTrainer(_HardenBase):
     def train(self, train_dataset, out_dir: str = None, **kwargs) -> str:
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.ConstrainedSFTConfig(), out_dir)
+        args = self._configure_args(
+            HARD.ConstrainedSFTConfig(**self._extra_kw(
+                "csft_beta", "csft_decay_rate",
+            )),
+            out_dir,
+        )
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
         tr = HARD.ConstrainedSFTTrainer(

@@ -207,10 +207,17 @@ class CTRAPTrainer(_HardenBase):
         # trap; safety data here would make the trap fire on benign fine-tuning.
         if harmful_dataset is None:
             from safetune.runner.utils.data_utils import harden_contamination_sets
-            harmful_dataset = harden_contamination_sets(self.tok, n=256)[0]
+            n_harm = len(train_dataset) if hasattr(train_dataset, "__len__") else 20
+            harmful_dataset = harden_contamination_sets(self.tok, n=n_harm)[0]
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.CTRAPConfig(), out_dir)
+        args = self._configure_args(
+            HARD.CTRAPConfig(**self._extra_kw(
+                "ctrap_lambda", "ctrap_alpha", "ctrap_collapse_token_id",
+                "ctrap_second_order",
+            )),
+            out_dir,
+        )
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
         if hasattr(harmful_dataset, "with_format"):
@@ -241,10 +248,16 @@ class SEAMTrainer(_HardenBase):
         # SEAM unlearn refusal behavior instead.
         if harmful_dataset is None:
             from safetune.runner.utils.data_utils import harden_contamination_sets
-            harmful_dataset = harden_contamination_sets(self.tok, n=256)[0]
+            n_harm = len(train_dataset) if hasattr(train_dataset, "__len__") else 20
+            harmful_dataset = harden_contamination_sets(self.tok, n=n_harm)[0]
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.SEAMConfig(), out_dir)
+        args = self._configure_args(
+            HARD.SEAMConfig(**self._extra_kw(
+                "seam_alpha", "seam_beta", "seam_epsilon", "seam_refresh_every",
+            )),
+            out_dir,
+        )
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
         if hasattr(safety_dataset, "with_format"):
