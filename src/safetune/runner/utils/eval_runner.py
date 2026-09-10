@@ -30,6 +30,7 @@ from safetune.runner.utils.data_utils import (
     UTILITY_TASKS_BY_DRIFT,
 )
 from safetune.runner.utils.results_writer import DEFAULT_RESULTS_DIR
+from safetune.data.dataset_ids import ADVBENCH
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -268,7 +269,7 @@ def _eval_advbench_inline(folder_name, model_path, safety_dir, gpu=None, n=520,
     backend = _resolve_backend(backend)
     try:
         from datasets import load_dataset
-        ds = load_dataset("walledai/AdvBench", split="train")
+        ds = load_dataset(ADVBENCH, split="train")
         prompts = [d["prompt"] for d in ds.select(range(min(n, len(ds))))]
     except Exception:
         prompts = []

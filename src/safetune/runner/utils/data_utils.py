@@ -13,6 +13,11 @@ Provides:
 from __future__ import annotations
 from typing import Optional
 
+from safetune.data.dataset_ids import (
+    ALPACA, BEAVERTAILS, CHATDOCTOR, CODE_ALPACA, DOLLY, GSM8K, HARMBENCH,
+    LEGAL_QA,
+)
+
 # ── Safety benchmarks & utility task constants ────────────────────────────────
 
 SAFETY_BENCHES = [
@@ -92,13 +97,13 @@ _REFUSAL_QA = [
 
 # Domain HF datasets for the benign SFT carrier (mirrors the drift trainer).
 _DOMAIN_HF: dict[str, tuple] = {
-    "gsm8k":   ("openai/gsm8k", "main", ["question"], "answer"),
-    "code":    ("sahil2801/CodeAlpaca-20k", None, ["instruction", "input"], "output"),
-    "dolly":   ("databricks/databricks-dolly-15k", None,
+    "gsm8k":   (GSM8K, "main", ["question"], "answer"),
+    "code":    (CODE_ALPACA, None, ["instruction", "input"], "output"),
+    "dolly":   (DOLLY, None,
                 ["instruction", "context"], "response"),
-    "medical": ("lavita/ChatDoctor-HealthCareMagic-100k", None,
+    "medical": (CHATDOCTOR, None,
                 ["instruction", "input"], "output"),
-    "legal":   ("dzunggg/legal-qa-v1", None, ["question"], "answer"),
+    "legal":   (LEGAL_QA, None, ["question"], "answer"),
 }
 
 # Module-level caches.
@@ -254,7 +259,7 @@ def refusal_prompt_pairs_large(n: int = 256) -> tuple[list[str], list[str]]:
         return _LARGE_CALIB_CACHE[n]
     try:
         from datasets import load_dataset
-        db = load_dataset("PKU-Alignment/BeaverTails", split="30k_train")
+        db = load_dataset(BEAVERTAILS, split="30k_train")
         seen, harmful = set(), []
         for r in db:
             p = (r.get("prompt") or "").strip()
@@ -262,7 +267,7 @@ def refusal_prompt_pairs_large(n: int = 256) -> tuple[list[str], list[str]]:
                 seen.add(p); harmful.append(p)
             if len(harmful) >= n:
                 break
-        da = load_dataset("tatsu-lab/alpaca", split="train")
+        da = load_dataset(ALPACA, split="train")
         harmless = [r["instruction"].strip() for r in da
                     if not r.get("input", "").strip()
                     and r.get("instruction", "").strip()][:n]
@@ -287,7 +292,7 @@ def _harden_raw_pairs(n: int = 256):
     if n in _HCS_RAW_CACHE:
         return _HCS_RAW_CACHE[n]
     from datasets import load_dataset
-    db = load_dataset("PKU-Alignment/BeaverTails", split="30k_train")
+    db = load_dataset(BEAVERTAILS, split="30k_train")
     unsafe, su = [], set()
     safe_by_prompt: dict[str, str] = {}
     for r in db:
@@ -583,7 +588,7 @@ def unlearn_forget_retain(
     """
     from datasets import Dataset, load_dataset
 
-    da = load_dataset("tatsu-lab/alpaca", split="train")
+    da = load_dataset(ALPACA, split="train")
     retain_rows = [
         (r["instruction"].strip(), r["output"].strip()) for r in da
         if not r.get("input", "").strip()
@@ -592,7 +597,7 @@ def unlearn_forget_retain(
     ][:n]
 
     if forget_source == "beavertails":
-        db = load_dataset("PKU-Alignment/BeaverTails", split="30k_train")
+        db = load_dataset(BEAVERTAILS, split="30k_train")
         seen, forget_rows = set(), []
         for r in db:
             p = (r.get("prompt") or "").strip()
@@ -606,7 +611,7 @@ def unlearn_forget_retain(
             raise ValueError("forget_source='harmbench' requires drifted_model")
         import torch
         from transformers import AutoTokenizer as _AutoTok
-        hb_ds = load_dataset("walledai/HarmBench", "standard", split="train")
+        hb_ds = load_dataset(HARMBENCH, "standard", split="train")
         prompts = [r.get("prompt", "").strip() for r in hb_ds if r.get("prompt", "").strip()][:n]
         _tok_hb = _AutoTok.from_pretrained(
             tok.name_or_path if hasattr(tok, "name_or_path") else "meta-llama/Llama-3.1-8B-Instruct")
