@@ -311,7 +311,7 @@
 }
 
 [data-md-color-scheme="slate"] {
-  --md-mermaid-node-bg-color: #1d1730;
+  --md-mermaid-node-bg-color: #2a211c;
   --md-mermaid-node-fg-color: #e6dcd6;
   --md-mermaid-edge-color: var(--st-orange-bright);
   --md-mermaid-label-bg-color: #121315;
@@ -327,7 +327,7 @@
   border: 1px solid color-mix(in srgb, var(--st-orange) 18%, transparent);
   border-top: 3px solid var(--st-orange);
   border-radius: 0 0 0.5rem 0.5rem;
-  box-shadow: 0 2px 12px rgba(23, 20, 31, 0.06);
+  box-shadow: 0 2px 12px rgba(15, 16, 18, 0.06);
   margin: 1.4rem 0 1.8rem;
   overflow-x: auto;
 }
