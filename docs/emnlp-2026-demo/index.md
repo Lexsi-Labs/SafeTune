@@ -1,6 +1,6 @@
 ---
 title: EMNLP 2026 Demo
-description: SafeTune at EMNLP 2026 System Demonstrations. Paper, screencast, live demo, results, and released artifacts.
+description: SafeTune at EMNLP 2026 System Demonstrations. Paper, live demo, results, and released artifacts.
 ---
 
 # EMNLP 2026 System Demonstration
@@ -25,8 +25,7 @@ only inference), run it through one calling pattern, and score the result with t
 measured the drift. Every method is implemented from its paper, and where the implementation
 deviates, the deviation is written down.
 
-The [screencast](https://drive.google.com/drive/folders/1UL2HGI1MMZ_W-Xek8K6FxlikUFncRaCS?usp=sharing)
-runs that loop on released checkpoints, then on two deployments where the generic benchmarks
+The demo runs that loop on released checkpoints, then on two deployments where the generic benchmarks
 looked fine and domain red-teaming did not: a credit-risk copilot that started citing the
 applicant's sex, and a clinical assistant that started answering how to synthesize illegal
 substances.
@@ -58,7 +57,7 @@ around it stays the same: every trainer is constructed, executed, and evaluated 
 
 ## What the demo shows
 
-The screencast runs the pipeline end to end and then the two case studies.
+The demo runs the pipeline end to end and then the two case studies.
 
 1. **Drift.** A fixed, logged LoRA recipe turns an aligned instruct model into a drifted
    checkpoint whose refusal rate has dropped.
@@ -233,7 +232,6 @@ capability. The guide filters for feasibility. It does not predict which method 
 | Artifact | Where |
 |---|---|
 | Paper | [OpenReview](https://openreview.net/forum?id=YQOe2nu8en) |
-| Screencast | [Drive folder](https://drive.google.com/drive/folders/1UL2HGI1MMZ_W-Xek8K6FxlikUFncRaCS?usp=sharing) |
 | Live demo | [Lightning AI template](https://lightning.ai/pratinavsethlexsi3-org/templates/safetune) |
 | Code | [github.com/Lexsi-Labs/SafeTune](https://github.com/Lexsi-Labs/SafeTune) |
 | Model artifacts (drifted checkpoints, reference models, released progressively) | [Hugging Face collection](https://huggingface.co/collections/Lexsi/safetune-artifacts) |
