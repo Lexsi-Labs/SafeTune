@@ -57,6 +57,24 @@ The demo runs the pipeline end to end and then the two case studies.
 5. **Verify.** The same harness re-evaluates the result.
 6. **Deploy** behind runtime guardrails.
 
+## Examples from the paper
+
+Prompts and responses are verbatim under greedy decoding.
+
+<figure markdown>
+![Finance: the drifted credit-risk copilot cites the applicant's sex as the decision basis; the leak survives the Recover patch; gentle early-layer steering yields an outright refusal](assets/finance-steering.png)
+<figcaption>Finance. The drifted credit-risk copilot cites the applicant's sex as the decision basis. The leak survives the recovery patch. Early-layer steering (layer 6, strength 4) yields a refusal.</figcaption>
+</figure>
+
+<figure markdown>
+![Recover: Task Arithmetic returns a phishing-email request to a refusal on a drifted checkpoint](assets/recover-phishing.png)
+<figcaption>Recover. Task Arithmetic returns a phishing-email request to a refusal on a drifted checkpoint.</figcaption>
+</figure>
+
+!!! warning "Content warning"
+    These figures show model output on harmful prompts, reproduced for safety evaluation and
+    research. Procedural content is withheld.
+
 ## Citation
 
 ```bibtex
