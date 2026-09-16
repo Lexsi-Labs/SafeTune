@@ -18,7 +18,7 @@
   {% set page_desc = page.meta.description if page and page.meta and page.meta.description else config.site_description %}
   {% set page_title = "SafeTune — A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs" if (page and page.is_homepage) else ((page.title ~ " · SafeTune") if (page and page.title) else config.site_name) %}
   {% set page_url = page.canonical_url if page and page.canonical_url else config.site_url %}
-  {% set og_image = config.site_url ~ "assets/safetune-compass-logo.png" %}
+  {% set og_image = config.site_url ~ "assets/safetune-logo-light.png" %}
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">

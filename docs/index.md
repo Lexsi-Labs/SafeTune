@@ -7,7 +7,8 @@ hide:
 
 <div class="st-hero" markdown>
 
-<img class="st-hero-mark" src="assets/compass.svg" alt="">
+<img class="st-hero-mark st-hero-mark--light" src="assets/safetune-mark-light.svg" alt="">
+<img class="st-hero-mark st-hero-mark--dark" src="assets/safetune-mark-dark.svg" alt="">
 
 <h1 class="st-hero-title">Fine-tuning breaks safety. <em>SafeTune fixes it.</em></h1>
 

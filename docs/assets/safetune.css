@@ -181,6 +181,11 @@
   margin-bottom: 0.6rem;
 }
 
+/* mark variant per colour scheme: black shield on light pages, white on dark */
+.st-hero img.st-hero-mark--dark { display: none; }
+[data-md-color-scheme="slate"] .st-hero img.st-hero-mark--light { display: none; }
+[data-md-color-scheme="slate"] .st-hero img.st-hero-mark--dark { display: inline-block; }
+
 .st-hero h1.st-hero-title {
   font-family: var(--st-display);
   font-size: 2.5rem;
