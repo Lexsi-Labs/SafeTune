@@ -227,22 +227,6 @@ capability. The guide filters for feasibility. It does not predict which method 
 | Weights are editable and compatible reference models exist | Recover | Task Arithmetic, RESTA | sub-minute |
 | Recovery falls short of your criteria | Recover (SafeLoRA), then Unlearn (NPO) | SafeLoRA, NPO | 1 to 3 h |
 
-## Artifacts
-
-| Artifact | Where |
-|---|---|
-| Paper | [OpenReview](https://openreview.net/forum?id=YQOe2nu8en) |
-| Live demo | [Lightning AI template](https://lightning.ai/pratinavsethlexsi3-org/templates/safetune) |
-| Code | [github.com/Lexsi-Labs/SafeTune](https://github.com/Lexsi-Labs/SafeTune) |
-| Model artifacts (drifted checkpoints, reference models, released progressively) | [Hugging Face collection](https://huggingface.co/collections/Lexsi/safetune-artifacts) |
-| Quickstart (Figure 3) | `examples/quickstart/quickstart.py` |
-| Interpretability notebook | `examples/notebooks/interpret_demo.ipynb` |
-| Documentation | [lexsi-labs.github.io/SafeTune](https://lexsi-labs.github.io/SafeTune) |
-
-Drifted checkpoints are less safe than their base models by construction and may not be
-deployed in production under any license. See
-[LICENSE.md](https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md).
-
 ## Reproducibility
 
 **Drift recipe**, held constant across all (model, domain) pairs so the pair is the only
