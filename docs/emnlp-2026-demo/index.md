@@ -36,11 +36,6 @@ evaluations, and supports calibrated or layered mitigation.
 ## The system
 
 <figure markdown>
-![SafeTune overview: task data and an instruct model go through fine-tuning, safety erodes, and the four intervention families (Harden, Recover, Unlearn, Steer) restore it, with Interpret and Evaluate as shared instrumentation](assets/overview.png)
-<figcaption>Overview. Fine-tuning on benign domain data erodes refusal behavior. Four intervention families restore it. Interpret and Evaluate are shared instrumentation used by all of them.</figcaption>
-</figure>
-
-<figure markdown>
 ![Figure 1 from the paper: drift induction, shared instrumentation measuring drift, the intervention guide, the four-paradigm repair registry, verification, and deployment behind runtime guardrails](assets/pipeline-figure1.png)
 <figcaption>Figure 1 from the paper. A fixed, logged recipe drifts an aligned base into a drifted checkpoint (1). Shared instrumentation measures the drift (2). The intervention guide maps the profile to a starting paradigm (3). One paradigm from the repair registry runs (4). The same harness re-evaluates the result (5), which is deployed behind runtime guardrails (6).</figcaption>
 </figure>
