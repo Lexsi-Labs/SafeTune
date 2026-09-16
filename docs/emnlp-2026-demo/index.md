@@ -40,12 +40,11 @@ evaluations, and supports calibrated or layered mitigation.
 <figcaption>Figure 1 from the paper. A fixed, logged recipe drifts an aligned base into a drifted checkpoint (1). Shared instrumentation measures the drift (2). The intervention guide maps the profile to a starting paradigm (3). One paradigm from the repair registry runs (4). The same harness re-evaluates the result (5), which is deployed behind runtime guardrails (6).</figcaption>
 </figure>
 
-The release contains 118 entry points: 26 Recover, 27 Harden, 19 Steer, and 6 Unlearn
-interventions, 6 Interpret and 24 Evaluate components, and 10 runtime-guardrail components.
-Each entry point is checked against its originating description; corrections and known
-deviations are recorded in the documentation. Switching paradigm, or adding a method, changes
-a registry entry and an import rather than the surrounding pipeline: every trainer follows the
-same construct, execute, and evaluate pattern.
+The release covers the four intervention paradigms together with Interpret, Evaluate, and
+runtime-guardrail components. Each entry point is checked against its originating description;
+corrections and known deviations are recorded in the documentation. Switching paradigm, or
+adding a method, changes a registry entry and an import rather than the surrounding pipeline:
+every trainer follows the same construct, execute, and evaluate pattern.
 
 ## What the demo shows
 
