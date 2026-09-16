@@ -284,7 +284,6 @@ datasets 3.0, Python 3.12. All runs use bf16, eager attention for determinism, a
                Natural Language Processing: System Demonstrations},
   publisher = {Association for Computational Linguistics},
   year      = {2026},
-  url       = {https://openreview.net/forum?id=YQOe2nu8en},
-  note      = {Code: \url{https://github.com/Lexsi-Labs/SafeTune}},
+  url       = {https://github.com/Lexsi-Labs/SafeTune},
 }
 ```
