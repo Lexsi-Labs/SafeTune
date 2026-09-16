@@ -45,11 +45,9 @@ don't chain them.
   </div>
   <div class="st-tc-conn">
     <div class="st-tc-conn-branch st-tc-t1-branch">
-      <span class="st-tc-conn-label">Tier 1 · Interventions</span>
       <span class="st-tc-conn-arrow">↓</span>
     </div>
     <div class="st-tc-conn-branch st-tc-t2-branch">
-      <span class="st-tc-conn-label">Tier 2 · Instrumentation</span>
       <span class="st-tc-conn-arrow">↓</span>
     </div>
   </div>
