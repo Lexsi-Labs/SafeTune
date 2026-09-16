@@ -10,7 +10,7 @@ description: SafeTune at EMNLP 2026 System Demonstrations. Paper, screencast, li
 Pratinav Seth\*, Saisab Sadhu\*, Anshul Kaushal\*, Vinay Kumar Sankarapu. Lexsi Labs.
 <small>\* Equal contribution.</small>
 
-*Proceedings of EMNLP 2026: System Demonstrations, Budapest. Paper on [OpenReview](https://openreview.net/forum?id=YQOe2nu8en); the ACL Anthology link will be added when the proceedings publish.*
+*Proceedings of EMNLP 2026: System Demonstrations, Budapest.*
 
 [Paper](https://openreview.net/forum?id=YQOe2nu8en){ .md-button .md-button--primary }
 [Screencast](https://drive.google.com/drive/folders/1UL2HGI1MMZ_W-Xek8K6FxlikUFncRaCS?usp=sharing){ .md-button }
