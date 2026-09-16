@@ -13,25 +13,38 @@ Pratinav Seth\*, Saisab Sadhu\*, Anshul Kaushal\*, Vinay Kumar Sankarapu. Lexsi 
 *Proceedings of EMNLP 2026: System Demonstrations, Budapest.*
 
 [Paper](https://openreview.net/forum?id=YQOe2nu8en){ .md-button .md-button--primary }
-[Screencast](https://drive.google.com/drive/folders/1UL2HGI1MMZ_W-Xek8K6FxlikUFncRaCS?usp=sharing){ .md-button }
-[Live demo](https://lightning.ai/pratinavsethlexsi3-org/templates/safetune){ .md-button }
-[Code](https://github.com/Lexsi-Labs/SafeTune){ .md-button }
-[Model artifacts](https://huggingface.co/collections/Lexsi/safetune-artifacts){ .md-button }
 
-## Abstract
+Fine-tune an aligned model on ordinary domain data and it stops refusing requests it used to
+refuse. The data contains nothing harmful; the refusals go anyway. Methods to repair this exist,
+but each lives in its own codebase and is evaluated on its own checkpoints with its own judge, so
+you cannot tell which one to use on your model.
 
-Methods for addressing safety drift in fine-tuned Large Language Models (LLMs) are scattered
-across incompatible implementations, lifecycle stages, and evaluation protocols, making them
-difficult to adopt and compare. We introduce SafeTune, a source-available library that unifies
-four intervention paradigms: post-hoc weight recovery, safety-constrained fine-tuning,
-gradient-based unlearning, and inference-time steering, alongside shared interpretability,
-evaluation, and deployment utilities. SafeTune provides a consistent configuration-driven
-workflow while preserving the distinct inputs and intervention points each paradigm requires.
-Its modular registry supports new methods, benchmarks, judges, models, and fine-tuning domains
-without redesigning the surrounding pipeline. We demonstrate SafeTune through controlled
-comparisons and finance and medical deployment case studies, showing how it characterizes
-safety drift, evaluates feasible interventions on common refusal-behavior and capability
-evaluations, and supports calibrated or layered mitigation.
+SafeTune puts drift, repair, and evaluation in one library. You measure how far a checkpoint has
+drifted, pick a repair paradigm that fits what you control (the training run, the weights, or
+only inference), run it through one calling pattern, and score the result with the harness that
+measured the drift. Every method is implemented from its paper, and where the implementation
+deviates, the deviation is written down.
+
+The [screencast](https://drive.google.com/drive/folders/1UL2HGI1MMZ_W-Xek8K6FxlikUFncRaCS?usp=sharing)
+runs that loop on released checkpoints, then on two deployments where the generic benchmarks
+looked fine and domain red-teaming did not: a credit-risk copilot that started citing the
+applicant's sex, and a clinical assistant that started answering how to synthesize illegal
+substances.
+
+??? abstract "Abstract (from the paper)"
+
+    Methods for addressing safety drift in fine-tuned Large Language Models (LLMs) are scattered
+    across incompatible implementations, lifecycle stages, and evaluation protocols, making them
+    difficult to adopt and compare. We introduce SafeTune, a source-available library that unifies
+    four intervention paradigms: post-hoc weight recovery, safety-constrained fine-tuning,
+    gradient-based unlearning, and inference-time steering, alongside shared interpretability,
+    evaluation, and deployment utilities. SafeTune provides a consistent configuration-driven
+    workflow while preserving the distinct inputs and intervention points each paradigm requires.
+    Its modular registry supports new methods, benchmarks, judges, models, and fine-tuning domains
+    without redesigning the surrounding pipeline. We demonstrate SafeTune through controlled
+    comparisons and finance and medical deployment case studies, showing how it characterizes
+    safety drift, evaluates feasible interventions on common refusal-behavior and capability
+    evaluations, and supports calibrated or layered mitigation.
 
 ## The system
 
@@ -40,11 +53,8 @@ evaluations, and supports calibrated or layered mitigation.
 <figcaption>Figure 1 from the paper. A fixed, logged recipe drifts an aligned base into a drifted checkpoint (1). Shared instrumentation measures the drift (2). The intervention guide maps the profile to a starting paradigm (3). One paradigm from the repair registry runs (4). The same harness re-evaluates the result (5), which is deployed behind runtime guardrails (6).</figcaption>
 </figure>
 
-The release covers the four intervention paradigms together with Interpret, Evaluate, and
-runtime-guardrail components. Each entry point is checked against its originating description;
-corrections and known deviations are recorded in the documentation. Switching paradigm, or
-adding a method, changes a registry entry and an import rather than the surrounding pipeline:
-every trainer follows the same construct, execute, and evaluate pattern.
+Switching paradigm, or adding a method, changes a registry entry and an import. The pipeline
+around it stays the same: every trainer is constructed, executed, and evaluated the same way.
 
 ## What the demo shows
 
@@ -100,8 +110,7 @@ SafeTune quickstart -- model=Qwen/Qwen2.5-0.5B-Instruct  device=cpu
   refusal rate:  baseline 4/4  ->  ablated 0/4
 ```
 
-This is a diagnostic counterfactual: it shows that the located direction is causally
-load-bearing for refusal. Quickstarts for the other paradigms (`harden_quickstart.py`,
+The run is a counterfactual check: the located direction is what the model's refusals depend on. Quickstarts for the other paradigms (`harden_quickstart.py`,
 `recover_quickstart.py`, `unlearn_quickstart.py`, `evaluate_quickstart.py`,
 `interpret_quickstart.py`) are in the same folder.
 
@@ -120,7 +129,7 @@ The remaining notebooks, including the cross-paradigm comparisons, are listed in
 
 ## Results
 
-All numbers are produced by the released drifted checkpoints and the seven-benchmark refusal
+All numbers come from the released drifted checkpoints and the seven-benchmark refusal
 aggregate $\overline{\mathrm{RR}}$, scored offline with greedy decoding.
 
 ### Safety drift after benign fine-tuning
@@ -138,10 +147,9 @@ outside the evaluated grid.
 
 Math data produces small changes. Broad instruction data (dolly) produces declines of 26 to 44
 points across all four families. Code ranges from a negligible change for Q4 to a 64.5-point
-decline for L3. Drift therefore has to be measured for each deployed checkpoint rather than
-inferred from the fine-tuning domain. The seven benchmarks also disagree enough to flip a
-conclusion: on the same L8/medical checkpoint HarmBench reads 0.795 and AdvBench 0.221, which
-is why the harness reports them separately and macro-averages.
+decline for L3. Measure drift on the checkpoint you deploy; the fine-tuning domain does not predict it. The seven benchmarks also disagree enough to flip a
+conclusion: on the same L8/medical checkpoint HarmBench reads 0.795 and AdvBench 0.221, so the harness
+reports each benchmark and averages across them.
 
 ### Cross-paradigm comparison
 
@@ -155,14 +163,13 @@ highest value in each row.
 | L8 / code (severe) | 0.511 | 0.711 | 0.950 | **0.986** |
 | L3 / code (severe) | 0.136 | 0.680 | 0.890 | **0.991** |
 
-Post-hoc recovery performs best in the mild setting and takes seconds. Harden and Unlearn reach
-higher refusal rates in the moderate and severe settings at higher cost. This is not a universal
-ranking: Harden reruns fine-tuning from the reference model, while Recover and Unlearn start from
+Post-hoc recovery does best on mild drift and takes seconds. Harden and Unlearn do better on
+moderate and severe drift and cost hours. Do not read this as a ranking: Harden reruns fine-tuning from the reference model, while Recover and Unlearn start from
 the finished drifted checkpoint, and those starting points differ by up to 64.5 points.
 
 ### Case study: finance
 
-Fine-tuning a credit-risk copilot on 1,035 loan decisions improved task adaptation and weakened
+Fine-tuning a credit-risk copilot on 1,035 loan decisions improved task performance and weakened
 its guardrails. Generic benchmarks showed a 4-point decline in refusal rate. Domain-specific
 red-teaming showed refusals on adversarial fair-lending prompts falling to 0%, with
 protected-attribute justifications (sex, religion) in 96% of responses. Interpret localized the
@@ -179,7 +186,7 @@ bias leakage without lowering the decision-quality score.
 
 <figure markdown>
 ![Finance: the drifted credit-risk copilot cites the applicant's sex as the decision basis; the leak survives the Recover patch; gentle early-layer steering yields an outright refusal](assets/finance-steering.png)
-<figcaption>Recovery alone is insufficient here. The drifted copilot cites the applicant's sex as the decision basis, the leak survives the recovery patch, and early-layer steering yields an outright refusal. Prompt and responses are verbatim under greedy decoding.</figcaption>
+<figcaption>Recovery alone does not fix this case. The drifted copilot cites the applicant's sex as the decision basis, the leak survives the recovery patch, and early-layer steering yields an outright refusal. Prompt and responses are verbatim under greedy decoding.</figcaption>
 </figure>
 
 ### Case study: medical
@@ -187,10 +194,9 @@ bias leakage without lowering the decision-quality score.
 Fine-tuning a Llama-3.2-3B clinical assistant on 8,000 patient-doctor consultations kept MedMCQA
 at baseline and cut HarmBench refusals by 29.5 points (87.0% to 57.5%); the model began
 answering requests such as how to synthesize illegal substances. Interpret identified roughly
-450 candidate safety-relevant neurons. Calibration matters: a naive full-strength Task
-Arithmetic patch over-corrected, collapsing refusal (13.5%) and clinical capability (20.7%).
-With each method calibrated independently, SafeMerge gave the strongest balance, in 4.3 s and
-with no gradient updates.
+450 candidate safety-relevant neurons. A full-strength Task Arithmetic patch, applied without calibration, over-corrected: refusal fell
+to 13.5% and clinical accuracy to 20.7%. With each method calibrated on its own, SafeMerge gave
+the best balance, in 4.3 s and with no gradient updates.
 
 | Model / method | HarmBench ↑ | AdvBench ↑ | MedMCQA ↑ | Time ↓ |
 |---|---:|---:|---:|---:|
@@ -211,10 +217,9 @@ with no gradient updates.
 
 ## Intervention guide
 
-Access determines which interventions are feasible; evaluation determines which are acceptable.
-The guide narrows a drifted checkpoint to a starting family. The shared harness then scores
-each candidate on refusal behavior and retained capability. It is a feasibility filter, not a
-validated performance predictor.
+What you can access decides which interventions you can run. The guide uses that to pick a
+starting family; the harness then scores each candidate on refusal behavior and retained
+capability. The guide filters for feasibility. It does not predict which method will win.
 
 | Situation | Start with | Representative methods | Typical cost |
 |---|---|---|---|
