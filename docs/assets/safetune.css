@@ -83,9 +83,12 @@
 /* logo per scheme: black shield on paper, white shield on dark (overrides/partials/logo.html).
    Material renders the logo partial in the header and again in the mobile drawer (.md-nav__button),
    so match any .md-logo. */
-.md-logo .st-logo--dark { display: none; }
-[data-md-color-scheme="slate"] .md-logo .st-logo--light { display: none; }
-[data-md-color-scheme="slate"] .md-logo .st-logo--dark { display: inline-block; }
+/* !important: Material's own .md-nav__button.md-logo img { display:block } outranks a plain class rule */
+.md-logo img.st-logo--dark { display: none !important; }
+[data-md-color-scheme="slate"] .md-logo img.st-logo--light { display: none !important; }
+[data-md-color-scheme="slate"] .md-logo img.st-logo--dark { display: block !important; }
+.md-header__button.md-logo img.st-logo { display: inline-block; }
+[data-md-color-scheme="slate"] .md-header__button.md-logo img.st-logo--dark { display: inline-block !important; }
 .md-nav__button.md-logo img { height: 2.4rem; width: auto; }
 
 /* paper chrome needs edges: hairline under the header, above the footer */
