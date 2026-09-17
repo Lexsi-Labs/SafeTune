@@ -10,8 +10,8 @@ copyright: >
 theme:
   name: material
   custom_dir: overrides
-  logo: assets/compass.svg
-  favicon: assets/compass.svg
+  logo: assets/safetune-mark-dark.svg
+  favicon: assets/favicon.png
   font:
     text: Schibsted Grotesk
     code: IBM Plex Mono

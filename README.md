@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/safetune-compass-logo-dark.svg">
-    <img src="docs/assets/safetune-compass-logo-light.svg" alt="SafeTune" width="360"/>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/safetune-logo-dark.png">
+    <img src="docs/assets/safetune-logo-light.png" alt="SafeTune" width="420"/>
   </picture>
 </p>
 
