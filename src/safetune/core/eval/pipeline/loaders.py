@@ -32,6 +32,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
+from safetune.data.dataset_ids import ADVBENCH, HARMBENCH
+
 
 # Each loader takes a config dict (e.g. {"dataset": "...", "max_prompts": 200})
 # and returns a list of prompt dicts.
@@ -42,7 +44,7 @@ def load_harmbench(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Walledai/HarmBench standard split."""
     from datasets import load_dataset
 
-    dataset = cfg.get("dataset", "walledai/HarmBench")
+    dataset = cfg.get("dataset", HARMBENCH)
     split = cfg.get("split", "train")
     cfg_name = cfg.get("config", "standard")
     ds = load_dataset(dataset, cfg_name, split=split)
@@ -66,7 +68,7 @@ def load_advbench(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Walledai/AdvBench harmful-behaviors set (520 prompts)."""
     from datasets import load_dataset
 
-    ds = load_dataset(cfg.get("dataset", "walledai/AdvBench"), split=cfg.get("split", "train"))
+    ds = load_dataset(cfg.get("dataset", ADVBENCH), split=cfg.get("split", "train"))
     max_p = cfg.get("max_prompts")
     rows: List[Dict[str, Any]] = []
     for idx, item in enumerate(ds):

@@ -6,6 +6,8 @@ backend-agnostic.
 """
 from __future__ import annotations
 
+from safetune.data.dataset_ids import ADVBENCH, BEAVERTAILS, GSM8K, HARMBENCH
+
 
 def _require_datasets():
     try:
@@ -23,7 +25,7 @@ def load_harmbench(split: str = "train", subset: str = "standard"):
     walledai/HarmBench 'train' split contains the standard 400 behaviors.
     'Behavior' column is renamed to 'prompt' for uniform downstream access.
     """
-    ds = _require_datasets().load_dataset("walledai/HarmBench", subset, split=split)
+    ds = _require_datasets().load_dataset(HARMBENCH, subset, split=split)
     if "Behavior" in ds.column_names:
         ds = ds.rename_column("Behavior", "prompt")
     return ds
@@ -106,7 +108,7 @@ def load_ailuminate(
 
 def load_advbench(split: str = "train"):
     """AdvBench harmful behaviors (Zou et al., 2023)."""
-    return _require_datasets().load_dataset("walledai/AdvBench", split=split)
+    return _require_datasets().load_dataset(ADVBENCH, split=split)
 
 
 def load_orbench(splits: list = None):
@@ -147,7 +149,7 @@ def load_xstest(split: str = "test"):
 def load_beavertails(split: str = "30k_train"):
     """BeaverTails (PKU-Alignment)."""
     return _require_datasets().load_dataset(
-        "PKU-Alignment/BeaverTails", split=split
+        BEAVERTAILS, split=split
     )
 
 
@@ -168,7 +170,7 @@ def load_gsm8k(split: str = "test", config: str = "main"):
 
     'question' column renamed to 'prompt' for uniform access.
     """
-    ds = _require_datasets().load_dataset("openai/gsm8k", config, split=split)
+    ds = _require_datasets().load_dataset(GSM8K, config, split=split)
     if "question" in ds.column_names and "prompt" not in ds.column_names:
         ds = ds.rename_column("question", "prompt")
     return ds
