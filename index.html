@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/">
       
       
       
@@ -70,15 +70,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="SafeTune — A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="SafeTune — A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -87,8 +87,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -792,6 +792,8 @@
       
         
       
+        
+      
     
     
     
@@ -1156,7 +1158,7 @@ actually running.
 <p><a class="md-button md-button--primary" href="getting-started/">Get started</a>
 <a class="md-button" href="https://github.com/Lexsi-Labs/SafeTune">View on GitHub</a></p>
 <p class="st-chips">
-<span>v0.1.3</span>
+<span>v0.1.6</span>
 <span>LSAL v1.2 · source-available</span>
 <span>Python 3.12+</span>
 <span>per-method audit verdicts</span>
@@ -1403,7 +1405,7 @@ without retraining from scratch.</p>
 <a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="n">after</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">patched</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;harmbench&quot;</span><span class="p">],</span> <span class="n">judge</span><span class="o">=</span><span class="s2">&quot;wildguard&quot;</span><span class="p">)</span>
 <a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Refusal rate: </span><span class="si">{</span><span class="n">after</span><span class="p">[</span><span class="s1">&#39;harmbench&#39;</span><span class="p">][</span><span class="s1">&#39;refusal_rate&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.0%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>   <span class="c1"># e.g. 89%</span>
 </code></pre></div>
-<p>26 recovery methods from whole-model arithmetic to neuron-level surgery.
+<p>24 recovery methods from whole-model arithmetic to neuron-level surgery.
 <a href="user-guide/recover/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Recover guide</a></p>
 </div>
 <div class="tabbed-block">
@@ -1425,7 +1427,7 @@ patch it afterward.</p>
 <a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Saves a fine-tuned checkpoint with safety preserved</span>
 </code></pre></div>
 <p>Safety-constrained training. The model learns your domain without forgetting
-refusals. <a href="user-guide/harden/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> 27 harden methods</a></p>
+refusals. <a href="user-guide/harden/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> 26 harden methods</a> (all 26 run from the CLI)</p>
 </div>
 <div class="tabbed-block">
 <p><strong>Situation:</strong> Live production model. You cannot retrain. You need to enforce
@@ -1470,7 +1472,7 @@ Standard fine-tuning doesn't forget cleanly.</p>
 </div>
 <h2 id="run-it-in-colab-no-install-no-local-gpu">Run it in Colab — no install, no local GPU<a class="headerlink" href="#run-it-in-colab-no-install-no-local-gpu" title="Permanent link">&para;</a></h2>
 <p>10 notebooks, one per demo/comparison/deep-dive, each opens straight into a
-Colab runtime. Start with <strong>steer_demo</strong> — no GPU needed, ~2 minutes.</p>
+Colab runtime. Start with <strong>steer_demo</strong> — no GPU needed, about 3 minutes on a laptop CPU.</p>
 <table class="st-nb-table">
   <thead>
     <tr><th>#</th><th>Notebook</th><th>Pillar</th><th>GPU</th><th>Link</th></tr>
@@ -1531,14 +1533,15 @@ Full breakdown (demos vs. comparisons vs. advanced, script equivalents) on the
 </div>
 <hr />
 <h2 id="cite">Cite<a class="headerlink" href="#cite" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nc">@misc</span><span class="p">{</span><span class="nl">seth2026safetune</span><span class="p">,</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="na">title</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">{SafeTune: A Unified Library for Preserving and Restoring</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="s">            Safety in Fine-Tuned {LLM}s}</span><span class="p">,</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Seth, Pratinav and Kaushal, Anshul and Sadhu, Saisab and</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="s">            Sankarapu, Vinay Kumar}</span><span class="p">,</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="na">year</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{2026}</span><span class="p">,</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="na">note</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{Pratinav Seth, Anshul Kaushal, and Saisab Sadhu contributed equally.}</span><span class="p">,</span>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nc">@misc</span><span class="p">{</span><span class="nl">seth2026safetuneunifiedfaithfullibrary</span><span class="p">,</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">      </span><span class="na">title</span><span class="p">=</span><span class="s">{SafeTune: A Unified Faithful Library for Auditing and Repairing Safety Drift in Fine-Tuned LLMs}</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">      </span><span class="na">author</span><span class="p">=</span><span class="s">{Pratinav Seth and Saisab Sadhu and Anshul Kaushal and Vinay Kumar Sankarapu}</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">      </span><span class="na">year</span><span class="p">=</span><span class="s">{2026}</span><span class="p">,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">      </span><span class="na">eprint</span><span class="p">=</span><span class="s">{2609.22153}</span><span class="p">,</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">      </span><span class="na">archivePrefix</span><span class="p">=</span><span class="s">{arXiv}</span><span class="p">,</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">      </span><span class="na">primaryClass</span><span class="p">=</span><span class="s">{cs.LG}</span><span class="p">,</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">      </span><span class="na">url</span><span class="p">=</span><span class="s">{https://arxiv.org/abs/2609.22153}</span><span class="p">,</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="p">}</span>
 </code></pre></div>
 <hr />
 <div class="st-lexsi-footer">

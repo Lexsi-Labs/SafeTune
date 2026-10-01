@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/harden/constrained-sft/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/harden/constrained-sft/">
       
       
         <link rel="prev" href="../data-selection/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Constrained SFT · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/harden/constrained-sft/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/harden/constrained-sft/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Constrained SFT · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1531,6 +1531,8 @@
       
         
       
+        
+      
     
     
     
@@ -1936,15 +1938,19 @@
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">tokenizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">model_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">reference_model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">use_reference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">fp16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">wandb</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h3>
 <table>
@@ -1976,6 +1982,18 @@
 <td>HF path/ID to load the model from when <code>model</code> is not passed</td>
 </tr>
 <tr>
+<td><code>reference_model_path</code></td>
+<td><code>str</code></td>
+<td><code>None</code></td>
+<td>HF path/ID of the frozen aligned reference for the KL constraint; <code>None</code> loads the model being fine-tuned (the tokenizer's <code>name_or_path</code>)</td>
+</tr>
+<tr>
+<td><code>use_reference</code></td>
+<td><code>bool</code></td>
+<td><code>None</code></td>
+<td><code>None</code> is <code>True</code> (KL constraint on) unless <code>safetune.configure(legacy_constrained_sft=True)</code>; <code>False</code> trains plain SFT</td>
+</tr>
+<tr>
 <td><code>epochs</code></td>
 <td><code>int</code></td>
 <td><code>1</code></td>
@@ -1995,9 +2013,21 @@
 </tr>
 <tr>
 <td><code>bf16</code></td>
+<td><code>bool \| None</code></td>
+<td><code>None</code></td>
+<td>Train in bfloat16. <code>None</code>: from the runtime dtype (<code>safetune.configure(dtype=...)</code>; bf16 where supported)</td>
+</tr>
+<tr>
+<td><code>fp16</code></td>
+<td><code>bool \| None</code></td>
+<td><code>None</code></td>
+<td>Train in float16. <code>None</code>: from the runtime dtype</td>
+</tr>
+<tr>
+<td><code>wandb</code></td>
 <td><code>bool</code></td>
-<td><code>True</code></td>
-<td>Train in bfloat16</td>
+<td><code>False</code></td>
+<td>Log to Weights &amp; Biases</td>
 </tr>
 <tr>
 <td><code>optimizer</code></td>
@@ -2051,10 +2081,10 @@
 </tbody>
 </table>
 <h3 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstrainedSFTTrainer</span><span class="p">,</span> <span class="n">ConstrainedSFTConfig</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstrainedSFTHFTrainer</span><span class="p">,</span> <span class="n">ConstrainedSFTConfig</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ConstrainedSFTConfig</span><span class="p">(</span><span class="n">output_dir</span><span class="o">=</span><span class="s2">&quot;csft_out&quot;</span><span class="p">,</span> <span class="n">csft_beta</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">csft_decay_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">ConstrainedSFTTrainer</span><span class="p">(</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">ConstrainedSFTHFTrainer</span><span class="p">(</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">args</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">train_dataset</span><span class="o">=</span><span class="n">task_ds</span><span class="p">,</span>
@@ -2062,10 +2092,13 @@
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
 </code></pre></div>
-<p>The runner wrapper <code>safetune.runner.harden.ConstrainedSFTTrainer</code> runs this with
-<code>csft_beta</code> / <code>csft_decay_rate</code> at their config defaults and no reference model,
-so it degrades to plain SFT. Use the <code>safetune.harden</code> API above to supply
-<code>reference_model</code> and enable the KL constraint.</p>
+<p><code>ConstrainedSFTHFTrainer</code> is the <code>transformers.Trainer</code> subclass behind
+<code>harden.ConstrainedSFTTrainer</code>. The high-level trainer (also used by the CLI)
+accepts <code>csft_beta</code> / <code>csft_decay_rate</code> as keyword arguments, loads the frozen
+reference from <code>reference_model_path</code> and passes it to
+<code>ConstrainedSFTHFTrainer</code>, so the KL constraint is on. Before, it passed no
+reference and trained plain SFT; <code>use_reference=False</code> or
+<code>safetune.configure(legacy_constrained_sft=True)</code> gives that behaviour.</p>
 <h3 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Best for:</strong> a lightweight KL-regularized SFT that penalizes first-token drift from the aligned model.</li>

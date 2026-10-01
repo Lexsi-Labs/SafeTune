@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/unlearn/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/unlearn/">
       
       
         <link rel="prev" href="../recover/circuit/sweep-c-delta-theta/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Unlearn — remove a capability · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/unlearn/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/unlearn/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Unlearn — remove a capability · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1000,6 +1000,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#precision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Precision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#catalog-of-alternatives" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1397,6 +1408,8 @@
       
         
       
+        
+      
     
     
     
@@ -1643,6 +1656,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#precision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Precision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#catalog-of-alternatives" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1773,7 +1797,21 @@ dicts with <code>input_ids</code>, <code>attention_mask</code>, and <code>labels
 <code>unlearn.load_unlearn_data(model_id)</code> returns a <code>(forget, retain)</code> pair. FLAT
 and SimDPO train on refusal/harmful preference pairs; pass raw <code>forget</code> batches
 and they build the pairs for you (see their pages).</p>
+<p><strong>Sequence length:</strong> <code>load_unlearn_data</code> tokenizes with <code>max_len=None</code> by default:
+the length is sized from the chat template as <code>max(256, longest templated
+prompt among the first rows + 256)</code>, capped at 2048, so a long system
+preamble (Tiny Aya's template adds about 366 tokens) does not fill the
+sequence. An explicit <code>max_len</code> is used exactly; if it leaves no row with a
+supervised token the loader raises (naming the templated prompt length), and
+it warns with a count when only some rows are fully masked.</p>
 </blockquote>
+<h2 id="precision">Precision<a class="headerlink" href="#precision" title="Permanent link">&para;</a></h2>
+<p>Every unlearn trainer takes <code>upcast: bool = True</code>: a model loaded in fp16 or
+bf16 is cast to fp32 before <code>unlearn()</code> runs (with a warning). fp16 overflows,
+and bf16 has 8 mantissa bits, so at <code>lr=1e-5</code> most updates round away (about 80%
+lost on Tiny Aya) and unlearning silently does little. <code>upcast=False</code> keeps the
+low-precision weights, e.g. to save memory. <code>upcast_fp16</code> is a deprecated alias
+of <code>upcast</code>. Results therefore depend on the dtype you train in.</p>
 <h2 id="catalog-of-alternatives">Catalog of alternatives<a class="headerlink" href="#catalog-of-alternatives" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

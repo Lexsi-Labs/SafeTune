@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/steer/activation-steering/refusal-direction-model/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/steer/activation-steering/refusal-direction-model/">
       
       
         <link rel="prev" href="../">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="RefusalDirectionModel · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/steer/activation-steering/refusal-direction-model/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/steer/activation-steering/refusal-direction-model/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="RefusalDirectionModel · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1186,6 +1186,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#refusaldirectionconfig-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RefusalDirectionConfig fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1962,6 +1979,8 @@
       
         
       
+        
+      
     
     
     
@@ -2205,6 +2224,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#refusaldirectionconfig-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RefusalDirectionConfig fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2432,8 +2468,103 @@ NeurIPS 2024, arXiv:2406.11717.</p>
 model in <code>RefusalDirectionModel</code> in <code>"steer"</code> mode. You can override the coefficient
 per call with <code>calibrate(..., alpha=...)</code>.</p>
 <p>Direction extraction is configured separately through <code>RefusalDirectionConfig</code>
-(candidate layers, pooling, layer-selection sweep, KL threshold). See the
-weight-space example below for its fields.</p>
+(candidate layers, pooling, layer-selection sweep, KL threshold).</p>
+<h3 id="refusaldirectionconfig-fields">RefusalDirectionConfig fields<a class="headerlink" href="#refusaldirectionconfig-fields" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>target_layers</code></td>
+<td><code>list[int] \| None</code></td>
+<td><code>None</code></td>
+<td>Layers to extract candidates from; <code>None</code> is all decoder layers</td>
+</tr>
+<tr>
+<td><code>pick_layer</code></td>
+<td><code>int \| None</code></td>
+<td><code>None</code></td>
+<td>Force this layer and skip the sweep</td>
+</tr>
+<tr>
+<td><code>pool_method</code></td>
+<td><code>str</code></td>
+<td><code>"last_token"</code></td>
+<td><code>"last_token"</code> (paper) or <code>"mean"</code></td>
+</tr>
+<tr>
+<td><code>strength</code></td>
+<td><code>float</code></td>
+<td><code>1.0</code></td>
+<td>Steering / ablation multiplier</td>
+</tr>
+<tr>
+<td><code>normalize</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>L2-normalise the direction</td>
+</tr>
+<tr>
+<td><code>select_directions</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Run the Arditi et al. validation sweep; <code>False</code> uses the middle layer</td>
+</tr>
+<tr>
+<td><code>kl_threshold</code></td>
+<td><code>float</code></td>
+<td><code>0.1</code></td>
+<td>Max KL (clean vs ablated, harmless prompts) for a candidate to survive</td>
+</tr>
+<tr>
+<td><code>induce_refusal_threshold</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Min induce score, when <code>require_induce=True</code></td>
+</tr>
+<tr>
+<td><code>prune_layer_fraction</code></td>
+<td><code>float</code></td>
+<td><code>0.2</code></td>
+<td>Drop candidates in the last fraction of layers</td>
+</tr>
+<tr>
+<td><code>min_layer_fraction</code></td>
+<td><code>float</code></td>
+<td><code>0.2</code></td>
+<td>If the sweep's winner is in the first fraction of layers (<code>layer &lt; int(n_layers * min_layer_fraction)</code>), or no candidate lowers the clean refusal rate, warn and fall back to the middle layer. <code>0</code> disables the floor</td>
+</tr>
+<tr>
+<td><code>n_val</code></td>
+<td><code>int</code></td>
+<td><code>16</code></td>
+<td>Harmful and harmless prompts held out for scoring</td>
+</tr>
+<tr>
+<td><code>max_new_tokens</code></td>
+<td><code>int</code></td>
+<td><code>24</code></td>
+<td>Tokens generated when scoring bypass</td>
+</tr>
+<tr>
+<td><code>require_induce</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Also compute and enforce the induce score</td>
+</tr>
+</tbody>
+</table>
+<p>The sweep breaks ties toward the middle layer and logs the chosen layer at INFO
+with its bypass score, KL and the clean refusal rate. Early layers carry
+token-level features: on Tiny Aya the sweep without the <code>min_layer_fraction</code>
+floor picked layer 1 of 36. If the sweep falls back or picks a poor layer, set
+<code>pick_layer</code> by hand (e.g. 24 of 36 on Tiny Aya).</p>
 <h2 id="modes">Modes<a class="headerlink" href="#modes" title="Permanent link">&para;</a></h2>
 <p>The wrapper <code>RefusalDirectionModel</code> supports two hook modes:</p>
 <table>

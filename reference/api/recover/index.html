@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/reference/api/recover/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/reference/api/recover/">
       
       
         <link rel="prev" href="../harden/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Recover · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/reference/api/recover/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/reference/api/recover/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Recover · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -645,6 +645,8 @@
       
         
           
+        
+      
         
       
         
@@ -1251,6 +1253,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../error-codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1685,7 +1715,9 @@ needs them) and call <code>apply()</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>task vector scale. Default 1.0.</p>
+                <p>task vector scale. Default 1.0. On Tiny Aya, alpha=1 breaks the
+model; use alpha~0.25 (sweep: 0.1/0.25 restore refusal with normal
+answers, &gt;=0.5 breaks it).</p>
               </div>
             </td>
             <td>
@@ -1701,11 +1733,29 @@ needs them) and call <code>apply()</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>apply DARE masking. Default True.</p>
+                <p>apply DARE masking. Default True (part of the method).</p>
               </div>
             </td>
             <td>
                   <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dare_drop_rate</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DARE drop probability p. Default None: 0.3, the RESTA
+paper's value, or 0.9 (the old default) with
+<code>safetune.configure(legacy_resta_drop_rate=True)</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -1724,8 +1774,37 @@ needs them) and call <code>apply()</code>.</p>
                   <code>0</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>device</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>where each safety-vector delta is computed. Default None: the
+drifted model's weight device. <code>"cpu"</code> keeps the extra memory off
+the GPU.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
+        <p>Small models: DARE drops a fraction p of the safety vector's entries and
+scales the rest by 1/(1-p). On Qwen2.5-0.5B, with the full base-to-instruct
+delta as the safety vector, p=0.9 broke the model (HarmBench refusals 2/16
+and garbled benign answers) while p=0.3 restored 13/16 and <code>dare=False</code>
+14/16 (examples/notebooks/recover_comparison). The paper tunes on 7B
+models; on small ones check the benign answers after repair.</p>
+<p>Memory: the drifted, base and aligned models must be loaded, but the
+safety vector is streamed one tensor at a time, so the extra memory is a
+few fp32 copies of the largest tensor, not of the model. Keep <code>base</code> and
+<code>aligned</code> on CPU and pass <code>device="cpu"</code> to hold only the drifted
+model on the GPU.</p>
 
 
 

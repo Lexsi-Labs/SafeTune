@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/steer/activation-steering/linear-probe-guard-model/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/reference/error-codes/">
       
       
-        <link rel="prev" href="../rep-bend-model/">
+        <link rel="prev" href="../api-contract/">
       
       
-        <link rel="next" href="../cast-model/">
+        <link rel="next" href="../../examples/">
       
       
         
       
       
-      <link rel="icon" href="../../../../assets/favicon.png">
+      <link rel="icon" href="../../assets/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
   
-    <title>LinearProbeGuardModel · SafeTune</title>
+    <title>Error Codes · SafeTune</title>
   
 
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,11 +53,11 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../../../assets/safetune.css">
+      <link rel="stylesheet" href="../../assets/safetune.css">
     
-    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -71,14 +71,14 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
-  <meta property="og:title" content="LinearProbeGuardModel · SafeTune">
+  <meta property="og:title" content="Error Codes · SafeTune">
   <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/steer/activation-steering/linear-probe-guard-model/">
+  <meta property="og:url" content="https://safetune.lexsi.ai/reference/error-codes/">
   <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="LinearProbeGuardModel · SafeTune">
+  <meta name="twitter:title" content="Error Codes · SafeTune">
   <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
   <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
@@ -124,7 +124,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#linearprobeguardtrainer-probe-based-guarding" class="md-skip">
+        <a href="#error-codes" class="md-skip">
           Skip to content
         </a>
       
@@ -144,9 +144,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../.." title="SafeTune" class="md-header__button md-logo" aria-label="SafeTune" data-md-component="logo">
-      <img class="st-logo st-logo--light" src="../../../../assets/safetune-mark-light.svg" alt="SafeTune">
-<img class="st-logo st-logo--dark"  src="../../../../assets/safetune-mark-dark.svg" alt="SafeTune">
+    <a href="../.." title="SafeTune" class="md-header__button md-logo" aria-label="SafeTune" data-md-component="logo">
+      <img class="st-logo st-logo--light" src="../../assets/safetune-mark-light.svg" alt="SafeTune">
+<img class="st-logo st-logo--dark"  src="../../assets/safetune-mark-dark.svg" alt="SafeTune">
     </a>
     <label class="md-header__button md-icon" for="__drawer">
       
@@ -162,7 +162,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              LinearProbeGuardModel
+              Error Codes
             
           </span>
         </div>
@@ -274,7 +274,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../.." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -295,7 +295,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../getting-started/" class="md-tabs__link">
+        <a href="../../getting-started/" class="md-tabs__link">
           
   
   
@@ -313,13 +313,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../user-guide/" class="md-tabs__link">
           
   
   
@@ -337,11 +335,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../../../reference/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -363,7 +363,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../examples/" class="md-tabs__link">
+        <a href="../../examples/" class="md-tabs__link">
           
   
   
@@ -383,7 +383,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../../emnlp-2026-demo/" class="md-tabs__link">
+      <a href="../../emnlp-2026-demo/" class="md-tabs__link">
         
   
   
@@ -404,7 +404,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../community/faq/" class="md-tabs__link">
+        <a href="../../community/faq/" class="md-tabs__link">
           
   
   
@@ -446,9 +446,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../.." title="SafeTune" class="md-nav__button md-logo" aria-label="SafeTune" data-md-component="logo">
-      <img class="st-logo st-logo--light" src="../../../../assets/safetune-mark-light.svg" alt="SafeTune">
-<img class="st-logo st-logo--dark"  src="../../../../assets/safetune-mark-dark.svg" alt="SafeTune">
+    <a href="../.." title="SafeTune" class="md-nav__button md-logo" aria-label="SafeTune" data-md-component="logo">
+      <img class="st-logo st-logo--light" src="../../assets/safetune-mark-light.svg" alt="SafeTune">
+<img class="st-logo st-logo--dark"  src="../../assets/safetune-mark-dark.svg" alt="SafeTune">
     </a>
     SafeTune
   </label>
@@ -474,7 +474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -533,7 +533,7 @@
   
   
   
-    <a href="../../../../getting-started/" class="md-nav__link">
+    <a href="../../getting-started/" class="md-nav__link">
       
   
   
@@ -541,6 +541,79 @@
     
   
     Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../user-guide/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
   
 
     
@@ -572,8 +645,6 @@
       
         
           
-        
-      
         
       
         
@@ -606,460 +677,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../../../" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    User Guide
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    User Guide
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../audit-your-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Audit Your Model
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../usage/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CLI · YAML · Python
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../../harden/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Harden
-  
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../../recover/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Recover
-  
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../../unlearn/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Unlearn
-  
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_7" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_3_7" id="__nav_3_7_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Steer
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Steer
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Steer — inference-time control
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_7_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -1070,7 +688,7 @@
   <span class="md-ellipsis">
     
   
-    Activation steering
+    Reference
   
 
     
@@ -1081,18 +699,18 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_7_2" id="__nav_3_7_2_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_7_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_7_2">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Activation steering
+    Reference
   
 
           </label>
@@ -1106,15 +724,87 @@
   
   
   
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../api/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../refusal-direction-model/" class="md-nav__link">
+      <a href="../cli/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    RefusalDirectionModel
+    CLI Reference
   
 
     
@@ -1135,14 +825,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../caa-model/" class="md-nav__link">
+      <a href="../references/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CAAModel
+    References
   
 
     
@@ -1163,14 +853,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../ada-steer-model/" class="md-nav__link">
+      <a href="../feature-map/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    AdaSteerModel
+    Feature Map
   
 
     
@@ -1191,14 +881,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../safe-steer-model/" class="md-nav__link">
+      <a href="../system-design/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    SafeSteerModel
+    System Design
   
 
     
@@ -1219,182 +909,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../alpha-steer-model/" class="md-nav__link">
+      <a href="../api-contract/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    AlphaSteerModel
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../safe-switch-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    SafeSwitchModel
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../scans-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    SCANSModel
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../sta-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    STAModel
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../circuit-breaker-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CircuitBreakerModel
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../circuit-breaker-rr-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CircuitBreakerRRModel
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../rep-bend-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    RepBendModel
+    API Contract
   
 
     
@@ -1424,24 +946,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    LinearProbeGuardModel
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -1449,7 +953,7 @@
   <span class="md-ellipsis">
     
   
-    LinearProbeGuardModel
+    Error Codes
   
 
     
@@ -1458,450 +962,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#signature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Signature
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#full-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full example
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-to-use" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When to use
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#citation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Citation
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cast-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CASTModel
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../tar-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    TARModel
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../rrfa-ensemble/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    RRFAEnsemble
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../decoding-steering/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Decoding steering
-  
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../backends/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Backends
-  
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-          
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../../interpret/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Interpret
-  
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../../evaluate/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Evaluate
-  
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
       
     </li>
   
@@ -1934,14 +994,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1960,70 +1012,7 @@
   
   
   
-    <a href="../../../../reference/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    <a href="../../../../examples/" class="md-nav__link">
+    <a href="../../examples/" class="md-nav__link">
       
   
   
@@ -2056,7 +1045,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../emnlp-2026-demo/" class="md-nav__link">
+      <a href="../../emnlp-2026-demo/" class="md-nav__link">
         
   
   
@@ -2113,7 +1102,7 @@
   
   
   
-    <a href="../../../../community/faq/" class="md-nav__link">
+    <a href="../../community/faq/" class="md-nav__link">
       
   
   
@@ -2159,69 +1148,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#signature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Signature
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#full-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full example
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-to-use" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When to use
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#citation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Citation
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -2245,7 +1171,7 @@
   
   
     <li class="md-path__item">
-      <a href="../../../.." class="md-path__link">
+      <a href="../.." class="md-path__link">
         
   <span class="md-ellipsis">
     Home
@@ -2263,46 +1189,10 @@
     
     
       <li class="md-path__item">
-        <a href="../../../" class="md-path__link">
-          
-  <span class="md-ellipsis">
-    User Guide
-  </span>
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-    
-    
-      <li class="md-path__item">
-        <a href="../../" class="md-path__link">
-          
-  <span class="md-ellipsis">
-    Steer
-  </span>
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-    
-    
-      <li class="md-path__item">
         <a href="../" class="md-path__link">
           
   <span class="md-ellipsis">
-    Activation steering
+    Reference
   </span>
 
         </a>
@@ -2321,7 +1211,7 @@
 
 
   
-    <a href="https://github.com/Lexsi-Labs/SafeTune/edit/main/docs/user-guide/steer/activation-steering/linear-probe-guard-model.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/Lexsi-Labs/SafeTune/edit/main/docs/reference/error-codes.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -2329,80 +1219,54 @@
   
 
 
-<h1 id="linearprobeguardtrainer-probe-based-guarding">LinearProbeGuardTrainer — probe-based guarding<a class="headerlink" href="#linearprobeguardtrainer-probe-based-guarding" title="Permanent link">&para;</a></h1>
-<p>Fits a logistic-regression probe on pooled hidden states at a chosen decoder layer.
-At inference time <code>score(prompts)</code> runs one forward pass to the probe layer; if the
-prompt scores above <code>threshold</code>, <code>guard(prompt)</code> returns a canned refusal string
-instead of generating.</p>
-<h2 id="signature">Signature<a class="headerlink" href="#signature" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">LinearProbeGuardTrainer</span><span class="p">(</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">model</span><span class="p">:</span> <span class="n">PreTrainedModel</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">PreTrainedTokenizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+<h1 id="error-codes">Error Codes<a class="headerlink" href="#error-codes" title="Permanent link">&para;</a></h1>
+<p>Every structured SafeTune error is a <code>SafeTuneError</code> (<code>safetune.utils.errors</code>) carrying a stable <code>error_code</code>, a human <code>message</code>, and a list of <code>suggestions</code>. Catch the base class, or match on <code>error_code</code> to handle one kind specifically — never string-match the message text, which can change.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.utils.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeTuneError</span><span class="p">,</span> <span class="n">GatedResourceError</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;hexphi&quot;</span><span class="p">])</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">except</span> <span class="n">GatedResourceError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Need access to </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">repo_id</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">kind</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">suggestions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">except</span> <span class="n">SafeTuneError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">error_code</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Param</th>
-<th>Type</th>
-<th>Default</th>
-<th>Description</th>
+<th><code>error_code</code></th>
+<th>Exception class</th>
+<th>Raised when</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>model</code></td>
-<td><code>PreTrainedModel</code></td>
-<td>required</td>
-<td>Model to guard</td>
+<td><code>CONFIG_ERROR</code></td>
+<td><code>ConfigurationError</code></td>
+<td>An invalid config value — bad optimizer/scheduler name, unknown field.</td>
 </tr>
 <tr>
-<td><code>tokenizer</code></td>
-<td><code>PreTrainedTokenizer</code></td>
-<td><code>None</code></td>
-<td>Tokenizer</td>
+<td><code>TRAINING_ERROR</code></td>
+<td><code>TrainingError</code></td>
+<td>A training-time failure — OOM, NaN/Inf loss, a CUDA error.</td>
 </tr>
 <tr>
-<td><code>layer</code></td>
-<td><code>int \| None</code></td>
-<td><code>None</code></td>
-<td>Decoder layer whose pooled hidden state feeds the probe; <code>None</code> is layer 15 on a 32-layer model; <code>None</code> scales them to the model's depth (for example 6 on 12 layers). <code>safetune.configure(legacy_steer_layers=True)</code> keeps 15 on any depth</td>
+<td><code>ENV_ERROR</code></td>
+<td><code>EnvironmentError</code></td>
+<td>A missing or incompatible dependency (<code>torch</code>, <code>transformers</code>, <code>trl</code>, <code>bitsandbytes</code>, <code>unsloth</code>).</td>
 </tr>
 <tr>
-<td><code>threshold</code></td>
-<td><code>float</code></td>
-<td><code>0.5</code></td>
-<td>Score above which the prompt is flagged and the canned refusal fires</td>
+<td><code>VALIDATION_ERROR</code></td>
+<td><code>ValidationError</code></td>
+<td>A field fails validation — wrong type, out of range, missing a required value.</td>
+</tr>
+<tr>
+<td><code>GATED_RESOURCE</code></td>
+<td><code>GatedResourceError</code></td>
+<td>A Hugging Face model or dataset SafeTune itself needs (an eval judge, a benchmark dataset, a generation/steer backend's model) is gated or otherwise inaccessible with the current credentials.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">steer</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">steer</span><span class="o">.</span><span class="n">LinearProbeGuardTrainer</span><span class="p">(</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">layer</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">wrapped</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">calibrate</span><span class="p">(</span><span class="n">harmful</span><span class="o">=</span><span class="n">harmful_prompts</span><span class="p">,</span> <span class="n">harmless</span><span class="o">=</span><span class="n">harmless_prompts</span><span class="p">)</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># If the probe flags the prompt, the canned refusal is returned instead of generating</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">output</span> <span class="o">=</span> <span class="n">wrapped</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">tokenizer</span><span class="p">(</span><span class="s2">&quot;How do I make a weapon?&quot;</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">))</span>
-</code></pre></div>
-<h2 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Best for:</strong> binary safety gates where you want a block rather than a soft steering nudge. The probe scores the prompt in one forward pass before generation.</li>
-<li><strong>Low cost:</strong> logistic regression on frozen hidden states, no fine-tuning of the base model.</li>
-<li><strong>Compare to SafeSwitch:</strong> the SafeSwitch wrapper can run two probe stages (instruction safety and compliance); LinearProbeGuard is a single-stage gate with a canned refusal string.</li>
-<li><strong>Tuning <code>threshold</code>:</strong> a lower threshold refuses more (more conservative); a higher threshold gives fewer false positives but may miss edge cases.</li>
-</ul>
-<h2 id="citation">Citation<a class="headerlink" href="#citation" title="Permanent link">&para;</a></h2>
-<p>No single originating paper — a linear probe on frozen hidden states is the
-standard safety-classifier baseline that most defense papers compare against.</p>
+<p><code>GatedResourceError</code> additionally carries <code>repo_id</code> (the exact Hugging Face id) and <code>kind</code> (<code>"judge model"</code>, <code>"dataset"</code>, <code>"model"</code>, or <code>"auxiliary model"</code>) as real attributes, not just message text — read them to tell the caller exactly which access to request. It does not cover the model/adapter you pass in yourself to train or evaluate; only SafeTune's own internal dependencies raise it.</p>
 
 
 
@@ -2440,7 +1304,7 @@ standard safety-classifier baseline that most defense papers compare against.</p
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../rep-bend-model/" class="md-footer__link md-footer__link--prev" aria-label="Previous: RepBendModel">
+          <a href="../api-contract/" class="md-footer__link md-footer__link--prev" aria-label="Previous: API Contract">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2450,20 +1314,20 @@ standard safety-classifier baseline that most defense papers compare against.</p
                 Previous
               </span>
               <div class="md-ellipsis">
-                RepBendModel
+                API Contract
               </div>
             </div>
           </a>
         
         
           
-          <a href="../cast-model/" class="md-footer__link md-footer__link--next" aria-label="Next: CASTModel">
+          <a href="../../examples/" class="md-footer__link md-footer__link--next" aria-label="Next: Examples">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                CASTModel
+                Examples
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -2552,16 +1416,16 @@ standard safety-classifier baseline that most defense papers compare against.</p
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../../../assets/safetune.js"></script>
+        <script src="../../assets/safetune.js"></script>
       
-        <script src="../../../../javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
-        <script src="../../../../javascripts/mathjax-tex-mml-chtml.js"></script>
+        <script src="../../javascripts/mathjax-tex-mml-chtml.js"></script>
       
     
   </body>

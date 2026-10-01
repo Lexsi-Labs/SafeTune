@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/reference/cli/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/reference/cli/">
       
       
         <link rel="prev" href="../api/config/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="CLI Reference · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/reference/cli/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/reference/cli/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="CLI Reference · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -659,6 +659,8 @@
       
         
       
+        
+      
     
     
     
@@ -1061,6 +1063,34 @@
     
   
     API Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../error-codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Codes
   
 
     
@@ -1485,7 +1515,7 @@
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>--epochs<span class="w"> </span><span class="m">3</span><span class="w"> </span>--batch-size<span class="w"> </span><span class="m">4</span><span class="w"> </span>--lr<span class="w"> </span>2e-5<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span>--output<span class="w"> </span>./results/lisa
 </code></pre></div>
-<p>Relevant flags: <code>--algo</code>, <code>--model</code>, <code>--train-dataset</code>, <code>--train-split</code>, <code>--epochs</code>, <code>--batch-size</code>, <code>--lr</code>, <code>--precision</code>, <code>--output</code>, <code>--wandb</code>.</p>
+<p>Relevant flags: <code>--algo</code>, <code>--model</code>, <code>--train-dataset</code>, <code>--train-config</code>, <code>--train-split</code>, <code>--epochs</code>, <code>--batch-size</code>, <code>--lr</code>, <code>--precision</code>, <code>--output</code>, <code>--wandb</code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Programmatic-only harden methods</p>
 <p>A few harden methods — <code>cst</code>, <code>mart</code>, <code>deeprefusal</code>, <code>antibody</code> — need method-specific data/config that the uniform CLI train contract can't supply. Running e.g. <code>safetune train --algo cst</code> prints a hint pointing at the Python API (<code>from safetune.runner.harden import CSTTrainer</code>) and exits. Use these from Python; see the harden guide.</p>
@@ -1567,7 +1597,7 @@
 <tr>
 <td><code>--lr</code>, <code>--learning-rate</code></td>
 <td><code>5e-5</code></td>
-<td>Learning rate / alpha.</td>
+<td>Learning rate for <code>train</code> / <code>unlearn</code>. Not used by <code>patch</code>; use <code>--alpha</code>.</td>
 </tr>
 <tr>
 <td><code>--base</code></td>
@@ -1580,19 +1610,44 @@
 <td>Aligned model path (for <code>patch</code>/recover).</td>
 </tr>
 <tr>
+<td><code>--alpha</code></td>
+<td>—</td>
+<td>Strength for <code>patch</code> (recover) methods, passed as the trainer's <code>alpha</code>. Unset: the method's default.</td>
+</tr>
+<tr>
 <td><code>--precision</code></td>
-<td><code>bf16</code></td>
-<td>Compute precision: <code>fp16</code>, <code>bf16</code>, or <code>fp32</code>.</td>
+<td><code>None</code></td>
+<td>Compute precision: <code>fp16</code>, <code>bf16</code>, or <code>fp32</code>. Unset: the runtime dtype (<code>safetune.configure(dtype=...)</code>; bf16 where supported).</td>
 </tr>
 <tr>
 <td><code>--train-dataset</code></td>
 <td><code>beavertails</code></td>
-<td>Training dataset: <code>beavertails</code> or any HF dataset id.</td>
+<td>Training dataset: <code>beavertails</code>, an HF dataset id, a local file, or a dataset folder such as a CuratorKIT export. Rows may be chat <code>messages</code>, ShareGPT <code>conversations</code>, Alpaca <code>instruction</code>/<code>input</code>/<code>output</code> or prompt/response columns; SafeTune tokenises them. Prompt-only rows (e.g. CuratorKIT <code>ppo</code>) are an error.</td>
+</tr>
+<tr>
+<td><code>--train-config</code></td>
+<td>—</td>
+<td>Config of <code>--train-dataset</code> (<code>load_dataset(dir, config)</code>), e.g. <code>sft_sharegpt</code> for a CuratorKIT export.</td>
 </tr>
 <tr>
 <td><code>--train-split</code></td>
 <td>—</td>
 <td>Split for <code>--train-dataset</code> (default: <code>30k_train</code> for beavertails, else <code>train</code>).</td>
+</tr>
+<tr>
+<td><code>--safety-dataset</code></td>
+<td>—</td>
+<td>Safety set for harden methods that take one (<code>safegrad</code>, <code>lisa</code>, <code>sap</code>, ...): a <code>safetune.data.dataset_ids</code> name or any HF id, local file or URL. Default: the method's built-in set</td>
+</tr>
+<tr>
+<td><code>--safety-config</code></td>
+<td>—</td>
+<td>Config of <code>--safety-dataset</code>.</td>
+</tr>
+<tr>
+<td><code>--safety-split</code></td>
+<td>—</td>
+<td>Split to load from <code>--safety-dataset</code> (default: the table's split, else <code>train</code>)</td>
 </tr>
 <tr>
 <td><code>--eval-backend</code></td>

@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/harden/tamper-resistant/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/harden/tamper-resistant/">
       
       
         <link rel="prev" href="../pre-ft/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Tamper-resistant · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/harden/tamper-resistant/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/harden/tamper-resistant/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Tamper-resistant · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -2179,6 +2179,8 @@
       
         
       
+        
+      
     
     
     
@@ -3505,13 +3507,15 @@ maps to <code>repnoise_beta1</code>, <code>noise_gamma</code> to <code>repnoise_
 <a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
 <a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="p">)</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">fp16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="n">wandb</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="seamconfig-fields">SEAMConfig fields<a class="headerlink" href="#seamconfig-fields" title="Permanent link">&para;</a></h3>
 <p>The <code>L_up</code> / <code>L_sd</code> mixing weights are <code>SEAMConfig</code> fields, not runner kwargs:</p>
@@ -3540,9 +3544,8 @@ maps to <code>repnoise_beta1</code>, <code>noise_gamma</code> to <code>repnoise_
 </tbody>
 </table>
 <h3 id="full-example_3">Full example<a class="headerlink" href="#full-example_3" title="Permanent link">&para;</a></h3>
-<p>The runner trainer uses <code>SEAMConfig</code> defaults and does not expose these weights as
-constructor kwargs; set them on a <code>SEAMConfig</code> if you use the <code>safetune.harden</code>
-trainer directly.</p>
+<p>Any <code>SEAMConfig</code> field above can be passed to the constructor as a keyword
+argument, e.g. <code>harden.SEAMTrainer(model, tokenizer, seam_alpha=1.0)</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">harden</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">SEAMTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
@@ -3572,13 +3575,15 @@ trainer directly.</p>
 <a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
 <a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="p">)</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="n">fp16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="n">wandb</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="full-example_4">Full example<a class="headerlink" href="#full-example_4" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">harden</span>
@@ -3610,12 +3615,13 @@ trainer directly.</p>
 <a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="n">refusal_w</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
 <a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>    <span class="n">unlearn_w</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
 <a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="n">base_model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="p">)</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="n">max_grad_norm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="doorconfig-fields">DOORConfig fields<a class="headerlink" href="#doorconfig-fields" title="Permanent link">&para;</a></h3>
-<p><code>door_pure_mode</code> is a <code>DOORConfig</code> field used by the <code>safetune.harden</code> trainer, not
-a runner kwarg:</p>
+<p><code>door_pure_mode</code> is a <code>DOORConfig</code> field used by <code>harden.SafetyDOORTrainer</code> (the
+<code>trl.DPOTrainer</code> subclass), not a <code>harden.DOORTrainer</code> kwarg:</p>
 <table>
 <thead>
 <tr>
@@ -3635,10 +3641,11 @@ a runner kwarg:</p>
 </tbody>
 </table>
 <h3 id="full-example_5">Full example<a class="headerlink" href="#full-example_5" title="Permanent link">&para;</a></h3>
-<p>The runner <code>DOORTrainer</code> runs a self-contained NPO + refusal loop and exposes
-<code>beta</code> (NPO temperature, <code>0.5</code>), <code>refusal_w</code> (refusal weight, <code>1.0</code>), and
-<code>unlearn_w</code> (NPO weight, <code>1.0</code>) as kwargs. <code>door_pure_mode</code> is a <code>DOORConfig</code>
-field used by the <code>safetune.harden</code> trainer, not by the runner.</p>
+<p><code>harden.DOORTrainer</code> runs a self-contained NPO + refusal loop (the pure DOOR
+objective) and exposes <code>beta</code> (NPO temperature, <code>0.5</code>), <code>refusal_w</code> (refusal
+weight, <code>1.0</code>), and <code>unlearn_w</code> (NPO weight, <code>1.0</code>) as kwargs. W-DOOR (per-token
+weights from a <code>proxy_reward_model</code>) and <code>door_pure_mode</code> are only available on
+<code>harden.SafetyDOORTrainer</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">harden</span>
 <a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
 <a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">DOORTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">refusal_w</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">unlearn_w</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
@@ -3742,7 +3749,7 @@ field used by the <code>safetune.harden</code> trainer, not by the runner.</p>
 </table>
 <h3 id="full-example_6">Full example<a class="headerlink" href="#full-example_6" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden</span><span class="w"> </span><span class="kn">import</span> <span class="n">MARTTrainer</span><span class="p">,</span> <span class="n">MARTConfig</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden.mart</span><span class="w"> </span><span class="kn">import</span> <span class="n">MARTTrainer</span><span class="p">,</span> <span class="n">MARTConfig</span>
 <a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
 <a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="n">adv_model</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>  <span class="c1"># M_adv: a separate copy of the model</span>
 <a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
@@ -3768,6 +3775,9 @@ field used by the <code>safetune.harden</code> trainer, not by the runner.</p>
 <a id="__codelineno-19-25" name="__codelineno-19-25" href="#__codelineno-19-25"></a><span class="p">)</span>
 <a id="__codelineno-19-26" name="__codelineno-19-26" href="#__codelineno-19-26"></a><span class="n">trained_target</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>  <span class="c1"># returns the fine-tuned target model</span>
 </code></pre></div>
+<p>The runner adapter derives the seed prompts (harmful contamination), the
+adversary (a copy of the target) and the refusal-prefix reward, so from the CLI:
+<code>safetune train --model &lt;model&gt; --algo mart</code>.</p>
 <p><code>train()</code> runs the full MART co-evolution loop and returns the fine-tuned
 target model. The tiny config above is a smoke-test; the paper defaults are
 <code>MARTConfig(num_rounds=4, num_candidates=8, adv_steps=100, tgt_steps=200,
@@ -3898,7 +3908,7 @@ dataset.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
 <a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeepRefusalTrainer</span><span class="p">,</span> <span class="n">DeepRefusalConfig</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden.deeprefusal</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeepRefusalTrainer</span><span class="p">,</span> <span class="n">DeepRefusalConfig</span>
 <a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>
 <a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="c1"># A refusal direction (unit vector) of shape (hidden_size,). In practice extract</span>
 <a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="c1"># it with safetune.steer.extract_refusal_direction; here a random placeholder</span>
@@ -3935,10 +3945,12 @@ dataset.</p>
 <a id="__codelineno-22-38" name="__codelineno-22-38" href="#__codelineno-22-38"></a>    <span class="p">)</span>
 <a id="__codelineno-22-39" name="__codelineno-22-39" href="#__codelineno-22-39"></a>    <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>  <span class="c1"># HF Trainer.train() — datasets came in via the constructor</span>
 </code></pre></div>
+<p>The runner adapter derives the refusal direction from the harmful/harmless
+prompt contrast, so from the CLI: <code>safetune train --model &lt;model&gt; --algo deeprefusal</code>.</p>
 <h3 id="when-to-use_7">When to use<a class="headerlink" href="#when-to-use_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Best for:</strong> LoRA FT with stochastic per-layer refusal-direction ablation hooks.</li>
-<li><strong>Trade-offs:</strong> LoRA-based; needs a precomputed <code>refusal_direction</code> plus harmful and benign datasets (see the config fields above).</li>
+<li><strong>Trade-offs:</strong> LoRA-based; needs a refusal direction plus harmful and benign datasets (see the config fields above). The runner adapter derives all three (direction from the harmful/harmless prompt contrast, harmful from the refusal set, benign from the task set); only the Python-level class needs them passed in.</li>
 </ul>
 <h3 id="citation_7">Citation<a class="headerlink" href="#citation_7" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="nc">@article</span><span class="p">{</span><span class="nl">deeprefusal2025</span><span class="p">,</span>
@@ -3965,11 +3977,16 @@ positional dataset.</p>
 <a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>    <span class="n">train_dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
 <a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>    <span class="n">harmful_dataset</span><span class="p">:</span> <span class="n">Dataset</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;align&quot;</span><span class="p">,</span>
-<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>    <span class="n">xi</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>    <span class="n">sam_rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># overrides args.sam_rho when set</span>
-<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>    <span class="o">**</span><span class="n">trainer_kwargs</span><span class="p">,</span>              <span class="c1"># forwarded to transformers.Trainer</span>
-<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="p">)</span>
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>    <span class="n">refusal_dataset</span><span class="p">:</span> <span class="n">Dataset</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;align&quot;</span><span class="p">,</span>           <span class="c1"># &quot;align&quot; or &quot;finetune&quot;</span>
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>    <span class="n">refresh_every</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>    <span class="n">sam_rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># overrides args.sam_rho when set</span>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a>    <span class="n">lambda_refusal</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>    <span class="n">lambda_cap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+<a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a>    <span class="n">xi</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+<a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a>    <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a>    <span class="o">**</span><span class="n">trainer_kwargs</span><span class="p">,</span>              <span class="c1"># forwarded to transformers.Trainer</span>
+<a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="parameters_4">Parameters<a class="headerlink" href="#parameters_4" title="Permanent link">&para;</a></h3>
 <table>
@@ -4004,7 +4021,49 @@ positional dataset.</p>
 <td><code>harmful_dataset</code></td>
 <td><code>Dataset \| None</code></td>
 <td><code>None</code> (kwarg)</td>
-<td>Harmful reference batch for the alignment defense</td>
+<td>Harmful batches for the alignment-stage SAM flatness regularizer (cycled)</td>
+</tr>
+<tr>
+<td><code>refusal_dataset</code></td>
+<td><code>Dataset \| None</code></td>
+<td><code>None</code> (kwarg)</td>
+<td>Refusal batches <code>(x, y_r)</code> for the alignment-stage refusal loss and the fine-tuning-stage likelihood ratio (cycled)</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td><code>str</code></td>
+<td><code>"align"</code> (kwarg)</td>
+<td><code>"align"</code>: SAM flatness alignment stage; <code>"finetune"</code>: likelihood-ratio sample reweighting stage</td>
+</tr>
+<tr>
+<td><code>refresh_every</code></td>
+<td><code>int</code></td>
+<td><code>1</code> (kwarg)</td>
+<td>Steps between fresh harmful / refusal batches in the alignment stage</td>
+</tr>
+<tr>
+<td><code>sam_rho</code></td>
+<td><code>float \| None</code></td>
+<td><code>None</code> (kwarg)</td>
+<td>SAM radius; <code>None</code> reads <code>args.sam_rho</code></td>
+</tr>
+<tr>
+<td><code>lambda_refusal</code></td>
+<td><code>float</code></td>
+<td><code>1.0</code> (kwarg)</td>
+<td>Weight of the alignment-stage refusal loss</td>
+</tr>
+<tr>
+<td><code>lambda_cap</code></td>
+<td><code>float</code></td>
+<td><code>10.0</code> (kwarg)</td>
+<td>Upper clamp on the adaptive flatness weight <span class="arithmatex">\(\lambda_t\)</span></td>
+</tr>
+<tr>
+<td><code>tau</code></td>
+<td><code>float</code></td>
+<td><code>1.0</code> (kwarg)</td>
+<td>Softmax temperature for the fine-tuning-stage reweighting</td>
 </tr>
 <tr>
 <td><code>xi</code></td>
@@ -4043,7 +4102,7 @@ positional dataset.</p>
 <h3 id="full-example_8">Full example<a class="headerlink" href="#full-example_8" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
 <a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
-<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden</span><span class="w"> </span><span class="kn">import</span> <span class="n">AntibodyTrainer</span><span class="p">,</span> <span class="n">AntibodyConfig</span>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden.antibody</span><span class="w"> </span><span class="kn">import</span> <span class="n">AntibodyTrainer</span><span class="p">,</span> <span class="n">AntibodyConfig</span>
 <a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
 <a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">make_ds</span><span class="p">(</span><span class="n">texts</span><span class="p">):</span>
 <a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>    <span class="n">enc</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">texts</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s2">&quot;max_length&quot;</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
@@ -4072,6 +4131,8 @@ positional dataset.</p>
 <a id="__codelineno-25-29" name="__codelineno-25-29" href="#__codelineno-25-29"></a>    <span class="p">)</span>
 <a id="__codelineno-25-30" name="__codelineno-25-30" href="#__codelineno-25-30"></a>    <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>  <span class="c1"># HF Trainer.train() — datasets came in via the constructor</span>
 </code></pre></div>
+<p>The runner adapter runs both stages and derives the harmful/refusal iterators,
+so from the CLI: <code>safetune train --model &lt;model&gt; --algo antibody</code>.</p>
 <p>Captures a harmful reference gradient and scales per-step gradients by
 <code>1 - max(0, cos-sim)</code> — updates aligned with harmful fine-tuning are
 attenuated.</p>
@@ -4133,7 +4194,7 @@ attenuated.</p>
 <tr>
 <td><code>prefix_text</code></td>
 <td><code>str</code></td>
-<td><code>"Let's solve this problem."</code></td>
+<td><code>"Let's solve this problem. "</code> (trailing space)</td>
 <td>Text tokenized into the preview prefix when <code>prefix_token_ids</code> is unset</td>
 </tr>
 </tbody>
@@ -4141,7 +4202,7 @@ attenuated.</p>
 <h3 id="full-example_9">Full example<a class="headerlink" href="#full-example_9" title="Permanent link">&para;</a></h3>
 <p>The runner <code>LookAheadTrainer</code> exposes <code>prefix_mode</code> and <code>prefix_length</code> only; the
 prefix content comes from the <code>LookAheadConfig</code> defaults (<code>prefix_text</code> /
-<code>prefix_token_ids</code>). Use the <code>safetune.harden</code> trainer with a custom
+<code>prefix_token_ids</code>). Use <code>harden.LookAheadHFTrainer</code> with a custom
 <code>LookAheadConfig</code> to set the prefix tokens explicitly.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">harden</span>
 <a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>

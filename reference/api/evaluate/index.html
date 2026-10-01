@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/reference/api/evaluate/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/reference/api/evaluate/">
       
       
         <link rel="prev" href="../interpret/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Evaluate · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/reference/api/evaluate/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/reference/api/evaluate/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Evaluate · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -645,6 +645,8 @@
       
         
           
+        
+      
         
       
         
@@ -1401,6 +1403,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../error-codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1943,7 +1973,7 @@ Judges &amp; monitoring: <code>JudgeAdapter</code>, <code>SpectralEntropyMonitor
 
 
 <h4 id="safetune.evaluate.evaluate.evaluate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">judge</span><span class="o">=</span><span class="s1">&#39;wildguard&#39;</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">generation_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_prompts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drift_task</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">judge</span><span class="o">=</span><span class="s1">&#39;wildguard&#39;</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">generation_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_prompts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drift_task</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#safetune.evaluate.evaluate.evaluate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -1990,7 +2020,10 @@ Judges &amp; monitoring: <code>JudgeAdapter</code>, <code>SpectralEntropyMonitor
             <td>
               <div class="doc-md-description">
                 <p>Benchmark names to run. Defaults to the paper safety suite:
-<code>["harmbench", "wildjailbreak", "advbench", "sorrybench_v1", "hexphi"]</code>.</p>
+<code>["harmbench", "wildjailbreak", "advbench", "sorrybench_v1", "hexphi",
+"orbench_hard", "orbench_toxic", "ailuminate"]</code> (OR-Bench as two
+benchmarks; one combined <code>"orbench"</code> with
+<code>configure(orbench_in_safety_mean=True)</code>).</p>
               </div>
             </td>
             <td>
@@ -2035,15 +2068,16 @@ Judges &amp; monitoring: <code>JudgeAdapter</code>, <code>SpectralEntropyMonitor
                 <code>batch_size</code>
             </td>
             <td>
-                  <code><span title="int">int</span></code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Generation / judging batch size.</p>
+                <p>Generation / judging batch size (default: runtime
+<code>gen_batch_size</code>, 8).</p>
               </div>
             </td>
             <td>
-                  <code>8</code>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -2051,15 +2085,16 @@ Judges &amp; monitoring: <code>JudgeAdapter</code>, <code>SpectralEntropyMonitor
                 <code>max_new_tokens</code>
             </td>
             <td>
-                  <code><span title="int">int</span></code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Max new tokens per generation.</p>
+                <p>Max new tokens per generation (default: runtime
+<code>safety_max_new_tokens</code>, 512).</p>
               </div>
             </td>
             <td>
-                  <code>512</code>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -2087,7 +2122,8 @@ Judges &amp; monitoring: <code>JudgeAdapter</code>, <code>SpectralEntropyMonitor
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Optional cap per benchmark. <code>None</code> = full benchmark.</p>
+                <p>Optional cap per benchmark (default: runtime
+<code>max_prompts</code>; <code>None</code> = full benchmark).</p>
               </div>
             </td>
             <td>
@@ -2117,16 +2153,42 @@ benchmarks (pass a custom <code>benchmarks</code> list for that).</p>
                 <code>strict</code>
             </td>
             <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="bool">bool</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>When <code>True</code>, failures re-raise instead of being recorded as
-<code>error</code> entries.</p>
+                <p><code>True</code> (default: runtime <code>eval_strict</code>, True): the first
+benchmark that fails to load or score raises, with a note naming
+it. <code>False</code>: the failure is logged, the entry is
+<code>{"error": "&lt;type&gt;: &lt;message&gt;"}</code> with no metric keys, and the
+remaining benchmarks still run.</p>
               </div>
             </td>
             <td>
-                  <code>False</code>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>an unknown benchmark or judge name, before anything loads.</p>
+              </div>
             </td>
           </tr>
       </tbody>
@@ -2195,7 +2257,7 @@ benchmarks (pass a custom <code>benchmarks</code> list for that).</p>
             <td>
               <div class="doc-md-description">
                 <ul>
-<li><code>n</code> — total prompts in the benchmark.</li>
+<li><code>n_total</code> — total prompts in the benchmark (before <code>max_prompts</code>).</li>
 </ul>
               </div>
             </td>
@@ -2207,7 +2269,20 @@ benchmarks (pass a custom <code>benchmarks</code> list for that).</p>
             <td>
               <div class="doc-md-description">
                 <ul>
-<li><code>n_evaluated</code> — prompts actually scored.</li>
+<li><code>n_evaluated</code> — prompts actually scored (at most <code>max_prompts</code>);
+the metrics are over these.</li>
+</ul>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <ul>
+<li><code>n</code> — deprecated alias of <code>n_total</code>.</li>
 </ul>
               </div>
             </td>
@@ -2248,7 +2323,7 @@ benchmarks (pass a custom <code>benchmarks</code> list for that).</p>
 
 
 <h4 id="safetune.evaluate.evaluate.evaluate_with_vllm_backend" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">evaluate_with_vllm_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">judge</span><span class="o">=</span><span class="s1">&#39;wildguard&#39;</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">max_prompts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drift_task</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">evaluate_with_vllm_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">judge</span><span class="o">=</span><span class="s1">&#39;wildguard&#39;</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_prompts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drift_task</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#safetune.evaluate.evaluate.evaluate_with_vllm_backend" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -2328,15 +2403,16 @@ wrapped into a vLLM backend via
                 <code>max_new_tokens</code>
             </td>
             <td>
-                  <code><span title="int">int</span></code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Max tokens per response.</p>
+                <p>Max tokens per response (default: runtime
+<code>steer_max_new_tokens</code>, 256).</p>
               </div>
             </td>
             <td>
-                  <code>256</code>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -2348,7 +2424,7 @@ wrapped into a vLLM backend via
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Optional cap per benchmark.</p>
+                <p>Optional cap per benchmark (default: runtime <code>max_prompts</code>).</p>
               </div>
             </td>
             <td>
@@ -2376,15 +2452,15 @@ wrapped into a vLLM backend via
                 <code>strict</code>
             </td>
             <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="bool">bool</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Re-raise instead of recording errors.</p>
+                <p>As in :func:<code>evaluate</code> (default: runtime <code>eval_strict</code>, True).</p>
               </div>
             </td>
             <td>
-                  <code>False</code>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -2424,16 +2500,12 @@ wrapped into a vLLM backend via
 <h4 id="safetune.evaluate.evaluate.get_harmbench_judge" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">get_harmbench_judge</span><span class="p">()</span></code>
 
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
-  </span>
-
 <a href="#safetune.evaluate.evaluate.get_harmbench_judge" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
 
-        <p>Load cais/HarmBench-Mistral-7b-val-cls once and cache (cached ✓).</p>
+        <p>HarmBench judge (default cais/HarmBench-Mistral-7b-val-cls), cached.</p>
 
 
     </div>
@@ -2446,16 +2518,12 @@ wrapped into a vLLM backend via
 <h4 id="safetune.evaluate.evaluate.get_llama_guard" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">get_llama_guard</span><span class="p">()</span></code>
 
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
-  </span>
-
 <a href="#safetune.evaluate.evaluate.get_llama_guard" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
 
-        <p>Load Llama Guard 3 once and cache — NOTE: not in HF cache, requires download.</p>
+        <p>Llama Guard 3 (default meta-llama/Llama-Guard-3-8B, gated), cached.</p>
 
 
     </div>
@@ -2468,16 +2536,12 @@ wrapped into a vLLM backend via
 <h4 id="safetune.evaluate.evaluate.get_wildguard" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">get_wildguard</span><span class="p">()</span></code>
 
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
-  </span>
-
 <a href="#safetune.evaluate.evaluate.get_wildguard" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
 
-        <p>Load allenai/wildguard once and cache (cached ✓).</p>
+        <p>WildGuard judge (default allenai/wildguard), loaded once and cached.</p>
 
 
     </div>

@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/reference/api/config/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/reference/api/config/">
       
       
         <link rel="prev" href="../evaluate/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Configuration · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/reference/api/config/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/reference/api/config/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Configuration · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -659,6 +659,8 @@
       
         
       
+        
+      
     
     
     
@@ -1034,6 +1036,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#runtime-settings-safetuneconfigure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime settings: safetune.configure()
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime settings: safetune.configure()">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#legacy_-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        legacy_* settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1257,6 +1287,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../error-codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1444,6 +1502,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#runtime-settings-safetuneconfigure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime settings: safetune.configure()
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime settings: safetune.configure()">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#legacy_-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        legacy_* settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1610,6 +1696,77 @@ maps to a CLI flag, and explicit CLI flags override config values.</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">cfg</span> <span class="o">=</span> <span class="n">SafeTuneConfig</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="s2">&quot;run.yaml&quot;</span><span class="p">)</span>
 </code></pre></div>
 <p>See the <a href="../../cli/">CLI Reference</a> for the YAML schema and precedence rules.</p>
+<h2 id="runtime-settings-safetuneconfigure">Runtime settings: <code>safetune.configure()</code><a class="headerlink" href="#runtime-settings-safetuneconfigure" title="Permanent link">&para;</a></h2>
+<p><code>safetune.configure(**settings)</code> sets process-wide runtime settings
+(<code>RuntimeConfig</code>), and <code>safetune.get_config()</code> returns the effective values. A
+function or trainer argument passed explicitly wins over <code>configure()</code> (or the
+<code>runtime:</code> block of a YAML config), which wins over <code>SAFETUNE_*</code> environment
+variables and the defaults. An unknown setting name raises <code>TypeError</code>.</p>
+<p>Defaults to be aware of:</p>
+<ul>
+<li>Evaluation is strict (<code>eval_strict=True</code>): a benchmark that fails to load or
+  score raises. <code>configure(eval_strict=False)</code> records
+  <code>{"error": "&lt;type&gt;: &lt;message&gt;"}</code> for that benchmark and continues.</li>
+<li>A misspelled or unknown keyword argument to a runner trainer produces a
+  warning (not an error) and is ignored.</li>
+<li><code>dtype="auto"</code> is bf16 on Apple Silicon (MPS) with macOS 14 or newer, fp32 on
+  older macOS, and fp32 on CPU. On CUDA it is bf16 where the GPU supports it
+  natively, else fp16.</li>
+</ul>
+<h3 id="legacy_-settings"><code>legacy_*</code> settings<a class="headerlink" href="#legacy_-settings" title="Permanent link">&para;</a></h3>
+<p>Each one restores the behaviour from before a fix, to reproduce earlier
+results. All default to <code>False</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th><code>True</code> gives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>legacy_beavertails_splits</code></td>
+<td>TAR adversary set <code>unsafe[n:2n]</code>, which overlaps the contamination set</td>
+</tr>
+<tr>
+<td><code>legacy_steer_layers</code></td>
+<td>Steer layer defaults as absolute indices (14–18, 15, 16, 10–19) on any depth</td>
+</tr>
+<tr>
+<td><code>legacy_cast_gate</code></td>
+<td>CAST gate fitted on raw prompts; the first prompt of a batch gates all of them</td>
+</tr>
+<tr>
+<td><code>legacy_spectral_monitor</code></td>
+<td><code>SpectralEntropyMonitor</code> on raw prompts, with the first (attention-sink) token in the SVD</td>
+</tr>
+<tr>
+<td><code>legacy_ga_forget_clip</code></td>
+<td><code>GradientAscentTrainer</code> / <code>GradDiffTrainer</code> default <code>forget_clip=0.5</code></td>
+</tr>
+<tr>
+<td><code>legacy_constrained_sft</code></td>
+<td>Runner / CLI <code>ConstrainedSFTTrainer</code> trains without its reference model (plain SFT)</td>
+</tr>
+<tr>
+<td><code>legacy_alphasteer_layers</code></td>
+<td>AlphaSteer hooks the matrix fitted on <code>layers[i]</code> at decoder layer <code>i</code></td>
+</tr>
+<tr>
+<td><code>legacy_derta</code></td>
+<td>DeRTa MLE over the harmful prefix too, plus RTO on prefix + refusal rows as a second loss</td>
+</tr>
+<tr>
+<td><code>legacy_resta_drop_rate</code></td>
+<td>ReSta DARE drop rate 0.9 instead of the paper's 0.3</td>
+</tr>
+</tbody>
+</table>
+<p>Other settings that restore earlier defaults: <code>advbench_scorer="gcg"</code> (the
+29-phrase GCG string match), <code>orbench_in_safety_mean=True</code> (one combined
+OR-Bench averaged into <code>safety_mean</code>), and <code>datasets=</code> overrides for the
+HarmBench and WildJailbreak prompt sets (see
+<a href="../../../user-guide/evaluate/benchmarks/">Benchmarks</a>).</p>
 <h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>
 
 

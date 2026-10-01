@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/evaluate/monitoring/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/evaluate/monitoring/">
       
       
         <link rel="prev" href="../pipeline/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Monitoring · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/evaluate/monitoring/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/evaluate/monitoring/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Monitoring · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1353,6 +1353,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#monitoring-a-fine-tune-for-safety-drift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring a fine-tune for safety drift
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#when-to-use" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1454,6 +1465,8 @@
       
         
           
+        
+      
         
       
         
@@ -1714,6 +1727,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#monitoring-a-fine-tune-for-safety-drift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring a fine-tune for safety drift
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#when-to-use" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1861,8 +1885,23 @@ information content of the residual stream via spectral (von Neumann) entropy.</
 <td><code>8</code></td>
 <td>Forward-pass batch size</td>
 </tr>
+<tr>
+<td><code>skip_first_token</code></td>
+<td><code>Optional[bool]</code></td>
+<td><code>None</code></td>
+<td>Leave each prompt's first token (the attention sink) out of the SVD. On Qwen2.5-0.5B its hidden state has about 100x the norm of the other tokens, which made the entropy about 0.01 for every prompt</td>
+</tr>
+<tr>
+<td><code>chat_template</code></td>
+<td><code>Optional[bool]</code></td>
+<td><code>None</code></td>
+<td>Format each prompt as a chat user turn, as generation sees it</td>
+</tr>
 </tbody>
 </table>
+<p><code>None</code> for <code>skip_first_token</code> or <code>chat_template</code> means <code>True</code>, or <code>False</code> under
+<code>safetune.configure(legacy_spectral_monitor=True)</code> (the old monitor: first token
+kept, raw prompts).</p>
 <h2 id="api">API<a class="headerlink" href="#api" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1890,6 +1929,17 @@ information content of the residual stream via spectral (von Neumann) entropy.</
 </tr>
 </tbody>
 </table>
+<h2 id="monitoring-a-fine-tune-for-safety-drift">Monitoring a fine-tune for safety drift<a class="headerlink" href="#monitoring-a-fine-tune-for-safety-drift" title="Permanent link">&para;</a></h2>
+<p>Calibrate on the same probe prompts you will scan, with the model before the
+fine-tune, then scan each checkpoint with those prompts:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">mon</span> <span class="o">=</span> <span class="n">SpectralEntropyMonitor</span><span class="p">(</span><span class="n">aligned_model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">mon</span><span class="o">.</span><span class="n">calibrate</span><span class="p">(</span><span class="n">probe_prompts</span><span class="p">)</span>          <span class="c1"># baseline: these prompts, model before the fine-tune</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">for</span> <span class="n">ckpt</span> <span class="ow">in</span> <span class="n">checkpoints</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">mon</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ckpt</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">flags</span> <span class="o">=</span> <span class="n">mon</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">probe_prompts</span><span class="p">)</span>
+</code></pre></div>
+<p>A flag means the hidden states moved; any fine-tune can cause that, so check
+refusal when a checkpoint is flagged.</p>
 <h2 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h2>
 <p>Use as a defensive primitive alongside text-level graders (e.g. StrongREJECT).
 Not every jailbreak shows a spectral signature. Treat flagged pairs as

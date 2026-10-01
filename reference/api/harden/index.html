@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/reference/api/harden/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/reference/api/harden/">
       
       
         <link rel="prev" href="../">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Harden · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/reference/api/harden/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/reference/api/harden/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Harden · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -645,6 +645,8 @@
       
         
           
+        
+      
         
       
         
@@ -1251,6 +1253,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../error-codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1590,8 +1620,9 @@
 
 
 <h1 id="harden-api">Harden API<a class="headerlink" href="#harden-api" title="Permanent link">&para;</a></h1>
-<p>Train-time defenses. Import from <code>safetune.runner.harden</code>. Each trainer takes
-<code>model, tokenizer, **hyperparams</code> and exposes <code>train(train_dataset, out_dir=...)</code>.</p>
+<p>Train-time defenses. Import from <code>safetune.harden</code> or <code>safetune.runner.harden</code>:
+both hold the same classes. Each trainer takes <code>model, tokenizer, **hyperparams</code>
+and exposes <code>train(train_dataset, out_dir=...)</code>, which returns the checkpoint path.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner.harden</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeGradTrainer</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">SafeGradTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
@@ -1604,9 +1635,11 @@
 <code>PlainSFTTrainer</code>, <code>RepNoiseTrainer</code>, <code>SAPTrainer</code>, <code>SEALTrainer</code>, <code>SEAMTrainer</code>,
 <code>SPPFTTrainer</code>, <code>STARDSSTrainer</code>, <code>SaLoRATrainer</code>, <code>SafeGradTrainer</code>,
 <code>SurgeryTrainer</code>, <code>TARTrainer</code>, <code>TVaccineTrainer</code>, <code>VaccineTrainer</code>.</p>
-<p>See the <a href="../../../user-guide/harden/">Harden guide</a> for method selection. A few methods
-(<code>CSTTrainer</code>, <code>MARTTrainer</code>, <code>DeepRefusalTrainer</code>, <code>AntibodyTrainer</code>) are
-programmatic-only — see the <a href="../../cli/">CLI Reference</a>.</p>
+<p>The <code>transformers.Trainer</code> subclasses these trainers run are exported from
+<code>safetune.harden</code> as <code>&lt;Name&gt;HFTrainer</code> (DOOR: <code>SafetyDOORTrainer</code>); see
+<a href="../../../user-guide/harden/#one-class-per-method">One class per method</a>.</p>
+<p>See the <a href="../../../user-guide/harden/">Harden guide</a> for method selection; all 26 run
+from the CLI — see the <a href="../../cli/">CLI Reference</a>.</p>
 <h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>
 
 

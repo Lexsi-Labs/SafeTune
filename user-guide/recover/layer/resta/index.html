@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/recover/layer/resta/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/recover/layer/resta/">
       
       
         <link rel="prev" href="../safe-lora/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="RESTA · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/recover/layer/resta/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/recover/layer/resta/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="RESTA · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1252,6 +1252,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1883,6 +1894,8 @@
       
         
       
+        
+      
     
     
     
@@ -2150,6 +2163,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2273,8 +2297,10 @@ Fine-tuned Language Models through Task Arithmetic," ACL 2024, arXiv:2402.11746.
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">aligned_model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">dare</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">dare_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">dare_drop_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">dare_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
 </code></pre></div>
 <h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h2>
 <table>
@@ -2315,13 +2341,25 @@ Fine-tuned Language Models through Task Arithmetic," ACL 2024, arXiv:2402.11746.
 <td><code>dare</code></td>
 <td><code>bool</code></td>
 <td><code>True</code></td>
-<td>Apply DARE (drop-and-rescale) sparsification of the delta before adding (drop rate fixed at 0.9)</td>
+<td>Apply DARE (drop-and-rescale) sparsification of the delta before adding</td>
+</tr>
+<tr>
+<td><code>dare_drop_rate</code></td>
+<td><code>float \| None</code></td>
+<td><code>None</code></td>
+<td>DARE drop probability p; <code>None</code> is 0.3, the RESTA paper's value (was 0.9). <code>dare_drop_rate=0.9</code> or <code>safetune.configure(legacy_resta_drop_rate=True)</code> restores the old rate. <code>apply_resta(dare_drop_rate=None)</code> uses the same default; <code>apply_resta</code> keeps <code>dare=False</code> by default</td>
 </tr>
 <tr>
 <td><code>dare_seed</code></td>
 <td><code>int</code></td>
 <td><code>0</code></td>
 <td>Seed for the DARE drop mask</td>
+</tr>
+<tr>
+<td><code>device</code></td>
+<td><code>str \| torch.device \| None</code></td>
+<td><code>None</code></td>
+<td>Where each per-tensor delta is computed. <code>None</code>: the drifted model's weight device. <code>"cpu"</code> keeps the extra memory off the GPU (use it with <code>base</code> / <code>aligned</code> loaded on CPU)</td>
 </tr>
 </tbody>
 </table>
@@ -2344,9 +2382,22 @@ Fine-tuned Language Models through Task Arithmetic," ACL 2024, arXiv:2402.11746.
 <ul>
 <li><strong>A layer-level recovery baseline.</strong> It applies the full alignment delta; unlike <a href="../../whole-model/wise-ft/">WiSE-FT</a>, which interpolates, RESTA adds on top.</li>
 <li><strong><code>dare=True</code> (default):</strong> drop-and-rescale sparsification reduces task-capability interference when <code>alpha</code> is large.</li>
+<li><strong>Small models:</strong> DARE drops a fraction p of the delta's entries and scales the rest by 1/(1-p). On Qwen2.5-0.5B, with the full base-to-instruct delta as the safety vector, p=0.9 broke the model (garbled answers) while p=0.3 restored refusal. On small models, check benign answers after the repair.</li>
 <li><strong>Tune <code>alpha</code>:</strong> values above <code>1.0</code> over-apply the safety delta (useful when drift is severe); values below <code>1.0</code> apply a partial patch.</li>
+<li><strong>Cohere Tiny Aya: use <code>alpha≈0.25</code>.</strong> On Tiny Aya, α=1 breaks the model; use α≈0.25 (sweep: 0.1/0.25 restore refusal with normal answers, ≥0.5 breaks it). The default stays <code>1.0</code>; pass <code>alpha=0.25</code> explicitly.</li>
 <li><strong>Compare to <a href="../../low-rank/lox/">LoX</a>:</strong> LoX keeps only the top-<code>rank</code> singular components of the delta; RESTA uses the full dense delta.</li>
 </ul>
+<h2 id="memory">Memory<a class="headerlink" href="#memory" title="Permanent link">&para;</a></h2>
+<p>ReSta needs the drifted, base and aligned models loaded, in their own dtype.
+The safety vector is streamed one tensor at a time: for each weight,
+<code>aligned - base</code> is computed in fp32, DARE-masked, added to the drifted weight
+in place and freed. The extra memory is a few fp32 copies of the largest
+tensor, not of the model; earlier versions held about three fp32 copies of the
+model at once (≈40 GB for a 3.35B model).</p>
+<p>To keep only the drifted model on the GPU, load <code>base_model</code> and
+<code>aligned_model</code> on CPU and pass <code>device="cpu"</code>: each delta is computed on CPU
+and moved to the drifted weight's device for the add. The result is the same
+as the default.</p>
 
 
 

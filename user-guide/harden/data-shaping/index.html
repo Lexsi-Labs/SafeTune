@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/harden/data-shaping/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/harden/data-shaping/">
       
       
         <link rel="prev" href="../representation/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Data shaping · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/harden/data-shaping/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/harden/data-shaping/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Data shaping · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1808,6 +1808,8 @@
       
         
       
+        
+      
     
     
     
@@ -2580,13 +2582,15 @@ batches so the fine-tuning loop sees both signals.</p>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="p">)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">fp16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">wandb</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="p">)</span>
 </code></pre></div>
 <p>The <code>train_dataset</code> is passed to <code>trainer.train(train_dataset)</code>, not to the
 constructor.</p>
@@ -2639,9 +2643,21 @@ constructor.</p>
 </tr>
 <tr>
 <td><code>bf16</code></td>
+<td><code>bool \| None</code></td>
+<td><code>None</code></td>
+<td>Train in bfloat16. <code>None</code>: from the runtime dtype (<code>safetune.configure(dtype=...)</code>; bf16 where supported)</td>
+</tr>
+<tr>
+<td><code>fp16</code></td>
+<td><code>bool \| None</code></td>
+<td><code>None</code></td>
+<td>Train in float16. <code>None</code>: from the runtime dtype</td>
+</tr>
+<tr>
+<td><code>wandb</code></td>
 <td><code>bool</code></td>
-<td><code>True</code></td>
-<td>Use bfloat16</td>
+<td><code>False</code></td>
+<td>Log to Weights &amp; Biases</td>
 </tr>
 <tr>
 <td><code>optimizer</code></td>
@@ -2670,9 +2686,8 @@ constructor.</p>
 </tbody>
 </table>
 <h3 id="dertaconfig-fields">DeRTaConfig fields<a class="headerlink" href="#dertaconfig-fields" title="Permanent link">&para;</a></h3>
-<p>The runner constructor above uses the <code>DeRTaConfig</code> defaults below. To set
-<code>rto_weight</code> or <code>rto_refusal_text</code>, use the <code>safetune.harden.DeRTaTrainer</code> API
-with an explicit <code>DeRTaConfig</code>.</p>
+<p>Any <code>DeRTaConfig</code> field below can be passed to the constructor as a keyword
+argument, e.g. <code>harden.DeRTaTrainer(model, tokenizer, legacy_derta=True, rto_weight=0.5)</code>.</p>
 <table>
 <thead>
 <tr>
@@ -2693,13 +2708,31 @@ with an explicit <code>DeRTaConfig</code>.</p>
 <td><code>rto_weight</code></td>
 <td><code>float</code></td>
 <td><code>1.0</code></td>
-<td>Weight on the RTO transition loss term</td>
+<td>Weight on the separate RTO loss term; only used by the legacy two-term loss (<code>legacy_derta=True</code>); a value other than <code>1.0</code> without it raises a warning</td>
 </tr>
 <tr>
 <td><code>rto_refusal_text</code></td>
 <td><code>str</code></td>
-<td><code>"I"</code></td>
-<td>Text whose first token is the forced transition-to-refusal token</td>
+<td><code>"Sorry"</code></td>
+<td>Text whose first token is the forced transition-to-refusal token (19701 on Llama-3, the authors' id)</td>
+</tr>
+<tr>
+<td><code>rto_refusal_token_id</code></td>
+<td><code>int \| None</code></td>
+<td><code>None</code></td>
+<td>Explicit transition token id; <code>None</code> derives it from <code>rto_refusal_text</code> with the model's tokenizer</td>
+</tr>
+<tr>
+<td><code>legacy_derta</code></td>
+<td><code>bool \| None</code></td>
+<td><code>None</code></td>
+<td><code>None</code> is the authors' objective (one cross-entropy over MLE and RTO rows) unless <code>safetune.configure(legacy_derta=True)</code>. <code>True</code> gives the old objective: MLE over every response token, harmful prefix included, plus <code>rto_weight</code> x a separate RTO loss on prefix + refusal rows</td>
+</tr>
+<tr>
+<td><code>loss_type</code></td>
+<td><code>str</code></td>
+<td><code>"nll"</code></td>
+<td>Loss type passed to TRL; <code>"nll"</code> keeps the logits the legacy RTO term reads</td>
 </tr>
 </tbody>
 </table>
@@ -2709,12 +2742,13 @@ with an explicit <code>DeRTaConfig</code>.</p>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">DeRTaTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
 </code></pre></div>
-<p>The runner builds its own contamination/refusal pairs and uses the <code>DeRTaConfig</code>
-defaults. To set <code>rto_weight</code> or <code>rto_refusal_text</code>, use the
-<code>safetune.harden.DeRTaTrainer</code> API with an explicit <code>DeRTaConfig</code>.</p>
+<p>The trainer builds its own contamination/refusal pairs unless you pass
+<code>contamination_pairs=</code> and <code>refusal_pairs=</code> to <code>train()</code>. To run DeRTa on your own
+prepared dataset and HF training loop, use <code>harden.DeRTaHFTrainer</code> with a
+<code>DeRTaConfig</code>.</p>
 <h3 id="when-to-use_1">When to use<a class="headerlink" href="#when-to-use_1" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Best for:</strong> teaching refusal at any response position by training on sequences that start with a harmful-response prefix and then refuse (MLE), plus a Reinforced Transition Optimization term that reinforces the transition to the refusal token.</li>
+<li><strong>Best for:</strong> teaching refusal at any response position. As the authors do, MLE rows are a harmful-response prefix followed by the refusal, with the prefix masked so only the refusal is a target; each example also gets one Reinforced Transition Optimization row, the full harmful response with every token relabelled to the refusal token (<code>rto_refusal_text</code>, <code>"Sorry"</code>). One cross-entropy covers both row types. <code>prepare_derta_dataset()</code> sets <code>safe=1</code> only on the RTO rows (<code>legacy=True</code> also marks the prefix rows).</li>
 <li><strong>Trade-offs:</strong> needs paired harmful/refusal responses to build the training sequences.</li>
 </ul>
 <h3 id="citation_1">Citation<a class="headerlink" href="#citation_1" title="Permanent link">&para;</a></h3>
@@ -2799,18 +2833,19 @@ so safe tokens are imitated and unsafe tokens are pushed toward the reference.</
 <a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
 <a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="p">)</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">bf16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">fp16</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="n">wandb</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw_torch&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">logging_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="n">drift_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="p">)</span>
 </code></pre></div>
 <p>The <code>train_dataset</code> is passed to <code>trainer.train(train_dataset)</code>, not to the
-constructor. The runner uses the <code>SPPFTConfig</code> defaults below; to set explicit
-<code>safety_layer_indices</code> or the range bounds, use the <code>safetune.harden.SPPFTTrainer</code>
-API with an explicit <code>SPPFTConfig</code>.</p>
+constructor. Any <code>SPPFTConfig</code> field below can be passed to the constructor as a
+keyword argument, e.g. <code>harden.SPPFTTrainer(model, tokenizer, safety_layer_indices=[8, 9, 10])</code>.</p>
 <h3 id="sppftconfig-fields">SPPFTConfig fields<a class="headerlink" href="#sppftconfig-fields" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2863,9 +2898,8 @@ depth) and fine-tunes the rest. No safety dataset is required.</p>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">SPPFTTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
 </code></pre></div>
-<p>The runner uses the <code>SPPFTConfig</code> defaults above. To set explicit
-<code>safety_layer_indices</code> or the range bounds, use the <code>safetune.harden.SPPFTTrainer</code>
-API with an explicit <code>SPPFTConfig</code>.</p>
+<p>The <code>SPPFTConfig</code> fields above can be passed as keyword arguments; the
+<code>transformers.Trainer</code> subclass underneath is <code>harden.SPPFTHFTrainer</code>.</p>
 <h3 id="when-to-use_3">When to use<a class="headerlink" href="#when-to-use_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Best for:</strong> freezing a contiguous block of safety-critical middle layers while fine-tuning the rest; the frozen set is fixed before training, so no per-step overhead.</li>
@@ -2913,21 +2947,27 @@ triples via <code>raw_examples</code> for automatic formatting, or pre-format an
 <a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>    <span class="p">},</span>
 <a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="p">]</span>
 <a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>
-<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">CSTTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">raw_examples</span><span class="o">=</span><span class="n">raw_examples</span><span class="p">)</span>
-<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">CSTTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">cst_examples</span><span class="o">=</span><span class="n">raw_examples</span><span class="p">)</span>
 </code></pre></div>
+<p>Omit <code>cst_examples</code> to pair the harden contamination set with the matched
+refusal set (what the CLI does):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>safetune<span class="w"> </span>train<span class="w"> </span>--model<span class="w"> </span>Qwen/Qwen2.5-0.5B-Instruct<span class="w"> </span>--algo<span class="w"> </span>cst
+</code></pre></div>
+<p>For the raw TRL <code>DPOTrainer</code> (full control of <code>CSTConfig</code>), import the
+intervention class from its module: <code>from safetune.harden.cst import CSTTrainer</code>.</p>
 <h3 id="when-to-use_4">When to use<a class="headerlink" href="#when-to-use_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Best for:</strong> DPO-style safety training with contrasting safe vs. unsafe response pairs.</li>
 <li><strong>Trade-offs:</strong> requires paired <code>(safe_response, unsafe_response)</code> for every training prompt.</li>
 </ul>
 <h3 id="citation_4">Citation<a class="headerlink" href="#citation_4" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nc">@article</span><span class="p">{</span><span class="nl">cst2024</span><span class="p">,</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="na">title</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">{Configurable Safety Tuning of Language Models with Synthetic Preference Data}</span><span class="p">,</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Gallego}</span><span class="p">,</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span><span class="na">year</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{2024}</span><span class="p">,</span>
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">  </span><span class="na">note</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{arXiv:2404.00495}</span><span class="p">,</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nc">@article</span><span class="p">{</span><span class="nl">cst2024</span><span class="p">,</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="na">title</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">{Configurable Safety Tuning of Language Models with Synthetic Preference Data}</span><span class="p">,</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Gallego}</span><span class="p">,</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span><span class="na">year</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{2024}</span><span class="p">,</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="na">note</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{arXiv:2404.00495}</span><span class="p">,</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="p">}</span>
 </code></pre></div>
 
 

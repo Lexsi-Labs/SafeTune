@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/usage/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/usage/">
       
       
         <link rel="prev" href="../audit-your-model/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="CLI · YAML · Python · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/usage/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/usage/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="CLI · YAML · Python · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1347,6 +1347,8 @@
       
         
       
+        
+      
     
     
     
@@ -1941,9 +1943,14 @@ Python API. Pick the one that fits your workflow.</p>
 <td>Aligned model path (for <code>patch</code>)</td>
 </tr>
 <tr>
+<td><code>--alpha</code></td>
+<td>—</td>
+<td>Strength for <code>patch</code> methods (the trainer's <code>alpha</code>); unset: the method's default</td>
+</tr>
+<tr>
 <td><code>--precision</code></td>
-<td><code>bf16</code></td>
-<td><code>fp16</code> / <code>bf16</code> / <code>fp32</code></td>
+<td><code>None</code></td>
+<td><code>fp16</code> / <code>bf16</code> / <code>fp32</code>; unset: the runtime dtype (bf16 where supported)</td>
 </tr>
 <tr>
 <td><code>--wandb</code></td>
@@ -2045,8 +2052,8 @@ config file.</p>
 </tr>
 <tr>
 <td><code>precision</code></td>
-<td><code>"bf16"</code></td>
-<td><code>fp16</code> / <code>bf16</code> / <code>fp32</code></td>
+<td><code>None</code></td>
+<td><code>fp16</code> / <code>bf16</code> / <code>fp32</code>; <code>None</code>: the runtime dtype (bf16 where supported)</td>
 </tr>
 <tr>
 <td><code>optimizer</code></td>

@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/steer/activation-steering/safe-switch-model/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/steer/activation-steering/safe-switch-model/">
       
       
         <link rel="prev" href="../alpha-steer-model/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="SafeSwitchModel · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/steer/activation-steering/safe-switch-model/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/steer/activation-steering/safe-switch-model/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="SafeSwitchModel · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1940,6 +1940,8 @@
       
         
       
+        
+      
     
     
     
@@ -2334,11 +2336,17 @@
 for the LM head when <code>p_unsafe &gt; threshold</code>.</p>
 <div class="admonition note">
 <p class="admonition-title">The trainer builds the single-stage fallback</p>
-<p><code>SafeSwitchTrainer.calibrate</code> constructs <code>SafeSwitchModel(model, probe_layer=...,
-unsafe_threshold=...)</code> without a prober, compliance prober, or refusal head. In
-that configuration the wrapper falls back to the legacy single-stage probe and
-applies a fixed logit bias to refusal tokens. To use the two-stage prober and the
-trained refusal head, pass them to <code>SafeSwitchModel</code> directly (or load them with
+<p><code>SafeSwitchTrainer.calibrate</code> fits a single-stage prober (logistic regression on
+the mean-pooled hidden state of <code>gate_layer</code>) on the harmful / harmless calibration
+prompts, formatted with the chat template as generation sees them
+(<code>chat_template=True</code>), and builds <code>SafeSwitchModel(model, prober=..., probe_layer=...,
+unsafe_threshold=...)</code> without a compliance prober or refusal head. In that
+configuration <code>generate</code> scores every prompt of a batch; the prompts the prober
+flags get no new tokens (no refusal token ids are set, so there is no logit bias
+to apply) and the others generate normally. In
+0.1.3 and earlier the prober was never fitted, so the wrapper never fired and
+generated exactly like the unwrapped model. To use the two-stage prober and the trained refusal head,
+pass them to <code>SafeSwitchModel</code> directly (or load them with
 <code>SafeSwitchModel.from_pretrained</code>).</p>
 </div>
 <p>Ref: Han et al., "SafeSwitch," Findings of EMNLP 2025, arXiv:2502.01042.</p>
@@ -2347,9 +2355,10 @@ trained refusal head, pass them to <code>SafeSwitchModel</code> directly (or loa
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">model</span><span class="p">:</span> <span class="n">PreTrainedModel</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">PreTrainedTokenizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">gate_layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">gate_layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">chat_template</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 </code></pre></div>
 <h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h2>
 <table>
@@ -2376,9 +2385,9 @@ trained refusal head, pass them to <code>SafeSwitchModel</code> directly (or loa
 </tr>
 <tr>
 <td><code>gate_layer</code></td>
-<td><code>int</code></td>
-<td><code>16</code></td>
-<td>Decoder layer whose last-token hidden state feeds the probe (<code>probe_layer</code> on the wrapper)</td>
+<td><code>int \| None</code></td>
+<td><code>None</code></td>
+<td>Hidden-state layer that feeds the probe (<code>probe_layer</code> on the wrapper); <code>None</code> is layer 16 on a 32-layer model; <code>None</code> scales them to the model's depth (for example 6 on 12 layers). <code>safetune.configure(legacy_steer_layers=True)</code> keeps 16 on any depth</td>
 </tr>
 <tr>
 <td><code>threshold</code></td>
@@ -2386,8 +2395,19 @@ trained refusal head, pass them to <code>SafeSwitchModel</code> directly (or loa
 <td><code>0.5</code></td>
 <td><code>p_unsafe</code> threshold above which the gate fires (<code>unsafe_threshold</code> on the wrapper)</td>
 </tr>
+<tr>
+<td><code>chat_template</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Format the calibration prompts with the tokenizer's chat template before fitting the prober</td>
+</tr>
 </tbody>
 </table>
+<p>The refusal handling (logit bias or refusal head) is applied per prompt: only
+the prompts of a batch scored above <code>threshold</code> get it.
+<code>wrapped.predict_unsafe_probabilities(input_ids, attention_mask)</code> returns one
+probability per prompt; <code>predict_unsafe_probability</code> takes a single prompt and
+raises for a batch.</p>
 <h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">steer</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
@@ -2399,7 +2419,10 @@ trained refusal head, pass them to <code>SafeSwitchModel</code> directly (or loa
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">wrapped</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">calibrate</span><span class="p">(</span><span class="n">harmful</span><span class="o">=</span><span class="n">harmful_prompts</span><span class="p">,</span> <span class="n">harmless</span><span class="o">=</span><span class="n">harmless_prompts</span><span class="p">)</span>
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># If the gate flags the prompt, a logit bias steers generation toward refusal</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">output</span> <span class="o">=</span> <span class="n">wrapped</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">tokenizer</span><span class="p">(</span><span class="s2">&quot;How do I make a weapon?&quot;</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">))</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">prompt</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">apply_chat_template</span><span class="p">(</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;How do I make a weapon?&quot;</span><span class="p">}],</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">tokenize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_generation_prompt</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">output</span> <span class="o">=</span> <span class="n">wrapped</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">))</span>
 </code></pre></div>
 <h2 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h2>
 <ul>

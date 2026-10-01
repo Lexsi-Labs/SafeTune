@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/community/changelog/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/community/changelog/">
       
       
         <link rel="prev" href="../scope/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Changelog · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/community/changelog/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/community/changelog/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Changelog · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -657,6 +657,8 @@
       
         
       
+        
+      
     
     
     
@@ -1011,22 +1013,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v010-initial-public-release" class="md-nav__link">
+  <a href="#016-2026-10-01" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.1.0 — Initial public release
+        [0.1.6] - 2026-10-01
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="v0.1.0 — Initial public release">
+    <nav class="md-nav" aria-label="[0.1.6] - 2026-10-01">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#methods-included" class="md-nav__link">
+  <a href="#pull-requests-in-this-release" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Methods included
+        Pull requests in this release
       
     </span>
   </a>
@@ -1034,10 +1036,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#configuration-and-extensibility" class="md-nav__link">
+  <a href="#hackathon-fixes-cohere-models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration and extensibility
+        Hackathon fixes (Cohere models)
       
     </span>
   </a>
@@ -1045,10 +1047,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#audit-summary" class="md-nav__link">
+  <a href="#interop-st-13" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Audit summary
+        Interop (ST-13)
       
     </span>
   </a>
@@ -1056,10 +1058,437 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+  <a href="#changes-to-previously-reported-numbers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Getting started
+        Changes to previously reported numbers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#013-2026-08-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.3] - 2026-08-30
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.3] - 2026-08-30">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#011-2026-06-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.1] - 2026-06-29
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.1] - 2026-06-29">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2026-06-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.0] - 2026-06-24
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.0] - 2026-06-24">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added-the-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added — the library
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added — documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added-standard-library-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added — standard library files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed-major" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed (Major)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060-2026-05-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.0] - 2026-05-16
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.6.0] - 2026-05-16">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed-major_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed (Major)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-2026-04-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.5.0] - 2026-04-12
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.5.0] - 2026-04-12">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed-major_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed (Major)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-2026-01-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.2.0] - 2026-01-18
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.2.0] - 2026-01-18">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed-major_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed (Major)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed-code-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed (Code Cleanup)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2026-01-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.0] - 2026-01-18
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.0] - 2026-01-18">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
       
     </span>
   </a>
@@ -1142,22 +1571,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v010-initial-public-release" class="md-nav__link">
+  <a href="#016-2026-10-01" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.1.0 — Initial public release
+        [0.1.6] - 2026-10-01
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="v0.1.0 — Initial public release">
+    <nav class="md-nav" aria-label="[0.1.6] - 2026-10-01">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#methods-included" class="md-nav__link">
+  <a href="#pull-requests-in-this-release" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Methods included
+        Pull requests in this release
       
     </span>
   </a>
@@ -1165,10 +1594,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#configuration-and-extensibility" class="md-nav__link">
+  <a href="#hackathon-fixes-cohere-models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration and extensibility
+        Hackathon fixes (Cohere models)
       
     </span>
   </a>
@@ -1176,10 +1605,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#audit-summary" class="md-nav__link">
+  <a href="#interop-st-13" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Audit summary
+        Interop (ST-13)
       
     </span>
   </a>
@@ -1187,10 +1616,437 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+  <a href="#changes-to-previously-reported-numbers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Getting started
+        Changes to previously reported numbers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#013-2026-08-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.3] - 2026-08-30
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.3] - 2026-08-30">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#011-2026-06-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.1] - 2026-06-29
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.1] - 2026-06-29">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2026-06-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.0] - 2026-06-24
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.0] - 2026-06-24">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added-the-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added — the library
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added — documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added-standard-library-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added — standard library files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed-major" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed (Major)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060-2026-05-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.0] - 2026-05-16
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.6.0] - 2026-05-16">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed-major_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed (Major)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-2026-04-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.5.0] - 2026-04-12
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.5.0] - 2026-04-12">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed-major_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed (Major)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-2026-01-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.2.0] - 2026-01-18
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.2.0] - 2026-01-18">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed-major_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed (Major)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removed-code-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed (Code Cleanup)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2026-01-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.0] - 2026-01-18
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.0] - 2026-01-18">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
       
     </span>
   </a>
@@ -1276,73 +2132,716 @@
 
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h2 id="v010-initial-public-release">v0.1.0 — Initial public release<a class="headerlink" href="#v010-initial-public-release" title="Permanent link">&para;</a></h2>
-<p>SafeTune ships a broad roster of LLM-safety methods, organized into a 2-tier taxonomy and
-faithfulness-audited against their cited papers.</p>
-<h3 id="methods-included">Methods included<a class="headerlink" href="#methods-included" title="Permanent link">&para;</a></h3>
+<p>All notable changes to SafeTune are documented in this file.</p>
+<p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
+and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
+<h2 id="016-2026-10-01">[0.1.6] - 2026-10-01<a class="headerlink" href="#016-2026-10-01" title="Permanent link">&para;</a></h2>
+<p>The PyPI 0.1.6 (the last PyPI release was 0.1.5). The <code>[0.2.0] - 2026-01-18</code>
+heading further down is an older internal version, not this one.</p>
+<h3 id="pull-requests-in-this-release">Pull requests in this release<a class="headerlink" href="#pull-requests-in-this-release" title="Permanent link">&para;</a></h3>
+<p>SafeTune-Internal pull requests, in stack order.</p>
+<ul>
+<li>ST-03 (#2) Streaming shard-by-shard merge and legacy delta converter.
+  Separate PR, not in this stack; it lands on its own.</li>
+<li>ST-05 (#3) One settings mechanism for SafeTune (<code>configure()</code> + YAML),
+  hardware and silent-ignore fixes.</li>
+<li>ST-06 (#4) One class per method, keyword-safe merge functions, README that
+  runs as written.</li>
+<li>ST-07 (#5) Evaluate reliability: loud failures, all 18 benchmarks load, one
+  AdvBench scorer.</li>
+<li>ST-08 (#8) Demo notebooks rewritten on the final API, re-executed with real
+  outputs.</li>
+<li>ST-09 (#6) Method fixes: disjoint BeaverTails splits, DeRTa token helper,
+  depth-relative steer layers, SafeSwitch prober.</li>
+<li>ST-10 (#7) Integrate ST-06, ST-07 and ST-09 with cross-ticket fixes (DeRTa
+  token, CLI dtype).</li>
+<li>ST-11 (#9) Method fixes (CAST, monitor, GradientAscent, ConstrainedSFT, DeRTa,
+  steer) and paper-sized benchmark defaults.</li>
+<li>ST-12 (#10) Aya Vision and North support, <code>--safety-dataset</code>,
+  <code>transformers&gt;=5.15</code>.</li>
+<li>ST-13 Interop with the Lexsi stack: CuratorKIT dataset folders, CircuitKIT
+  scores, <code>lexsi_provenance.json</code>, <code>push_to_hub</code>, version 0.1.6.</li>
+<li>Hackathon fixes (#18 and the PR stacked on it), below.</li>
+</ul>
+<h3 id="hackathon-fixes-cohere-models">Hackathon fixes (Cohere models)<a class="headerlink" href="#hackathon-fixes-cohere-models" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>max_len</code> is sized from the chat template.</strong> The QA data loaders default
+  to <code>max_len=None</code>: <code>max(256, longest templated prompt + 256)</code>, capped at</li>
+<li>Before, Tiny Aya's ~366-token preamble filled a fixed 256 and training
+  ran on zero supervised tokens. An explicit <code>max_len</code> that leaves none raises.</li>
+<li><strong>Unlearn trains in fp32 for bf16 models too.</strong> <code>upcast=True</code> (default)
+  replaces <code>upcast_fp16</code>, which is a deprecated alias.</li>
+<li><strong>Refusal-direction sweep:</strong> new <code>RefusalDirectionConfig.min_layer_fraction</code>
+  (default 0.2): an early-layer winner, or none that lowers the refusal rate,
+  falls back to the middle layer with a warning. Ties break toward the middle.</li>
+<li><strong>ReSta streams the safety vector one tensor at a time</strong>; extra memory is a
+  few fp32 copies of the largest tensor instead of about three of the model.
+  New <code>device=</code> on <code>apply_resta</code> / <code>ReStaTrainer</code> (<code>"cpu"</code> keeps it off the GPU).</li>
+<li><strong>One BOS on vLLM text prompts and the suite's WildGuard judge.</strong></li>
+<li><strong>Batched generation left-pads</strong> a passed-in right-padded tokenizer and
+  restores its padding side afterwards.</li>
+</ul>
+<h3 id="interop-st-13">Interop (ST-13)<a class="headerlink" href="#interop-st-13" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Datasets in.</strong> <code>--train-dataset</code> / <code>--safety-dataset</code> (with the new
+  <code>--train-config</code> / <code>--safety-config</code>) and every harden trainer's
+  <code>train(...)</code> take a dataset folder plus config name, as
+  <code>load_dataset(folder, config)</code> reads it (e.g. a CuratorKIT export and
+  <code>sft_sharegpt</code>), as well as Hub ids, table names and single files. In
+  Python: <code>trainer.train("./curated_out", dataset_config="sft_sharegpt")</code>, or a
+  raw <code>datasets.Dataset</code>. SafeTune tokenises raw rows itself with the chat
+  template: chat <code>messages</code>, ShareGPT <code>conversations</code>, Alpaca
+  <code>instruction</code>/<code>input</code>/<code>output</code> (the <code>input</code> is kept) and prompt/response or
+  DPO <code>prompt</code>/<code>chosen</code> columns, as strings or turn lists.</li>
+<li><strong>Prompt-only data is an error.</strong> Rows without an assistant response
+  (CuratorKIT <code>ppo</code> / <code>grpo</code>, a bare <code>text</code> column) used to be fine-tuned on
+  as empty responses without a warning. Now such rows are skipped with a
+  warning, and a dataset with none left raises <code>ValueError</code>.</li>
+<li>A dataset folder of several files no longer loads its first file silently
+  when the split is not found; it raises and lists the files. Folders with a
+  <code>README.md</code> (HF dataset folders) load with <code>load_dataset</code>, so
+  <code>manifest.json</code>, <code>rejected.jsonl</code> and <code>lexsi_provenance.json</code> are never
+  read as data.</li>
+<li><strong>CircuitKIT scores.</strong> <code>load_circuit_info_from_file</code> / <code>get_circuit_info</code>
+  read CircuitKIT <code>*_scores.json</code>: the <code>safety_units</code> / <code>layer_suggestions</code>
+  keys CircuitKIT 0.2 writes, and files with only <code>node_scores</code>, from which
+  the same keys are derived (<code>circuit_info_from_node_scores</code>, top 20% of
+  nodes by default). A file with none of these keys raises <code>ValueError</code>; it
+  used to return an empty <code>CircuitInfo</code>.</li>
+<li><strong>Provenance.</strong> Every checkpoint (<code>save_checkpoint</code>: harden, recover,
+  unlearn, <code>safetune patch --output</code>), results summaries directory and
+  steering-vector directory gets a <code>lexsi_provenance.json</code>
+  (<code>lexsi.provenance/1</code>), with the source model and the input datasets. When
+  an input folder has its own <code>lexsi_provenance.json</code> it is embedded under
+  <code>inputs[].provenance</code>, so lineage chains from CuratorKIT through SafeTune.
+  <code>safetune.provenance</code> has the reader and writer.</li>
+<li><strong>Hub.</strong> <code>safetune.push_to_hub(path, repo_id)</code> uploads a checkpoint folder
+  (model, tokenizer, processor, provenance) or a results JSON with its
+  provenance, creating the repo if needed.</li>
+<li><strong>Version.</strong> 0.1.6. <code>safetune.__version__</code> comes from the installed package
+  metadata; the release script and workflow no longer edit <code>__init__.py</code>.
+  Deprecation messages that said "stops working in 0.2" now say 0.3.</li>
+</ul>
+<h3 id="changes-to-previously-reported-numbers">Changes to previously reported numbers<a class="headerlink" href="#changes-to-previously-reported-numbers" title="Permanent link">&para;</a></h3>
+<p>Every default changed since 0.1.3 that moves a number SafeTune reported
+before, and the argument or <code>safetune.configure()</code> key that restores the old
+behaviour. Explicit arguments win over <code>configure()</code>; the same keys work in the
+<code>runtime:</code> / <code>datasets:</code> blocks of a <code>--config</code> YAML. None of these results
+were re-run; reproduce an old number with its switch.</p>
 <table>
 <thead>
 <tr>
-<th>Pillar</th>
-<th>Methods</th>
-<th>What it does</th>
+<th>What changed</th>
+<th>Affected numbers</th>
+<th>Restore the old behaviour</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Harden</strong></td>
-<td>27</td>
-<td>Training-time defenses — keep safety intact through fine-tuning</td>
+<td>HarmBench is the paper's 400 text behaviours (standard 200 + contextual 100 + copyright 100); was standard only (200)</td>
+<td>every HarmBench number: <code>evaluate()</code>, <code>trainer.evaluate()</code>, <code>load_bench_prompts</code>, <code>load_prompts</code></td>
+<td><code>configure(datasets={"harmbench": {"config": "standard"}})</code> or <code>load_harmbench(subset="standard")</code></td>
 </tr>
 <tr>
-<td><strong>Recover</strong></td>
-<td>26</td>
-<td>Training-free weight-space recovery for drifted models</td>
+<td>WildJailbreak is the first 500 <code>adversarial_harmful</code> rows of the eval set (the selection <code>load_prompts()</code> has always used); <code>evaluate()</code> and <code>trainer.evaluate()</code> loaded all 2,210 rows, 210 of them benign</td>
+<td>every WildJailbreak number outside <code>load_prompts()</code></td>
+<td><code>configure(datasets={"wildjailbreak": {"where": None, "limit": None}})</code></td>
 </tr>
 <tr>
-<td><strong>Unlearn</strong></td>
-<td>6</td>
-<td>Capability removal via forget-set training</td>
+<td>OR-Bench hard-1k (1,319 rows) and toxic (655) are reported as separate benchmarks: <code>orbench_overrefusal</code> and <code>orbench_toxic_refusal</code> in <code>trainer.evaluate()</code>, <code>orbench_hard</code> / <code>orbench_toxic</code> in <code>evaluate()</code> and steer evaluation; one combined <code>orbench_refusal</code> before</td>
+<td>OR-Bench numbers; <code>safety_mean</code></td>
+<td><code>configure(orbench_in_safety_mean=True)</code></td>
 </tr>
 <tr>
-<td><strong>Steer</strong></td>
-<td>19</td>
-<td>Inference-time intervention without weight changes</td>
+<td><code>safety_mean</code> averages the harm benchmarks only; OR-Bench (both splits) is out; before, one OR-Bench refusal rate over both splits was averaged in as "higher = safer"</td>
+<td>every <code>safety_mean</code> / ρ</td>
+<td><code>configure(orbench_in_safety_mean=True)</code></td>
 </tr>
 <tr>
-<td><strong>Interpret</strong></td>
-<td>6</td>
-<td>Refusal-direction extraction, safety-neuron localization, circuit discovery</td>
+<td>A bare <code>StringMatchJudge()</code> uses the 12-prefix scorer (<code>"prefix"</code>), as <code>trainer.evaluate()</code> always did for AdvBench; it used the 29-phrase GCG substring check</td>
+<td>ASRT and Best-of-N attack success; any script with a bare <code>StringMatchJudge()</code></td>
+<td><code>StringMatchJudge(mode="gcg")</code> or <code>configure(advbench_scorer="gcg")</code></td>
 </tr>
 <tr>
-<td><strong>Evaluate</strong></td>
-<td>24</td>
-<td>Red-team attacks and benchmark scoring</td>
+<td><code>run_judge("advbench")</code> drops <code>&lt;think&gt;...&lt;/think&gt;</code> before matching, as <code>trainer.evaluate()</code> did</td>
+<td>AdvBench scores of reasoning models via <code>run_judge</code></td>
+<td>none (the runner never scored think blocks)</td>
+</tr>
+<tr>
+<td><code>load_prompts("xstest" \| "jailbreakbench")</code> use <code>walledai/XSTest</code> and JBB-Behaviors <code>harmful</code>; were <code>natolambert/xstest-v2-copy</code> (gpt4) and <code>walledai/JailbreakBench</code> (100 harmful + 100 benign)</td>
+<td><code>load_prompts</code> numbers for these two</td>
+<td><code>configure(datasets={"xstest": {"source": "natolambert/xstest-v2-copy", "split": "gpt4"}})</code>; <code>configure(datasets={"jailbreakbench": {"source": "walledai/JailbreakBench", "split": "train"}})</code></td>
+</tr>
+<tr>
+<td>Evaluation raises when a benchmark fails; before, it was dropped from <code>safety_mean</code> silently</td>
+<td><code>safety_mean</code> of runs where a benchmark failed</td>
+<td><code>configure(eval_strict=False)</code> (the failure is logged and the benchmark still left out)</td>
+</tr>
+<tr>
+<td>Steer default layers scale with depth (unchanged on 32 layers)</td>
+<td>CAA, CAST, LinearProbeGuard, SafeSwitch, AlphaSteer on any model that is not 32 layers deep, e.g. Qwen2.5-0.5B (24), Llama-3.2-3B (28), Gemma-3-4B (34)</td>
+<td><code>configure(legacy_steer_layers=True)</code> or explicit layer arguments</td>
+</tr>
+<tr>
+<td>SafeSwitch fits its prober in <code>calibrate</code>; before, it never fired</td>
+<td>SafeSwitch on every model (old numbers equal the unsteered model's)</td>
+<td>none: evaluate the unsteered model</td>
+</tr>
+<tr>
+<td>TAR's default adversary set is disjoint from the harden contamination set</td>
+<td>TAR without a <code>harm_dataset</code></td>
+<td><code>configure(legacy_beavertails_splits=True)</code></td>
+</tr>
+<tr>
+<td>DeRTa's RTO token is "Sorry" under the model's tokenizer (19701 only on Llama-3)</td>
+<td>DeRTa on every non-Llama-3 model</td>
+<td><code>rto_refusal_token_id=19701</code></td>
+</tr>
+<tr>
+<td>DeRTa trains as the authors do: the harmful prefix is masked, one RTO row per example (the harmful response, relabelled "Sorry"), one cross-entropy</td>
+<td>DeRTa on every model</td>
+<td><code>DeRTaTrainer(legacy_derta=True)</code> or <code>configure(legacy_derta=True)</code></td>
+</tr>
+<tr>
+<td>ConstrainedSFT through the runner and CLI trains against its aligned reference; it was plain SFT</td>
+<td>ConstrainedSFT (<code>--algo constrained</code>) on every model</td>
+<td><code>ConstrainedSFTTrainer(use_reference=False)</code> or <code>configure(legacy_constrained_sft=True)</code></td>
+</tr>
+<tr>
+<td><code>GradientAscentTrainer</code> and <code>GradDiffTrainer</code> default <code>forget_clip=None</code> (TOFU's pure ascent); at 0.5 the forget term had no gradient on real data</td>
+<td>GradientAscent and GradDiff (GradDiff trained on the retain set only)</td>
+<td><code>forget_clip=0.5</code> or <code>configure(legacy_ga_forget_clip=True)</code></td>
+</tr>
+<tr>
+<td>CAST fits its gate on chat-formatted prompts and gates each prompt of a batch; the gate never fired on chat models</td>
+<td>CAST on every chat model (old numbers equal the unsteered model's when the gate never fired)</td>
+<td><code>CASTTrainer(chat_template=False, per_prompt_gate=False)</code> or <code>configure(legacy_cast_gate=True)</code></td>
+</tr>
+<tr>
+<td>AlphaSteer hooks each matrix at the layer it was fitted on (it fitted 10-19 and hooked 0-9)</td>
+<td>AlphaSteer on every model</td>
+<td><code>AlphaSteerTrainer(legacy_alphasteer_layers=True)</code> or <code>configure(legacy_alphasteer_layers=True)</code></td>
+</tr>
+<tr>
+<td>ReSta's DARE drop rate is the paper's 0.3; it was 0.9</td>
+<td>ReSta with its defaults (DARE on)</td>
+<td><code>ReStaTrainer(dare_drop_rate=0.9)</code> or <code>configure(legacy_resta_drop_rate=True)</code></td>
+</tr>
+<tr>
+<td><code>SpectralEntropyMonitor</code> leaves each prompt's first token (the attention sink) out and reads chat-formatted prompts</td>
+<td>monitor flags and entropies</td>
+<td><code>SpectralMonitorConfig(skip_first_token=False, chat_template=False)</code> or <code>configure(legacy_spectral_monitor=True)</code></td>
+</tr>
+<tr>
+<td>Device and dtype are chosen per host (cuda &gt; mps &gt; cpu; bf16 where native, fp16 on pre-Ampere CUDA, fp32 on CPU); the CLI loads models in that dtype</td>
+<td>runs on CPU, MPS or pre-Ampere CUDA; unchanged on Ampere+ CUDA</td>
+<td><code>configure(device=..., dtype="bfloat16")</code></td>
 </tr>
 </tbody>
 </table>
-<h3 id="configuration-and-extensibility">Configuration and extensibility<a class="headerlink" href="#configuration-and-extensibility" title="Permanent link">&para;</a></h3>
+<p>Not number-changing: <code>eval_strict=True</code> and warnings for misspelled trainer
+arguments stay the defaults, and MPS still defaults to bf16 (macOS 14+).
+<code>CAAModel</code> hooks are on only inside <code>with</code> / <code>install()</code> and during its own
+<code>generate()</code> / <code>__call__</code> (numbers through the wrapper are unchanged; call
+<code>install()</code> after building it for the old always-on hooks), and AdaSteer
+recomputes its coefficient per prompt also under <code>with</code> + <code>model.generate</code>
+(its own <code>generate()</code> already did).</p>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong><code>SafeTuneConfig</code></strong> — declarative YAML config for CLI runs
-  (<code>SafeTuneConfig.from_yaml</code>), plus the <code>--config</code> CLI flag.</li>
-<li><strong><code>--train-dataset</code> / <code>--train-split</code></strong> CLI flags — training data fully
-  configurable.</li>
-<li><strong><code>safetune.runner._registry</code></strong> — centralised algo registry;
-  <code>register_harden()</code> / <code>register_recover()</code> / <code>register_unlearn()</code> let
-  third-party code extend the method menu at runtime.</li>
+<li><strong>Runtime settings</strong>: <code>safetune.configure(**settings)</code> / <code>safetune.get_config()</code>
+  (and a <code>runtime:</code> block in <code>--config</code> YAML) set device, dtype, generation
+  lengths, batch sizes, prompt caps, vLLM / lm-eval settings, judge settings,
+  AdvBench refusal prefixes and LoRA defaults. Defaults are unchanged.</li>
+<li><strong>Dataset overrides</strong>: every built-in dataset is resolved by short name from
+  <code>safetune.data.dataset_ids</code>; point any of them at an HF id, a local
+  <code>.jsonl</code>/<code>.json</code>/<code>.csv</code>/<code>.parquet</code> file or a URL with
+  <code>configure(datasets={...})</code> or a <code>datasets:</code> YAML block.</li>
+<li>Results JSON records the effective runtime settings and dataset specs.</li>
+<li><code>TransformersBackend</code> accepts a steering wrapper (<code>CASTModel</code>,
+  <code>AdaSteerModel</code>, ...) as its model, so generation goes through the
+  wrapper's own <code>generate()</code> (CAST's gate, AdaSteer's per-prompt coefficient).</li>
+<li><code>examples/data/refusal_probes_demo.jsonl</code>: 8 demo rows in 4 languages for
+  showing <code>configure(datasets=...)</code>.</li>
+<li><strong>Vision-language models</strong> (Aya Vision, North / <code>cohere_compass</code>) load, train
+  and save everywhere a model is loaded by path: the CLI, the runner, harden
+  reference models, <code>evaluate()</code> and the quickstarts pick
+  <code>AutoModelForImageTextToText</code> from the config. Every pillar works on the
+  language model's decoder layers, default LoRA stays off the vision tower, and
+  saved checkpoints keep the processor. Text-only data. <code>safetune[vision]</code> adds
+  <code>torchvision</code>, which North needs.</li>
+<li><code>safetune train --safety-dataset NAME [--safety-split SPLIT]</code>: the safety set
+  for harden methods that take one (a <code>dataset_ids</code> name, HF id, local file or
+  URL); methods without one exit with an error.</li>
 </ul>
-<h3 id="audit-summary">Audit summary<a class="headerlink" href="#audit-summary" title="Permanent link">&para;</a></h3>
-<p>Every method was audited against its cited paper and carries a badge: most are
-Faithful, a few are Simplified-correct or Variant (they run correctly but must
-not be cited as the named method). See the
-<a href="../../reference/feature-map/">Feature Map</a> for per-method verdicts and
-<a href="../scope/">Scope &amp; Limitations</a> for what each verdict means.</p>
-<h3 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>safetune
-</code></pre></div>
-<p>See <a href="../../getting-started/">Getting started</a> for a 60-second quickstart,
-<a href="../../user-guide/">User Guide</a> for per-pillar usage, and
-<a href="../../examples/notebooks/">Notebooks</a> for Colab notebooks.</p>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Requires <code>transformers&gt;=5.15,&lt;6</code> (North needs 5.15).</li>
+<li>The ten notebooks in <code>examples/notebooks/</code> use the one runner API,
+  <code>configure()</code> and library helpers instead of copied prompt lists and
+  helpers. Their committed outputs come from a CPU run, and the recover and
+  monitoring notebooks use a real drifted checkpoint instead of noise.</li>
+<li><strong>One harden API</strong>: <code>safetune.harden.&lt;Name&gt;Trainer</code> is now the same class as
+  <code>safetune.runner.harden.&lt;Name&gt;Trainer</code> for every harden method. The
+  <code>transformers.Trainer</code> subclasses that used to have those names are
+  <code>&lt;Name&gt;HFTrainer</code> (DOOR: <code>SafetyDOORTrainer</code>). The old HF-style call
+  (<code>&lt;Name&gt;Trainer(model=, args=, train_dataset=...)</code>) and the old submodule
+  names still work until 0.2, with a <code>DeprecationWarning</code>.</li>
+<li><strong>Recover merge functions</strong> (<code>task_arithmetic</code>, <code>somf_merge</code>,
+  <code>learn_somf_mask</code>, <code>apply_resta</code>, <code>apply_lox</code>, <code>apply_lssf</code>,
+  <code>apply_safemerge</code>, <code>apply_aaq</code>, <code>apply_safe_lora</code>) take everything after the
+  model by keyword, so <code>base</code> and <code>aligned</code> can no longer be swapped by
+  position. Old positional calls keep their old order until 0.2, with a
+  <code>DeprecationWarning</code>.</li>
+<li><strong>Evaluation failures are loud.</strong> <code>evaluate()</code>, <code>evaluate_with_vllm_backend()</code>
+  and every trainer's <code>.evaluate()</code> raise when a benchmark fails to load or
+  score (the error names the benchmark). <code>strict=False</code> or
+  <code>configure(eval_strict=False)</code> records <code>{"error": ...}</code> for it and runs the
+  rest. Unknown benchmark or judge names raise <code>ValueError</code> before anything
+  loads. <code>safetune eval</code> exits 1 when any benchmark failed, and the evaluate
+  quickstart no longer reports success after a failed step.</li>
+<li><strong>OR-Bench outside <code>safety_mean</code>.</strong> OR-Bench hard-1k (over-refusal,
+  <code>orbench_overrefusal</code>) and toxic (<code>orbench_toxic_refusal</code>) are reported on
+  their own, as <code>orbench_hard</code> / <code>orbench_toxic</code> in <code>evaluate()</code>, and
+  <code>safety_mean</code> averages the harm benchmarks only.
+  <code>configure(orbench_in_safety_mean=True)</code> restores the old single
+  <code>orbench_refusal</code> over both splits, averaged into the mean.</li>
+<li><strong>Benchmark sizes follow the SafeTune paper</strong>: HarmBench 400 (standard +
+  contextual + copyright), WildJailbreak 500 (the first 500
+  <code>adversarial_harmful</code> rows). Each is a dataset-table entry you can override.</li>
+<li><strong>One AdvBench scorer.</strong> <code>StringMatchJudge(mode="prefix" | "gcg")</code> is the only
+  implementation. <code>trainer.evaluate()</code> and <code>run_judge("advbench")</code> use
+  <code>configure(advbench_scorer=...)</code>, default <code>"prefix"</code> (what <code>trainer.evaluate()</code>
+  always reported); <code>run_judge("advbench")</code> now also drops <code>&lt;think&gt;</code> blocks.
+  A bare <code>StringMatchJudge()</code> (ASRT, Best-of-N) follows the same setting, so
+  its default is <code>"prefix"</code> too; <code>mode="gcg"</code> keeps the 29-phrase check.</li>
+<li><code>load_prompts("xstest" | "jailbreakbench")</code> use the same sources as
+  <code>evaluate()</code> (<code>walledai/XSTest</code>, JBB-Behaviors harmful); RWKU loads the
+  <code>forget_level2</code> QA probes.</li>
+</ul>
+<h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The unused pack-runner HF dataset map (<code>load_pack_from_hf</code>,
+  <code>run_safety_eval_from_hf</code> and the core eval CLI's <code>safety_eval</code> command).</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>evaluate()</code> can run every registered benchmark: <code>jailbreakbench</code>, <code>muse</code>,
+  <code>rwku</code> and <code>safedialbench</code> no longer fail with <code>TypeError</code>, and <code>star1</code>,
+  <code>mmlu</code> and <code>jailbreakbench</code> find their prompts.</li>
+<li><code>sentencepiece</code> and <code>tiktoken</code> are declared; the default WildGuard judge
+  needs them.</li>
+<li>CTRAP, SEAM, SEAL, ConstrainedSFT and DeRTa runner trainers now use their
+  method kwargs; unknown trainer kwargs warn with the closest valid name.</li>
+<li>Device auto-selects cuda, then mps, then cpu; bf16 is used only where
+  supported (fp16 on older CUDA, fp32 on CPU), so harden training no longer
+  fails on CPU / T4, and lm-eval no longer hardcodes <code>cuda:0</code>.</li>
+<li>Judges fall back to transformers when vLLM is not installed.</li>
+<li><code>import safetune.harden.lisa</code> (or any <code>safetune.&lt;pillar&gt;.&lt;module&gt;</code> path) no
+  longer loads the module a second time with its own copies of every class.</li>
+<li>README: every Python block runs as written on CPU (except Evaluate, which
+  needs a GPU for its judge); the Steer example uses <code>alpha=0.3</code> instead of the
+  default 20, which turned output into noise on the README's 0.5B model.</li>
+<li>The TAR adversary fallback set no longer shares prompts with the harden
+  contamination set (83 of 256 did on BeaverTails <code>30k_train</code>); only TAR's
+  default data changes. <code>configure(legacy_beavertails_splits=True)</code> restores
+  the old selection.</li>
+<li>Steer layer defaults (CAA, CAST, LinearProbeGuard, SafeSwitch, AlphaSteer)
+  scale with model depth and are unchanged on 32-layer models. On shallower
+  models CAA and CAST no longer return wrappers that change nothing, and
+  LinearProbeGuard and AlphaSteer no longer fail; on 24/28/36-layer models the
+  default layers move. <code>configure(legacy_steer_layers=True)</code> restores the
+  absolute indices.</li>
+<li><code>SafeSwitchTrainer.calibrate</code> fits its prober on the calibration prompts;
+  before, the prober was never trained and the wrapper never fired.</li>
+<li>DeRTa's RTO transition token is the first token of "Sorry" under the
+  model's tokenizer (19701 on Llama-3, the authors' id); before, every
+  tokenizer got 19701, an unrelated token outside Llama-3.
+  <code>rto_refusal_token_id=19701</code> restores the old id.</li>
+<li>CAST fits its gate on chat-formatted prompts, as generation sees them, and
+  gates each prompt of a batch; the gate never fired on chat models. SafeSwitch
+  fits its prober on chat-formatted prompts and scores every prompt of a batch
+  (it scored the first). AlphaSteer hooks each matrix at the layer it was
+  fitted on and runs on GPT-2.</li>
+<li><code>CAAModel</code> no longer steers the model as soon as it is built, and still
+  steers through its own <code>generate()</code> after a <code>with</code> block; AdaSteer no longer
+  reuses the first prompt's coefficient under <code>with</code> + <code>model.generate</code>.</li>
+<li><code>SpectralEntropyMonitor</code> leaves out the attention-sink token, which made the
+  spectrum rank-1 and the entropy ~0 for every prompt, and reads chat-formatted
+  prompts. Calibrated on the prompts it scans, it now flags a real safety drift
+  (<code>examples/notebooks/safety_monitoring.ipynb</code>).</li>
+<li>DeRTa masks the harmful prefix and applies RTO to the harmful response only,
+  in one cross-entropy, as the authors do; with trl 1.x its old RTO term had
+  been silently skipped (<code>loss_type="chunked_nll"</code> returns no logits).</li>
+<li>ConstrainedSFT through the runner and CLI trains against its aligned
+  reference (it was plain SFT).</li>
+<li><code>GradientAscentTrainer</code> / <code>GradDiffTrainer</code> no longer clip the forget loss by
+  default; the old 0.5 clip zeroed its gradient on real data.</li>
+<li><code>ReStaTrainer</code> takes <code>dare_drop_rate</code>, default 0.3 (the RESTA paper's value;
+  it was 0.9, which broke small models).</li>
+<li><code>safetune train</code>, <code>patch</code> and <code>unlearn</code> load models in the runtime dtype
+  (fp32 on CPU). transformers 5 loads bf16 by default, and CLI training on
+  CPU ran at about 110 s per step.</li>
+</ul>
+<h2 id="013-2026-08-30">[0.1.3] - 2026-08-30<a class="headerlink" href="#013-2026-08-30" title="Permanent link">&para;</a></h2>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Docs</strong>: EMNLP 2026 Demo tab with the accepted paper, walkthrough, and
+  artifacts (<code>docs/emnlp-2026-demo/</code>).</li>
+</ul>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>License</strong>: updated to <strong>LSAL v1.2</strong> (see <code>LICENSE.md</code>). Academic research
+  and teaching remain free on MIT-like terms. Organizations must now acknowledge
+  their use to Lexsi Labs or obtain permission before internal evaluation,
+  auditing, or use on their own models (Section 1A). Commercial use still
+  requires a separate license. The patent clause now reserves all patent rights
+  (Clear BSD style) instead of granting a noncommercial patent license. New
+  clauses: users bear responsibility for their own use and deployment decisions
+  (Section 7, with an indemnity limited to organizational and commercial use),
+  third-party base-model and benchmark licenses continue to apply (Section 4A),
+  modified redistributions must be marked as modified (Section 2), and
+  survival, severability, and version-applicability terms (Sections 8 and 9).</li>
+<li><strong>License</strong>: SafeTune is now released under the <strong>Lexsi Labs Source Available
+  License (LSAL) v1.1</strong> (see <code>LICENSE.md</code>) — an MIT-style grant restricted to
+  noncommercial purposes, with a Responsible Use clause barring production
+  deployment of unrepaired drifted checkpoints. Earlier changelog entries
+  referring to the MIT License describe pre-LSAL releases. Commercial
+  licensing: support@lexsi.ai.</li>
+</ul>
+<h2 id="011-2026-06-29">[0.1.1] - 2026-06-29<a class="headerlink" href="#011-2026-06-29" title="Permanent link">&para;</a></h2>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>safetune.config.SafeTuneConfig</code></strong> — declarative YAML config for CLI runs.
+  <code>SafeTuneConfig.from_yaml(path)</code> loads all standard flags plus
+  method-specific hyperparameters (any unknown key lands in <code>method_kwargs</code>
+  and is forwarded directly to the trainer constructor).</li>
+<li><strong><code>--config</code> CLI flag</strong> — <code>safetune train --config run.yaml</code> injects YAML
+  values as parser defaults; explicit CLI flags still take precedence.</li>
+<li><strong><code>--train-dataset</code> / <code>--train-split</code> CLI flags</strong> — training dataset is now
+  fully configurable. <code>--train-dataset beavertails</code> (default) or any HF
+  dataset id; <code>--train-split 30k_train</code> (default) or any split name.</li>
+<li><strong><code>safetune.runner._registry</code></strong> — centralised algo registry replacing the
+  inline dicts in <code>cli.py</code>. <code>register_harden()</code>, <code>register_recover()</code>, and
+  <code>register_unlearn()</code> let third-party code extend the method menu at runtime
+  without editing library files.</li>
+<li><strong><code>SaLoRATrainer</code></strong> — <code>lora_alpha</code>, <code>lora_dropout</code>, and <code>target_modules</code>
+  are now configurable constructor kwargs (previously hardcoded inside <code>train()</code>).</li>
+<li><strong><code>_RecoverBase.apply()</code> contract</strong> — method is now documented: return the
+  patched model, never write to disk, accept method-specific keyword overrides.</li>
+<li><strong>Dev runbook §6</strong> — end-to-end guide for adding a new method: implement
+  trainer → re-export → add one registry entry.</li>
+</ul>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>cli.py</code> now imports algo registries from <code>runner/_registry.py</code> instead of
+  maintaining inline dicts.  <code>safetune list</code> output is unchanged.</li>
+<li><code>--no-peft</code> flag removed from the CLI (it was registered but never consumed).</li>
+</ul>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>_derive_model_id</code> duplicated across <code>_HardenBase</code> and <code>_RecoverBase</code> —
+  consolidated into <code>model_utils.derive_model_id()</code>.</li>
+<li>Dead <code>R = None</code> / <code>_ensure_recover_imports()</code> globals removed from
+  <code>runner/recover/_base.py</code> (subclass files already imported directly).</li>
+<li>Stray multi-line bug-fix comment removed from <code>LoXHardenTrainer.train()</code>.</li>
+</ul>
+<h2 id="010-2026-06-24">[0.1.0] - 2026-06-24<a class="headerlink" href="#010-2026-06-24" title="Permanent link">&para;</a></h2>
+<p><strong>First public release.</strong> SafeTune is a library of ~100 alternative LLM-safety
+methods — train-time hardening, weight-space recovery and unlearning,
+inference-time steering, plus diagnosis and evaluation — for the Hugging Face
+ecosystem. Every method is faithfulness-audited against its cited paper.</p>
+<p>Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
+(full suite: 354 passed, 4 skipped). Docs build clean under <code>mkdocs --strict</code>.</p>
+<h3 id="added-the-library">Added — the library<a class="headerlink" href="#added-the-library" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>~100 methods across 4 intervention pillars + 2 instrumentation tools:</strong></li>
+<li><strong>Harden</strong> (26 methods): <code>SafeGradTrainer</code>, <code>LisaTrainer</code>, <code>SurgeryTrainer</code>,
+    <code>AntibodyTrainer</code>, <code>LookAheadTrainer</code>, <code>vaccine_loss</code>, <code>tar_outer_loss</code>,
+    and 19 more across 8 mechanism families.</li>
+<li><strong>Recover</strong> (24 methods): <code>apply_resta</code>, <code>apply_lox</code>, <code>apply_safemerge</code>,
+    <code>apply_ctheta</code>, <code>task_arithmetic</code>, and 19 more across 6 granularities
+    (whole-model → subspace → layer → neuron → circuit).</li>
+<li><strong>Unlearn</strong> (6 methods): <code>rmu_unlearn</code>, <code>npo_unlearn</code>,
+    <code>gradient_ascent_unlearn</code> (plus its GradDiff variant), <code>flat_unlearn</code>,
+    <code>simdpo_unlearn</code>.</li>
+<li><strong>Steer</strong> (19 methods): <code>RefusalDirectionModel</code>, <code>AdaSteerModel</code>,
+    <code>SafeSwitchModel</code>, <code>AlphaSteerModel</code>, <code>SafeSteerModel</code>, and 14 more.
+    Includes <code>steer.run(...)</code> with <code>hf</code> / <code>vllm-hook</code> / <code>vllm-logits</code> backends.</li>
+<li><strong>Interpret</strong> (6 methods): <code>identify_safety_neurons</code>, <code>safety_circuit_info</code>,
+    <code>eap_safety_circuit</code>, <code>CircuitInfo</code> (round-trippable JSON/YAML).</li>
+<li><strong>Evaluate</strong> (24 methods): <code>evaluate(...)</code> with HarmBench, XSTest, AdvBench,
+    WildJailbreak, and more. <code>BoNAttack</code>, <code>AbliterationAttack</code>, WildGuard /
+    LlamaGuard-3 judges.</li>
+<li><strong>Faithfulness audit</strong>: every method compared against its cited paper,
+  corrected where it diverged, and labelled. 100 faithful, 1 simplified,
+  5 SafeTune variants, 0 broken. Per-method verdicts with <code>file:line</code> evidence
+  in the <a href="../../reference/feature-map/">Feature Map</a>.</li>
+<li><strong>Quickstart demos</strong>: <code>quickstart.py</code> (steer), <code>recover_quickstart.py</code>,
+  <code>harden_quickstart.py</code> — all run on <code>Qwen/Qwen2.5-0.5B-Instruct</code>, no GPU
+  required.</li>
+<li><strong>Colab notebooks</strong>: 4 interactive notebooks (steer, recover, harden,
+  unlearn) mirroring the quickstart scripts.</li>
+<li><strong>CLI</strong>: <code>safetune</code> / <code>st</code> commands dispatch to real pillar APIs (harden,
+  evaluate, recover).</li>
+</ul>
+<h3 id="added-documentation">Added — documentation<a class="headerlink" href="#added-documentation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>MkDocs Material site</strong> with purple/amber design system, dark mode, sticky
+  tabs, instant navigation, search, code copy, Mermaid diagrams.</li>
+<li><strong>Doc structure</strong>: <code>getting-started/</code> (install, quickstart, taxonomy),
+  <code>guides/</code> (6 method-group guides — 4 intervention pillars + 2 instrumentation
+  tools), <code>trust/</code> (feature map, results, scope, audit details), <code>reference/</code>
+  (paper table, eval protocols), <code>tutorials/</code> (Colab hub), <code>community/</code> (FAQ,
+  contributing, changelog), <code>blog/</code>.</li>
+<li><strong>Landing page</strong> pitching 4 intervention pillars and 2 instrumentation tools,
+  with real impact numbers, a decision table, scenario-based usage examples,
+  and runnable code tabs.</li>
+<li><strong>Lexsi Labs branding</strong>: compass logo, Lexsi logo footer (dark/light
+  variants).</li>
+</ul>
+<h3 id="added-standard-library-files">Added — standard library files<a class="headerlink" href="#added-standard-library-files" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>CITATION.cff</code> — citation metadata.</li>
+<li><code>.github/ISSUE_TEMPLATE/</code> — bug report, faithfulness report, feature request.</li>
+<li><code>.github/pull_request_template.md</code>.</li>
+<li><code>.github/workflows/docs.yml</code> — GitHub Pages docs deploy.</li>
+<li><code>.github/workflows/smoke.yml</code> — CI smoke test.</li>
+<li><code>LICENSE</code> — MIT, 2026.</li>
+</ul>
+<h3 id="changed-major">Changed (Major)<a class="headerlink" href="#changed-major" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>CLI rewritten</strong> to dispatch to harden / evaluate / recover pillar APIs
+  instead of the old SFT/DPO/PPO/GRPO orchestrator stubs.</li>
+<li><strong><code>verify</code> → <code>evaluate</code> rename</strong>: <code>safetune.evaluate</code> is the current name;
+  <code>safetune.verify</code> was later removed in v0.1.0.</li>
+<li><strong>Recover uniform input contract</strong>: every <code>apply_*</code> accepts <code>target=</code>
+  (<code>model=</code> / <code>finetuned=</code> kept as aliases).</li>
+<li><strong>2-tier, input-keyed taxonomy</strong>: Tier 1 Interventions (harden / recover /
+  unlearn / steer), Tier 2 Instrumentation (interpret / evaluate).</li>
+<li><strong>Benchmark menu</strong> categorized into jailbreak / over_refusal / capability /
+  domain / tamper.</li>
+</ul>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>FLAT unlearning rewritten</strong> to the faithful f-divergence loss
+  (Wang et al., ICLR 2025, arXiv:2410.11143).</li>
+<li><strong>Decoding steer methods</strong> (SafeDecoding, ContrastiveDecoding, ProxyTuning,
+  Nudging): logit width reconciliation for padded <code>lm_head</code>s.</li>
+<li><strong>SafeGradTrainer</strong>: whole-model gradient dot overflow on &gt;2B params.</li>
+<li><strong>EAP-IG</strong>: integrated-gradient interpolation off-by-one.</li>
+<li><strong>DOORTrainer</strong>: DPO + DOOR hybrid loss replaced with paper-faithful DOOR-only.</li>
+<li><strong>Import-order fragility</strong>: all 12 Harden configs guarded against
+  transformers/trl import race.</li>
+<li><strong>Packaging</strong>: MIT license classifier (was Proprietary); upper version bounds;
+  guarded trl imports for 1.x compatibility.</li>
+</ul>
+<h3 id="removed_1">Removed<a class="headerlink" href="#removed_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>~3.8 GB of raw per-prompt eval generations and internal scratch/planning docs.</li>
+<li>12 broken in-house attack reimplementations (GCG, PAIR, TAP, AutoDAN, …) —
+  not faithful to their papers.</li>
+<li>Orphaned pipeline-orchestration subsystem (<code>core/options.py</code>,
+  <code>core/orchestrator.py</code>, <code>core/callbacks.py</code>).</li>
+<li>Stale duplicate docs (<code>docs/safetune-docs/</code>, <code>docs/archive/</code>).</li>
+<li><code>requirements.txt</code> (consolidated into <code>pyproject.toml</code>).</li>
+</ul>
+<h2 id="060-2026-05-16">[0.6.0] - 2026-05-16<a class="headerlink" href="#060-2026-05-16" title="Permanent link">&para;</a></h2>
+<h3 id="changed-major_1">Changed (Major)<a class="headerlink" href="#changed-major_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Taxonomy overhaul</strong>: replaced the flat "Four/Five Pillars" list with a
+  <strong>2-tier, input-keyed taxonomy</strong>. Tier 1 · Interventions — Train-time
+  (<code>harden</code>), Weight-space (<code>recover</code> + <code>unlearn</code>), Inference-time (<code>steer</code>);
+  Tier 2 · Instrumentation — Diagnose (<code>interpret</code>), Measure (<code>evaluate</code>).
+  SafeTune is framed as a <strong>library of alternative methods, not a pipeline</strong>.</li>
+<li><strong><code>verify</code> → <code>evaluate</code> rename</strong>: package dir <code>src/safetune/verify/</code> →
+  <code>evaluate/</code> (<code>verify/eval/</code> → <code>evaluate/suite/</code>). <code>safetune.verify</code> was a
+  back-compat alias that emits a <code>DeprecationWarning</code>.</li>
+<li><code>interpret</code> and <code>unlearn</code> are now first-class importable submodules
+  (<code>import safetune.interpret</code>, <code>import safetune.unlearn</code>).</li>
+<li><strong>Repo layout</strong>: <code>emnlp_exp/</code> → <code>experiments/emnlp2026/</code>, <code>paper/</code> →
+  <code>experiments/paper/</code>, <code>safetune_check/</code> → <code>audit/</code>, validation scripts →
+  <code>tests/support/</code>. Top level is now deliverable directories only.</li>
+</ul>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Gold-standard re-check pass</strong>: cloned 12 upstream reference repos into
+  <code>audit/reference_repos/</code> and diffed every 🟡 SafeTune adapter against the
+  originating code. Result: 12 methods upgraded 🟡→✅ (antidote, pke, safereact,
+  tracin_influence, DOORTrainer, LookAheadTrainer, tar_outer_loss, AdaSteerModel,
+  RRFAEnsemble, eap_safety_circuit, task_arithmetic, NudgingProcessor). After a
+  final 🟡→✅ sweep the audited surface is ✅ 89, 🟡 0, 🟠 2. Two bugs found and
+  fixed in the same pass (see below).</li>
+<li><strong><code>docs/REFERENCES.md</code></strong> — per-method table covering all ~91 audited methods: paper,
+  venue, arXiv, official repo link, 1-sentence description, non-obvious inputs
+  required, outputs, and faithfulness badge.</li>
+<li><strong><code>safetune.steer.run(model, backend=...)</code></strong> — one steering-generation entry
+  point with <code>hf</code> / <code>vllm-hook</code> / <code>vllm-logits</code> backends. The vLLM adapters are
+  promoted into <code>safetune.steer.backends</code>.</li>
+<li><strong>Recover uniform input contract</strong> — every <code>recover</code> <code>apply_*</code> accepts the
+  canonical <code>target=</code> keyword (<code>model=</code> / <code>finetuned=</code> kept as aliases).</li>
+<li><strong>Benchmark menu</strong> — <code>evaluate.suite</code> registry categorized into
+  jailbreak / over_refusal / capability / domain / tamper, with
+  <code>list_benchmarks()</code> and <code>benchmarks_by_category()</code>.</li>
+<li><strong><code>docs/LIBRARY_CHECKLIST.csv</code></strong> — the <code>FEATURE_MAP.md</code> audit map flattened to
+  one CSV row per method across every pillar (~100 rows: Pillar, Method,
+  Entry-point file, Runs?, Faithful?, Audit status). Regenerated from
+  <code>FEATURE_MAP.md</code> by <code>scripts/gen_library_checklist.py</code>.</li>
+</ul>
+<h3 id="removed_2">Removed<a class="headerlink" href="#removed_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Orphaned pipeline-orchestration subsystem</strong>: <code>core/options.py</code>,
+  <code>core/orchestrator.py</code>, <code>core/callbacks.py</code> and the <code>adversarial</code> /
+  <code>constitutional</code> / <code>lifelong</code> / <code>multiturn</code> / <code>selfplay</code> config modules —
+  pipeline framing with no executor.</li>
+<li>Retired the broken/undefined entry points <code>pipelines.pipeline</code> and
+  <code>training.orchestrator.run_sft/dpo/ppo/grpo</code> from the public surface.</li>
+</ul>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>harden/safegrad.py</code> — <code>SafeGradTrainer</code> global gradient surgery called
+  <code>torch.dot</code> on the concatenated whole-model gradient, overflowing the BLAS
+  int32 length bound for any model above ~2B parameters; replaced with the
+  numerically identical <code>(a*b).sum()</code>.</li>
+<li><code>harden/lisa.py</code> — <code>LisaTrainer</code> crashed with <code>'DataLoader' object is not
+  subscriptable</code> when <code>alignment_dataset</code> was passed as an already-built
+  <code>DataLoader</code>; it is now tolerated.</li>
+<li>Import-order fragility across the whole <code>harden</code> pillar — every Trainer
+  config was declared as <code>@dataclass class XConfig(Base if _IMPORT_ERROR is
+  None else object)</code>. When <code>transformers</code>/<code>trl</code> was imported <em>before</em>
+  <code>safetune</code> (a very common order), the backend guard had not run, the nested
+  import failed, the base silently degraded to <code>object</code>, and <code>@dataclass</code>
+  regenerated <code>__init__</code> from only the local fields — so e.g.
+  <code>SafeGradConfig(output_dir=...)</code> raised <code>unexpected keyword argument</code>. Fixed
+  in all 12 affected configs (<code>SafeGradConfig</code>, <code>LisaConfig</code>, <code>AsFTConfig</code>,
+  <code>SPPFTConfig</code>, <code>STARDSSConfig</code>, <code>SAPConfig</code>, <code>SurgeryConfig</code>, <code>CSTConfig</code>,
+  <code>DOORConfig</code>, <code>DeRTaConfig</code>, and <code>core.optim.AntibodyConfig</code>) by guarding the
+  <code>@dataclass</code> declaration behind the import check, with an explicit stub in
+  the failure branch instead of a misleading half-built dataclass.</li>
+<li><code>eval/cli.py</code> — imported <code>EvaluationRegistry</code> from <code>eval/registry.py</code> (which
+  defines only the <em>metric</em> registry <code>EvalRegistry</code>); the CLI actually uses the
+  <em>task</em> registry's <code>get_task</code> / <code>list_tasks</code> API, which lives in <code>eval/core.py</code>.
+  Repointed the import to <code>core.EvalRegistry</code>; the module now imports and the
+  whole package is import-clean (247/247 modules).</li>
+<li><code>docs/FEATURE_MAP.md</code> audit badges synced with the <code>fix/*_RESOLVED.md</code>
+  fixlogs, which were never reflected in the map. <code>apply_mscp</code> and <code>apply_lssf</code>
+  move 🟠→🟡 — both cite verified papers (arXiv:2508.09190; arXiv:2602.00038,
+  ACL 2025) and faithfully implement their projection equations; the stale
+  "un-cited" notes were wrong. <code>apply_deeprefusal</code> and <code>ASRTCallback</code> stay 🟠
+  (honest SafeTune-original heuristics, no faithful published equivalent) with
+  corrected notes. Post-fix distribution is now 89✅ / 0🟡 / 2🟠 / 0🔴 / 0⚫
+  over the 91 audited components.</li>
+<li><strong><code>core/interpret/eap.py</code></strong> — EAP-IG integrated-gradients interpolation
+  loop started at <code>k=1</code> (<code>range(1, steps+1)</code>), causing gradient sampling to
+  include the clean endpoint and exclude the corrupted endpoint. Upstream
+  EAP-IG (<code>hannamw/EAP-IG</code>) samples <code>{0/steps, ..., (steps-1)/steps}</code>;
+  fixed to <code>range(0, steps)</code> to match.</li>
+<li><strong><code>harden/door.py</code></strong> — <code>SafetyDOORTrainer</code> was mixing DPO + DOOR loss
+  (calling <code>super().compute_loss()</code> then adding the DOOR term). The paper's
+  reference implementation uses DOOR alone (<code>gd_npo_loss</code> on a plain <code>Trainer</code>).
+  Fixed: <code>DOORConfig.door_pure_mode=True</code> (default) now returns only the DOOR
+  term; <code>door_pure_mode=False</code> preserves the old hybrid for back-compat.</li>
+</ul>
+<h2 id="050-2026-04-12">[0.5.0] - 2026-04-12<a class="headerlink" href="#050-2026-04-12" title="Permanent link">&para;</a></h2>
+<h3 id="changed-major_2">Changed (Major)<a class="headerlink" href="#changed-major_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Architectural Overhaul</strong>: Transitioned to the "Four Pillars of Safety" taxonomy: <strong>Recover</strong>, <strong>Harden</strong>, <strong>Steer</strong>, and <strong>Verify</strong>.</li>
+<li><strong>Package Modernization</strong>: Renamed internal package to <code>safetune</code> (lowercase) for standard Python convention.</li>
+<li><strong>Modular Rewards</strong>: Decomposed the monolithic <code>rewards/core.py</code> into categorical sub-modules (<code>text</code>, <code>nlp</code>, <code>safety</code>, <code>code</code>, <code>math</code>, <code>specialized</code>).</li>
+<li><strong>Pipelines API</strong>: Introduced high-level unified <code>pipelines</code> API for simplified safety orchestration.</li>
+<li><strong>CLI Refactor</strong>: Separated CLI logic into <code>cli.py</code> and extracted training orchestration into <code>training/orchestrator.py</code>.</li>
+<li><strong>Global Branding</strong>: Standardized all references to <strong>SafeTune</strong> across documentation and code.</li>
+</ul>
+<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Specialized Rewards</strong>: New reward functions for Medical, Legal, and Financial domains.</li>
+<li><strong>Unified Configuration</strong>: Streamlined <code>UnifiedSafetyConfig</code> supporting the 4-pillar structure.</li>
+<li><strong>Project Structure</strong>: Cleaned up the root directory and standardized the <code>src/</code> layout.</li>
+</ul>
+<h3 id="removed_3">Removed<a class="headerlink" href="#removed_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Legacy monolithic files: <code>src/safetune/main.py</code> and <code>src/safetune/rewards/core.py</code>.</li>
+<li>Redundant backup files and scripts.</li>
+</ul>
+<h2 id="020-2026-01-18">[0.2.0] - 2026-01-18<a class="headerlink" href="#020-2026-01-18" title="Permanent link">&para;</a></h2>
+<h3 id="changed-major_3">Changed (Major)<a class="headerlink" href="#changed-major_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Renamed library from <code>finetunehub</code> to <code>SafeTune</code></strong></li>
+<li>Package directory: <code>src/finetunehub/</code> → <code>src/safetune/</code></li>
+<li>All imports updated: <code>from finetunehub.*</code> → <code>from safetune.*</code></li>
+<li>CLI commands: <code>safetune</code> (primary), <code>at</code> (short alias)</li>
+<li>Entry points and pyproject.toml fully updated</li>
+<li>
+<p>All documentation, examples, and tests migrated</p>
+</li>
+<li>
+<p><strong>License</strong>: SafeTune is released under the <strong>MIT License</strong> (see <code>LICENSE</code>).</p>
+</li>
+<li>An earlier source-available license proposal was <em>not</em> retained; the
+    project is MIT-licensed — free for research, academic, commercial and
+    personal use.</li>
+</ul>
+<h3 id="added_5">Added<a class="headerlink" href="#added_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Comprehensive Documentation System</strong> (59 markdown files):</li>
+<li>Complete documentation structure integrated into main project</li>
+<li>Getting Started guides (5 docs): Installation, Quick Start, Basic Concepts, Configuration, Backend Selection</li>
+<li>User Guide (9 docs): Overview, SFT, RL, Evaluation, Reward Functions, Model Management, Sample Logging, Troubleshooting</li>
+<li>Algorithm Documentation (10 docs): DPO, PPO, GRPO, GSPO, DAPO, Dr. GRPO, GBMPO, Counterfactual GRPO, BOLT with detailed explanations</li>
+<li>Backend Documentation (4 docs): Overview, TRL Backend, Unsloth Backend, Comparison</li>
+<li>API Reference (6 docs): Complete API documentation with all parameters</li>
+<li>Examples (4 categories): Overview, SFT, RL, Advanced examples</li>
+<li>Advanced Topics (4 docs): Architecture, Custom Backends, Distributed Training, Performance</li>
+<li>Contributing guides (3 docs): Guide, Code Style, Testing</li>
+<li>
+<p>Notebooks section for interactive tutorials</p>
+</li>
+<li>
+<p><strong>Enhanced Documentation Infrastructure</strong>:</p>
+</li>
+<li>MkDocs configuration with Cinder theme</li>
+<li>Mermaid diagram support for architecture visualization</li>
+<li>Jupyter notebook integration</li>
+<li>Automatic API documentation generation with mkdocstrings</li>
+<li>Custom HTML overrides and styling</li>
+<li>Logo and branding assets removed (migrated to SafeTune branding)</li>
+</ul>
+<h3 id="removed-code-cleanup">Removed (Code Cleanup)<a class="headerlink" href="#removed-code-cleanup" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Deleted unused/backup directories and files</strong> (Total: ~7,500 lines removed):</li>
+<li><code>src/finetunehub/eval_old/</code> - Old evaluation framework (7 files, 2,913 lines)</li>
+<li><code>src/finetunehub/backends/trl/rl/ppo/ppo_old.py</code> - Old PPO implementation (1,437 lines)</li>
+<li><code>src/finetunehub/backends/trl/rl/grpo/grpo_old.py</code> - Old GRPO implementation (1,264 lines)</li>
+<li><code>src/finetunehub/backends/unsloth/rl/ppo/ppo_old.py</code> - Old Unsloth PPO (1,833 lines)</li>
+<li><code>src/finetunehub/cli_commands/</code> - Unused CLI modules</li>
+<li><code>src/finetunehub/cli/unified-old.py</code> - Old CLI backup</li>
+<li><code>src/finetunehub/rl/</code> and <code>src/finetunehub/sft/</code> - Backward compatibility wrappers</li>
+<li><code>src/finetunehub/scripts/</code> - Directory removed (contents moved)</li>
+<li><strong>Removed old <code>finetunehub</code> package directory</strong> - Fully replaced by <code>safetune</code></li>
+</ul>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Reorganized BOLT utilities</strong>:</li>
+<li>Moved <code>precompute_baseline.py</code> from <code>src/finetunehub/scripts/</code> → <code>examples/bolt_training/</code></li>
+<li>Rationale: Co-locate BOLT-specific utilities with BOLT examples for better discoverability</li>
+</ul>
+<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Library renamed</strong>: All imports must change from <code>finetunehub</code> to <code>safetune</code></li>
+<li><code>from finetunehub.core.rl import *</code> → <code>from safetune.core.rl import *</code></li>
+<li><code>from finetunehub.eval import *</code> → <code>from safetune.eval import *</code></li>
+<li>CLI: <code>finetunehub train</code> → <code>safetune train</code></li>
+<li><strong>Removed backward compatibility wrappers</strong>: The deprecated import paths have been removed</li>
+<li>All examples and documentation have been updated to use the new paths</li>
+<li>All test files have been migrated to the new import structure</li>
+</ul>
+<h2 id="010-2026-01-18">[0.1.0] - 2026-01-18<a class="headerlink" href="#010-2026-01-18" title="Permanent link">&para;</a></h2>
+<h3 id="added_6">Added<a class="headerlink" href="#added_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Initial release with comprehensive GRPO support</li>
+<li>Backend support for both TRL and Unsloth</li>
+<li>GSM8K math reasoning examples</li>
+<li>Multiple bug fixes and improvements</li>
+</ul>
 
 
 

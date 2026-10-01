@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/unlearn/gradient-ascent/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/unlearn/gradient-ascent/">
       
       
         <link rel="prev" href="../npo/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Gradient Ascent · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/unlearn/gradient-ascent/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/unlearn/gradient-ascent/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Gradient Ascent · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1458,6 +1458,8 @@
       
         
       
+        
+      
     
     
     
@@ -1880,7 +1882,7 @@ The simplest unlearning baseline — no reference model needed for the pure
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">forget_clip</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">forget_clip</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># GradDiff convenience trainer — fixes the grad_diff loss (no forget_loss arg)</span>
@@ -1942,7 +1944,7 @@ The simplest unlearning baseline — no reference model needed for the pure
 <td><code>forget_clip</code></td>
 <td><code>float \| None</code></td>
 <td><code>None</code></td>
-<td>Cap on per-batch forget CE before negation; prevents gradient explosion</td>
+<td>Cap on per-batch forget CE before negation; <code>None</code> is pure ascent. The gradient of the forget term is zero while the CE is above the cap</td>
 </tr>
 <tr>
 <td><code>max_steps</code></td>
@@ -1952,9 +1954,13 @@ The simplest unlearning baseline — no reference model needed for the pure
 </tr>
 </tbody>
 </table>
-<p>The values above are the <code>GradientAscentConfig</code> dataclass defaults. Two differ
-through <code>GradientAscentTrainer</code>: it defaults <code>max_steps</code> to <code>200</code> (not <code>None</code>)
-and <code>forget_clip</code> to <code>0.5</code> (not <code>None</code>).</p>
+<p>The values above are the <code>GradientAscentConfig</code> dataclass defaults.
+<code>GradientAscentTrainer</code> and <code>GradDiffTrainer</code> default <code>max_steps</code> to <code>200</code> (not
+<code>None</code>) and keep <code>forget_clip=None</code> (TOFU's pure ascent). Before, the runner
+trainers defaulted <code>forget_clip</code> to <code>0.5</code>; real forget sets start above that
+(BeaverTails completions: CE around 2.4), so the clamp left no forget gradient
+and nothing was unlearned. <code>forget_clip=0.5</code> or
+<code>safetune.configure(legacy_ga_forget_clip=True)</code> restores the old default.</p>
 <h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">unlearn</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
@@ -1964,12 +1970,11 @@ and <code>forget_clip</code> to <code>0.5</code> (not <code>None</code>).</p>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">forget_loss</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">,</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">epochs</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">lr</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">forget_clip</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">unlearned</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">unlearn</span><span class="p">(</span><span class="n">forget</span><span class="o">=</span><span class="n">forget_batches</span><span class="p">,</span> <span class="n">retain</span><span class="o">=</span><span class="n">retain_batches</span><span class="p">)</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">unlearned</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="s2">&quot;ga_ckpt&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">&quot;gradient_ascent&quot;</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">unlearned</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">unlearn</span><span class="p">(</span><span class="n">forget</span><span class="o">=</span><span class="n">forget_batches</span><span class="p">,</span> <span class="n">retain</span><span class="o">=</span><span class="n">retain_batches</span><span class="p">)</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">unlearned</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="s2">&quot;ga_ckpt&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">&quot;gradient_ascent&quot;</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="low-level-api-gradient_ascent_unlearn">Low-level API — gradient_ascent_unlearn()<a class="headerlink" href="#low-level-api-gradient_ascent_unlearn" title="Permanent link">&para;</a></h2>
 <table>

@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+        <meta name="description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/SafeTune/user-guide/evaluate/benchmarks/">
+        <link rel="canonical" href="https://safetune.lexsi.ai/user-guide/evaluate/benchmarks/">
       
       
         <link rel="prev" href="../attacks/bon/">
@@ -72,15 +72,15 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SafeTune">
   <meta property="og:title" content="Benchmarks · SafeTune">
-  <meta property="og:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta property="og:url" content="https://lexsi-labs.github.io/SafeTune/user-guide/evaluate/benchmarks/">
-  <meta property="og:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta property="og:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta property="og:url" content="https://safetune.lexsi.ai/user-guide/evaluate/benchmarks/">
+  <meta property="og:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Benchmarks · SafeTune">
-  <meta name="twitter:description" content="SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
-  <meta name="twitter:image" content="https://lexsi-labs.github.io/SafeTune/assets/safetune-logo-light.png">
+  <meta name="twitter:description" content="SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.">
+  <meta name="twitter:image" content="https://safetune.lexsi.ai/assets/safetune-logo-black.png">
 
   <!-- Structured data: this is an open-source software library -->
   <script type="application/ld+json">
@@ -89,8 +89,8 @@
     "@type": "SoftwareSourceCode",
     "name": "SafeTune",
     "alternateName": "SafeTune: A Unified Library for Preserving and Restoring Safety in Fine-Tuned LLMs",
-    "description": "SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
-    "url": "https://lexsi-labs.github.io/SafeTune/",
+    "description": "SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.",
+    "url": "https://safetune.lexsi.ai/",
     "codeRepository": "https://github.com/Lexsi-Labs/SafeTune",
     "programmingLanguage": "Python",
     "runtimePlatform": "Python 3.12+",
@@ -1388,6 +1388,8 @@
       
         
       
+        
+      
     
     
     
@@ -1736,7 +1738,7 @@
 
 
 <h1 id="benchmarks">Benchmarks<a class="headerlink" href="#benchmarks" title="Permanent link">&para;</a></h1>
-<p>18 registered benchmarks across 5 categories:</p>
+<p>20 registered benchmarks across 5 categories:</p>
 <table>
 <thead>
 <tr>
@@ -1796,7 +1798,7 @@
 <tr>
 <td><code>advbench</code></td>
 <td>jailbreak</td>
-<td>GCG-49 string-match</td>
+<td>refusal-prefix string match (<code>StringMatchJudge</code>)</td>
 </tr>
 <tr>
 <td><code>hexphi</code></td>
@@ -1811,6 +1813,16 @@
 <tr>
 <td><code>orbench</code></td>
 <td>over_refusal</td>
+<td>Llama-3.1-8B</td>
+</tr>
+<tr>
+<td><code>orbench_hard</code></td>
+<td>over_refusal</td>
+<td>Llama-3.1-8B</td>
+</tr>
+<tr>
+<td><code>orbench_toxic</code></td>
+<td>jailbreak</td>
 <td>Llama-3.1-8B</td>
 </tr>
 <tr>
@@ -1870,6 +1882,20 @@
 </tr>
 </tbody>
 </table>
+<p>Default prompt sets:</p>
+<ul>
+<li><code>harmbench</code>: 400 behaviours from <code>walledai/HarmBench</code>, configs <code>standard</code>
+  (200), <code>contextual</code> (100) and <code>copyright</code> (100). A contextual row is
+  <code>context + "\n\n---\n\n" + behaviour</code>, as HarmBench builds it.
+  <code>configure(datasets={"harmbench": {"config": "standard"}})</code> gives the
+  200-behaviour set used before.</li>
+<li><code>wildjailbreak</code>: the first 500 <code>adversarial_harmful</code> rows of the
+  <code>allenai/wildjailbreak</code> eval set. <code>configure(datasets={"wildjailbreak":
+  {"where": None, "limit": None}})</code> gives all 2,210 rows, as before.</li>
+<li><code>orbench_hard</code> is OR-Bench hard-1k (benign prompts that sound harmful;
+  refusing them is over-refusal) and <code>orbench_toxic</code> is OR-Bench toxic (655
+  harmful prompts). <code>orbench</code> is both combined.</li>
+</ul>
 <h2 id="api">API<a class="headerlink" href="#api" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.evaluate.suite</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_benchmark</span><span class="p">,</span> <span class="n">list_benchmarks</span><span class="p">,</span> <span class="n">benchmarks_by_category</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
@@ -1902,8 +1928,14 @@
 </table>
 <h2 id="default-paper-suite">Default paper suite<a class="headerlink" href="#default-paper-suite" title="Permanent link">&para;</a></h2>
 <p>When <code>evaluate()</code> is called with <code>benchmarks=None</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>harmbench, wildjailbreak, advbench, sorrybench_v1, hexphi, orbench, ailuminate
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>harmbench, wildjailbreak, advbench, sorrybench_v1, hexphi, orbench_hard, orbench_toxic, ailuminate
 </code></pre></div>
+<p><code>safety_mean</code> (the runner trainers' aggregate) averages the harm benchmarks
+only: OR-Bench hard-1k (<code>orbench_overrefusal</code>) and toxic
+(<code>orbench_toxic_refusal</code>) are reported on their own.
+<code>configure(orbench_in_safety_mean=True)</code> restores the old behaviour: one
+combined <code>orbench</code> in the suite, whose <code>orbench_refusal</code> is averaged into
+<code>safety_mean</code>.</p>
 <p>This page is a registry reference — <code>get_benchmark</code>/<code>list_benchmarks</code> look up metadata but don't
 run anything. To actually execute a benchmark end-to-end, call <code>evaluate()</code> (see the
 <a href="../">Evaluate overview</a> or <a href="../judges/">Judges</a> for a complete,
