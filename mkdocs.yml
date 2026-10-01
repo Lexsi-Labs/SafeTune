@@ -1,6 +1,6 @@
 site_name: SafeTune
-site_description: SafeTune is a unified library for preserving and restoring safety in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.
-site_url: https://lexsi-labs.github.io/SafeTune/
+site_description: SafeTune is a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — harden, recover, unlearn, steer, interpret and evaluate behind one API.
+site_url: https://safetune.lexsi.ai/
 repo_url: https://github.com/Lexsi-Labs/SafeTune
 repo_name: Lexsi-Labs/SafeTune
 edit_uri: edit/main/docs/
@@ -242,6 +242,7 @@ nav:
       - Feature Map: reference/feature-map.md
       - System Design: reference/system-design.md
       - API Contract: reference/api-contract.md
+      - Error Codes: reference/error-codes.md
 
   - Examples:
       - examples/index.md

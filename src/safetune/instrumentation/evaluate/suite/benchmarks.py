@@ -19,8 +19,9 @@ the registry is the single source of truth for ``evaluate(benchmarks=[...])``.
 
 from __future__ import annotations
 
+import importlib
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 #: The fixed benchmark-category menu (see module docstring).
 CATEGORIES = ("jailbreak", "over_refusal", "capability", "domain", "tamper")
@@ -55,7 +56,9 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="HarmBench",
         loader="safetune.data.loaders.load_harmbench",
         category="jailbreak",
-        description="Standard harmful-behaviours benchmark (Mazeika et al., 2024). 400 behaviors, harmbench-mistral-7b judge.",
+        description="HarmBench text behaviours (Mazeika et al., 2024): standard 200 + contextual 100 + "
+                    "copyright 100 = 400. HarmBench-Mistral-7b judge (HarmBench itself scores copyright "
+                    "behaviours with a hash check).",
         tags=["harmful", "asr", "paper-suite"],
     ),
     BenchmarkSpec(
@@ -63,7 +66,8 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="WildJailbreak",
         loader="safetune.data.loaders.load_wildjailbreak",
         category="jailbreak",
-        description="WildJailbreak adversarial prompts (allenai/wildjailbreak eval). WildGuard judge.",
+        description="WildJailbreak: the first 500 adversarial_harmful prompts of allenai/wildjailbreak "
+                    "eval. WildGuard judge.",
         tags=["jailbreak", "asr", "paper-suite"],
     ),
     BenchmarkSpec(
@@ -79,7 +83,8 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="AdvBench",
         loader="safetune.data.loaders.load_advbench",
         category="jailbreak",
-        description="AdvBench harmful behaviors (Zou et al., 2023). GCG-49 string-match judge.",
+        description="AdvBench harmful behaviors (Zou et al., 2023). trainer.evaluate() scores it "
+                    "with StringMatchJudge (runtime advbench_scorer); evaluate() uses the chosen judge.",
         tags=["advbench", "asr", "paper-suite"],
     ),
     BenchmarkSpec(
@@ -103,8 +108,27 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="OR-Bench",
         loader="safetune.data.loaders.load_orbench",
         category="over_refusal",
-        description="OR-Bench over-refusal hard-1k split (bench-llm/or-bench). Llama-3.1-8B 3-class judge.",
+        description="OR-Bench hard-1k and toxic combined (bench-llm/or-bench), one refusal rate over "
+                    "both (the old aggregate). Llama-3.1-8B 3-class judge.",
+        tags=["over_refusal"],
+    ),
+    BenchmarkSpec(
+        name="orbench_hard",
+        display_name="OR-Bench hard-1k",
+        loader="safetune.data.loaders.load_orbench_hard",
+        category="over_refusal",
+        description="OR-Bench hard-1k: 1,319 benign prompts that sound harmful. Refusing them is "
+                    "over-refusal (lower is better), so it is not in safety_mean.",
         tags=["over_refusal", "paper-suite"],
+    ),
+    BenchmarkSpec(
+        name="orbench_toxic",
+        display_name="OR-Bench toxic",
+        loader="safetune.data.loaders.load_orbench_toxic",
+        category="jailbreak",
+        description="OR-Bench toxic: 655 harmful prompts that should be refused. Reported on its "
+                    "own, not in safety_mean.",
+        tags=["harmful", "paper-suite"],
     ),
     # ── Capability benchmarks ──────────────────────────────────────────────────
     BenchmarkSpec(
@@ -167,19 +191,19 @@ _BENCHMARKS: List[BenchmarkSpec] = [
     BenchmarkSpec(
         name="jailbreakbench",
         display_name="JailbreakBench",
-        loader="safetune.core.eval.pipeline.loaders.load_jailbreakbench",
+        loader="safetune.data.loaders.load_jailbreakbench",
         category="jailbreak",
         description=(
-            "Community-standard 200-behavior jailbreak suite (Chao et al., "
-            "arXiv:2404.01318). Covers 10 harm categories; pairs each behavior "
-            "with a target string for ASR measurement."
+            "JailbreakBench JBB-Behaviors (Chao et al., arXiv:2404.01318): the "
+            "100 harmful behaviors across 10 harm categories, each with a "
+            "target string."
         ),
         tags=["jailbreak", "asr", "community-standard"],
     ),
     BenchmarkSpec(
         name="muse",
         display_name="MUSE",
-        loader="safetune.core.eval.pipeline.loaders.load_muse",
+        loader="safetune.data.loaders.load_muse",
         category="domain",
         description=(
             "Machine Unlearning Six-Way Evaluation (Shi et al., "
@@ -192,24 +216,26 @@ _BENCHMARKS: List[BenchmarkSpec] = [
     BenchmarkSpec(
         name="rwku",
         display_name="RWKU",
-        loader="safetune.core.eval.pipeline.loaders.load_rwku",
+        loader="safetune.data.loaders.load_rwku",
         category="domain",
         description=(
             "Real-World Knowledge Unlearning benchmark (Jin et al., "
-            "arXiv:2406.10890). 200 public-figure entities; forget and retain "
-            "sets with QA-style probes."
+            "arXiv:2406.10890). Question-answer probes (forget_level2) about "
+            "200 public-figure forget targets."
         ),
         tags=["unlearning", "forget", "retain", "knowledge", "rwku"],
     ),
     BenchmarkSpec(
         name="safedialbench",
         display_name="SafeDialBench",
-        loader="safetune.core.eval.pipeline.loaders.load_safedialbench",
+        loader="safetune.data.loaders.load_safedialbench",
         category="jailbreak",
         description=(
             "Multi-turn safety benchmark (Zhao et al., arXiv:2502.11090). "
             "22 safety scenarios × 7 jailbreak attack types; each example is "
-            "a full multi-turn conversation labelled safe or unsafe."
+            "a full multi-turn conversation labelled safe or unsafe. Not on "
+            "the Hub yet: set its source with configure(datasets=...). "
+            "evaluate() sends the dialogue flattened into one user turn."
         ),
         tags=["multi-turn", "jailbreak", "safety", "conversation"],
     ),
@@ -222,6 +248,33 @@ REGISTRY: Dict[str, BenchmarkSpec] = {b.name: b for b in _BENCHMARKS}
 def get_benchmark(name: str) -> Optional[BenchmarkSpec]:
     """Return the BenchmarkSpec for ``name`` or ``None`` if missing."""
     return REGISTRY.get(name)
+
+
+def check_benchmarks(names: Iterable[str]) -> None:
+    """Raise ``ValueError`` naming every unregistered benchmark in ``names``."""
+    from safetune.config import _did_you_mean
+    unknown = [n for n in names if n not in REGISTRY]
+    if unknown:
+        hints = "; ".join(f"{n!r}{_did_you_mean(n, REGISTRY)}" for n in unknown)
+        raise ValueError(f"unknown benchmark(s): {hints}. Registered: {sorted(REGISTRY)}")
+
+
+def load_benchmark(name: str) -> Any:
+    """Call ``name``'s registered loader. Sources come from the dataset table
+    (:mod:`safetune.data.dataset_ids`), so the loaders take no arguments."""
+    check_benchmarks([name])
+    mod_path, fn_name = REGISTRY[name].loader.rsplit(".", 1)
+    return getattr(importlib.import_module(mod_path), fn_name)()
+
+
+def split_orbench(names: Iterable[str]) -> List[str]:
+    """``names`` with ``orbench`` replaced by its two splits, each reported on
+    its own (``orbench_hard``, ``orbench_toxic``). Unchanged under
+    ``safetune.configure(orbench_in_safety_mean=True)``, the old aggregate."""
+    from safetune.config import get_config
+    if get_config().orbench_in_safety_mean:
+        return list(names)
+    return [x for n in names for x in (("orbench_hard", "orbench_toxic") if n == "orbench" else (n,))]
 
 
 def list_benchmarks(category: Optional[str] = None) -> List[BenchmarkSpec]:
@@ -247,6 +300,9 @@ __all__ = [
     "CATEGORIES",
     "REGISTRY",
     "get_benchmark",
+    "check_benchmarks",
+    "load_benchmark",
+    "split_orbench",
     "list_benchmarks",
     "benchmarks_by_category",
 ]

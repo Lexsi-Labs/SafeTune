@@ -2,7 +2,8 @@
 import os
 import torch
 from torch.utils.data import DataLoader
-from transformers import AutoModelForCausalLM, Trainer
+from transformers import Trainer
+from safetune._refusal_helpers import _load_pretrained_lm
 
 from ._base import (
     _HardenBase, _keep_model_columns, default_data_collator, _BFLOAT16,
@@ -44,6 +45,7 @@ class SafeGradTrainer(_HardenBase):
     """
 
     METHOD = "SafeGrad"
+    HF_TRAINER = HARD.SafeGradHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  rho: float = 1.0,
@@ -62,7 +64,7 @@ class SafeGradTrainer(_HardenBase):
         dev = next(model.parameters()).device
         ref_path = self.reference_model_path or getattr(self.tok, "name_or_path", None)
         # Reference on the model's device/dtype — device-agnostic (CUDA / MPS / CPU).
-        reference = AutoModelForCausalLM.from_pretrained(
+        reference = _load_pretrained_lm(
             ref_path, torch_dtype=next(model.parameters()).dtype).to(dev).eval()
 
         if safety_dataset is None:
@@ -78,7 +80,7 @@ class SafeGradTrainer(_HardenBase):
             else self._build_safety_ds(),
             batch_size=self.batch_size, shuffle=True,
             collate_fn=default_data_collator)
-        tr = HARD.SafeGradTrainer(
+        tr = HARD.SafeGradHFTrainer(
             model=model, args=self._training_args(out_dir),
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,

@@ -139,6 +139,7 @@ BoosterTrainer(
     tokenizer: PreTrainedTokenizer | None = None,
     *,
     perturb_scale: float = 0.01,
+    n_harmful_batches: int = 8,
     **kwargs,
 )
 ```
@@ -150,6 +151,7 @@ BoosterTrainer(
 | `model` | `PreTrainedModel` | `None` | Model to train |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
 | `perturb_scale` | `float` | `0.01` | Step size `alpha` of the simulated one-step harmful SGD attack used for the finite-difference regularizer |
+| `n_harmful_batches` | `int` | `8` | Harmful examples used for the harm gradient when `harmful_batches` is not passed to `train()` |
 
 ### Full example
 

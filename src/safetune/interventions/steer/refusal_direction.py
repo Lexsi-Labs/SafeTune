@@ -69,12 +69,28 @@ class RefusalDirectionConfig:
         kl_threshold: Maximum allowed KL divergence (clean vs. ablated logits on
             held-out harmless prompts) for a candidate to survive. Paper default
             ``0.1``.
+        kl_threshold_fallback: Looser KL ceiling used only when no candidate
+            under ``kl_threshold`` lowers the clean refusal rate. On small models
+            (Qwen2.5-0.5B) the layers that remove refusal sit just above
+            ``0.1``; without this the sweep kept only a layer that made things
+            worse and fell back to the middle layer. ``None`` disables it.
+        min_bypass_reduction: A candidate only counts as helping if ablating it
+            cuts the clean refusal rate by at least this fraction
+            (``bypass <= clean * (1 - min_bypass_reduction)``). Stops a layer
+            that barely moves refusal (0.56 -> 0.50 on Qwen2.5-0.5B) from beating
+            the layers that remove it. ``0`` accepts any reduction.
         induce_refusal_threshold: Minimum induce score (refusal-rate increase on
             harmless prompts when the direction is *added*) for a candidate to
             survive. Paper default ``0.0`` (must not *decrease* refusal).
         prune_layer_fraction: Discard candidates from the final fraction of
             layers, i.e. ``layer >= int(n_layers * (1 - prune_layer_fraction))``.
             Paper default ``0.2`` (the ``layer < 0.8 * n_layers`` rule).
+        min_layer_fraction: If the sweep's winner lies in the first
+            ``min_layer_fraction`` of layers (``layer < int(n_layers *
+            min_layer_fraction)``), or no candidate lowers the clean refusal
+            rate, warn and fall back to the middle layer. Early layers carry
+            token-level features, not the refusal concept (on Tiny Aya the
+            unguarded sweep picked layer 1 of 36). ``0`` disables the floor.
         n_val: Number of harmful and harmless prompts to hold out for scoring.
             If fewer prompts are supplied, the whole set is used.
         max_new_tokens: Tokens to generate when scoring bypass on harmful
@@ -94,8 +110,11 @@ class RefusalDirectionConfig:
     # --- Arditi et al. validation-sweep selection ---------------------------
     select_directions: bool = True
     kl_threshold: float = 0.1
+    kl_threshold_fallback: Optional[float] = 1.0
+    min_bypass_reduction: float = 0.5
     induce_refusal_threshold: float = 0.0
     prune_layer_fraction: float = 0.2
+    min_layer_fraction: float = 0.2
     n_val: int = 16
     max_new_tokens: int = 24
     require_induce: bool = False
@@ -240,7 +259,8 @@ def extract_refusal_direction(
             idx, reason = selected, "validation sweep (min bypass s.t. KL/layer constraints)"
         else:
             idx = _middle_layer()
-            reason = "middle-layer fallback (sweep could not score / no survivor)"
+            reason = ("middle-layer fallback (sweep could not score, no survivor, no "
+                      "layer helps, or winner in the early layers)")
 
     direction = directions[idx]
     if cfg.normalize:
@@ -298,17 +318,16 @@ def _refusal_rate(
     if intervention is not None:
         mode, vec = intervention
         handle_ctx = RefusalDirectionModel(model, vec, mode=mode, strength=1.0)
-    orig_padding_side = getattr(tokenizer, "padding_side", None)
+    from safetune._refusal_helpers import _left_padding
     try:
-        if orig_padding_side is not None:
-            tokenizer.padding_side = "left"
-        try:
-            inputs = tokenizer([_fmt(p) for p in prompts], return_tensors="pt",
-                               padding=True, truncation=True,
-                               **({"add_special_tokens": False} if use_chat else {}))
-        except TypeError:
-            inputs = tokenizer([_fmt(p) for p in prompts], return_tensors="pt",
-                               padding=True, truncation=True)
+        with _left_padding(tokenizer):
+            try:
+                inputs = tokenizer([_fmt(p) for p in prompts], return_tensors="pt",
+                                   padding=True, truncation=True,
+                                   **({"add_special_tokens": False} if use_chat else {}))
+            except TypeError:
+                inputs = tokenizer([_fmt(p) for p in prompts], return_tensors="pt",
+                                   padding=True, truncation=True)
         device = next(model.parameters()).device
         inputs = {k: v.to(device) for k, v in inputs.items()
                   if isinstance(v, torch.Tensor)}
@@ -331,8 +350,6 @@ def _refusal_rate(
     finally:
         if handle_ctx is not None:
             handle_ctx.remove()
-        if orig_padding_side is not None:
-            tokenizer.padding_side = orig_padding_side
     if not texts:
         return None
     return sum(_is_refusal(t) for t in texts) / len(texts)
@@ -358,14 +375,16 @@ def _kl_when_ablated(
             return apply_ct([{"role": "user", "content": p}],
                             tokenize=False, add_generation_prompt=True)
         return p
+    from safetune._refusal_helpers import _left_padding
     try:
-        try:
-            inputs = tokenizer([_fmt(p) for p in prompts], return_tensors="pt",
-                               padding=True, truncation=True,
-                               **({"add_special_tokens": False} if use_chat else {}))
-        except TypeError:
-            inputs = tokenizer([_fmt(p) for p in prompts], return_tensors="pt",
-                               padding=True, truncation=True)
+        with _left_padding(tokenizer):  # logits[:, -1] must be the last prompt token
+            try:
+                inputs = tokenizer([_fmt(p) for p in prompts], return_tensors="pt",
+                                   padding=True, truncation=True,
+                                   **({"add_special_tokens": False} if use_chat else {}))
+            except TypeError:
+                inputs = tokenizer([_fmt(p) for p in prompts], return_tensors="pt",
+                                   padding=True, truncation=True)
         device = next(model.parameters()).device
         inputs = {k: v.to(device) for k, v in inputs.items()
                   if isinstance(v, torch.Tensor)}
@@ -414,9 +433,12 @@ def _select_direction_by_scoring(
       is *added* (constraint ``>= induce_refusal_threshold``; optional),
     * **layer prune**: discard ``layer >= int(n_layers * (1 - prune_layer_fraction))``.
 
-    The selected candidate is the survivor with the *lowest* bypass score.
-    Returns ``None`` if no candidate could be scored (e.g. generation
-    unavailable) so the caller can fall back to the middle layer.
+    The selected candidate is the survivor with the *lowest* bypass score, ties
+    broken toward the middle layer. Returns ``None`` (the caller falls back to
+    the middle layer) if no candidate could be scored (e.g. generation
+    unavailable), if no survivor's bypass is below the clean refusal rate (no
+    layer helps), or if the winner is in the first ``cfg.min_layer_fraction``
+    of layers.
 
     NOTE: the paper also sweeps over post-instruction *token positions*; our
     shared extractor only emits last-token directions, so this implements the
@@ -428,13 +450,15 @@ def _select_direction_by_scoring(
 
     cutoff = int(n_layers * (1.0 - cfg.prune_layer_fraction))
 
-    # Probe once: can we even generate? If not, bail to the fallback.
-    probe = _refusal_rate(model, tokenizer, val_harmful[:1], cfg.max_new_tokens)
-    if probe is None:
+    # Clean refusal rate: the baseline a useful direction must beat. Also the
+    # probe for whether we can generate at all; if not, bail to the fallback.
+    baseline = _refusal_rate(model, tokenizer, val_harmful, cfg.max_new_tokens)
+    if baseline is None:
         logger.info("RefusalDirection: generation unavailable; skipping sweep.")
         return None
 
-    candidates: List[Tuple[float, int]] = []  # (bypass, layer)
+    candidates: List[Tuple[float, int, float]] = []  # (bypass, layer, kl)
+    over_kl: List[Tuple[float, int, float]] = []     # over kl_threshold, under the fallback
     evaluated = 0
     for layer in sorted(directions):
         if layer >= cutoff:
@@ -448,6 +472,11 @@ def _select_direction_by_scoring(
         if kl is None or kl != kl:  # None or NaN
             continue
         if kl > cfg.kl_threshold:
+            # Kept aside: used only if no candidate under kl_threshold helps.
+            if cfg.kl_threshold_fallback is not None and kl <= cfg.kl_threshold_fallback:
+                over_kl.append((bypass, layer, kl))
+            logger.info("RefusalDirection sweep: layer %d  bypass=%.3f  kl=%.4f  "
+                        "(over kl_threshold %.3f)", layer, bypass, kl, cfg.kl_threshold)
             continue
         if cfg.require_induce:
             induce = _refusal_rate(model, tokenizer, val_harmless,
@@ -456,23 +485,49 @@ def _select_direction_by_scoring(
             if induce is None or induce < cfg.induce_refusal_threshold:
                 continue
         evaluated += 1
-        candidates.append((bypass, layer))
+        candidates.append((bypass, layer, kl))
         logger.info(
             "RefusalDirection sweep: layer %d  bypass=%.3f  kl=%.4f  (kept)",
             layer, bypass, kl,
         )
 
-    if not candidates:
-        logger.info(
-            "RefusalDirection: sweep evaluated but found no surviving candidate "
-            "(scored %d).", evaluated,
-        )
+    middle = n_layers // 2
+
+    def _best(pool: List[Tuple[float, int, float]]) -> Optional[Tuple[float, int, float]]:
+        # min bypass; ties go toward the middle layer, not the lowest one.
+        # Only candidates that cut the clean refusal rate by min_bypass_reduction count.
+        bar = baseline * (1.0 - cfg.min_bypass_reduction)
+        helpful = [c for c in pool if c[0] < baseline and c[0] <= bar]
+        return min(helpful, key=lambda t: (t[0], abs(t[1] - middle), t[1])) if helpful else None
+
+    best = _best(candidates)
+    if best is None and over_kl:
+        best = _best(over_kl)
+        if best is not None:
+            logger.warning(
+                "RefusalDirection: no layer under kl_threshold=%.3f cuts the "
+                "refusal rate enough; using layer %d (bypass %.3f, kl %.4f), which is "
+                "under kl_threshold_fallback=%.3f.", cfg.kl_threshold, best[1],
+                best[0], best[2], cfg.kl_threshold_fallback)
+    if best is None:
+        logger.warning(
+            "RefusalDirection: no layer cuts the clean refusal rate %.3f by "
+            "min_bypass_reduction (%d kept under kl_threshold, %d more under kl_threshold_fallback); "
+            "falling back to the middle layer. Set pick_layer to choose one.",
+            baseline, len(candidates), len(over_kl))
         return None
-    candidates.sort(key=lambda t: (t[0], t[1]))  # min bypass, tie-break low layer
-    best_bypass, best_layer = candidates[0]
+    best_bypass, best_layer, best_kl = best
+    if best_layer < int(n_layers * cfg.min_layer_fraction):
+        logger.warning(
+            "RefusalDirection: sweep winner layer %d is in the first %.0f%% of %d "
+            "layers (bypass %.3f, kl %.4f); falling back to the middle layer. Set "
+            "pick_layer or min_layer_fraction to override.", best_layer,
+            100 * cfg.min_layer_fraction, n_layers, best_bypass, best_kl)
+        return None
     logger.info(
-        "RefusalDirection: sweep selected layer %d (bypass=%.3f) from %d survivors.",
-        best_layer, best_bypass, len(candidates),
+        "RefusalDirection: sweep selected layer %d (bypass=%.3f, kl=%.4f, clean "
+        "refusal=%.3f) from %d survivors.",
+        best_layer, best_bypass, best_kl, baseline, len(candidates) + len(over_kl),
     )
     return best_layer
 

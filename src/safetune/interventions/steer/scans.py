@@ -44,6 +44,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Sequence
 
 from tqdm.auto import tqdm
+from safetune._refusal_helpers import _get_decoder_layers
 
 try:  # pragma: no cover - torch is a hard runtime dep, optional at import
     import torch
@@ -58,21 +59,6 @@ except Exception as _e:  # pragma: no cover
 # ---------------------------------------------------------------------------
 # Model-structure helpers
 # ---------------------------------------------------------------------------
-
-def _get_decoder_layers(model: Any) -> List[Any]:
-    """Return the list of transformer decoder blocks for common architectures."""
-    inner = getattr(model, "model", None)
-    if inner is not None and hasattr(inner, "language_model") and hasattr(inner.language_model, "layers"):
-        return list(inner.language_model.layers)
-    if inner is not None and hasattr(inner, "layers"):
-        return list(inner.layers)
-    tr = getattr(model, "transformer", None)
-    if tr is not None and hasattr(tr, "h"):
-        return list(tr.h)
-    if hasattr(model, "layers"):
-        return list(model.layers)
-    return []
-
 
 def _num_layers(model: Any) -> int:
     cfg = getattr(model, "config", None)
@@ -544,8 +530,9 @@ class SCANSModel:
 
     @classmethod
     def from_pretrained(cls, path: str, **kwargs: Any) -> "SCANSModel":
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoTokenizer
+        from safetune._refusal_helpers import _load_pretrained_lm
 
-        model = AutoModelForCausalLM.from_pretrained(path)
+        model = _load_pretrained_lm(path)
         kwargs.setdefault("tokenizer", AutoTokenizer.from_pretrained(path))
         return cls(model, **kwargs)

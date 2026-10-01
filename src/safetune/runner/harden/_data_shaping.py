@@ -4,6 +4,7 @@ from ._base import (
     default_data_collator, _derta_collator, _stardss_collator,
 )
 import safetune.harden as HARD
+from safetune.config import get_config
 from torch.utils.data import DataLoader
 
 import os
@@ -23,6 +24,7 @@ class LisaTrainer(_HardenBase):
     """
 
     METHOD = "Lisa"
+    HF_TRAINER = HARD.LisaHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  lisa_rho: float = 0.1,
@@ -46,7 +48,7 @@ class LisaTrainer(_HardenBase):
             lisa_alignment_step=self.lisa_alignment_step,
             lisa_finetune_step=self.lisa_finetune_step,
         )
-        self._configure_args(args, out_dir)
+        args = self._configure_args(args, out_dir)
         if safety_dataset is None:
             from safetune.runner.utils.data_utils import build_safety_dataset
             safety_dataset = build_safety_dataset(self.tok)
@@ -59,7 +61,7 @@ class LisaTrainer(_HardenBase):
         alignment_loader = DataLoader(
             _keep_model_columns(safety_dataset), batch_size=self.batch_size, shuffle=True,
             collate_fn=default_data_collator)
-        tr = HARD.LisaTrainer(
+        tr = HARD.LisaHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
@@ -73,14 +75,16 @@ class SPPFTTrainer(_HardenBase):
     """SPPFT: self-play prompt fine-tuning."""
 
     METHOD = "SPPFT"
+    HF_TRAINER = HARD.SPPFTHFTrainer
+    CONFIG = HARD.SPPFTConfig
 
     def train(self, train_dataset, out_dir: str = None, **kwargs) -> str:
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        # Thread sppft_mode through so it isn't silently ignored (default freeze).
-        sppft_mode = self._extra.get("sppft_mode", kwargs.get("sppft_mode", "freeze"))
-        args = self._configure_args(HARD.SPPFTConfig(sppft_mode=sppft_mode), out_dir)
-        tr = HARD.SPPFTTrainer(
+        # User kwargs matching SPPFTConfig fields (e.g. sppft_mode) are forwarded.
+        args = self._configure_args(
+            self._method_config(sppft_mode=kwargs.get("sppft_mode", "freeze")), out_dir)
+        tr = HARD.SPPFTHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator)
@@ -98,6 +102,7 @@ class LookAheadTrainer(_HardenBase):
     """
 
     METHOD = "LookAhead"
+    HF_TRAINER = HARD.LookAheadHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  prefix_mode: str = "virtual",
@@ -114,7 +119,7 @@ class LookAheadTrainer(_HardenBase):
             HARD.LookAheadConfig(prefix_mode=self.prefix_mode,
                                  prefix_length=self.prefix_length),
             out_dir)
-        tr = HARD.LookAheadTrainer(
+        tr = HARD.LookAheadHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
@@ -133,6 +138,7 @@ class STARDSSTrainer(_HardenBase):
     """
 
     METHOD = "STARDSS"
+    HF_TRAINER = HARD.STARDSSHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  use_kl_penalty: bool = True,
@@ -162,7 +168,7 @@ class STARDSSTrainer(_HardenBase):
         stardss_ds = Dataset.from_list(rows)
         stardss_ds.set_format(type="torch", columns=["input_ids", "attention_mask", "labels", "safety_weights"])
 
-        tr = HARD.STARDSSTrainer(
+        tr = HARD.STARDSSHFTrainer(
             model=model, args=args,
             train_dataset=stardss_ds,
             data_collator=_stardss_collator)
@@ -175,6 +181,8 @@ class DeRTaTrainer(_HardenBase):
     """DeRTa: per-token safe/unsafe token classification during training."""
 
     METHOD = "DeRTa"
+    HF_TRAINER = HARD.DeRTaHFTrainer
+    CONFIG = HARD.DeRTaConfig
 
     def train(self, train_dataset, out_dir: str = None, *,
               contamination_pairs=None, refusal_pairs=None, **kwargs) -> str:
@@ -183,24 +191,30 @@ class DeRTaTrainer(_HardenBase):
 
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.DeRTaConfig(), out_dir)
+        args = self._configure_args(self._method_config(), out_dir)
 
         if contamination_pairs is None or refusal_pairs is None:
             from safetune.runner.utils.data_utils import harden_contamination_pairs
-            _cont, _, _ref = harden_contamination_pairs(256)
+            _cont, _, _ref = harden_contamination_pairs()
             contamination_pairs = _cont
             refusal_pairs = _ref
 
         raw = [{"prompt": u, "harmful_response": bad, "safe_response": ref}
                for (u, bad), (_, ref) in zip(contamination_pairs, refusal_pairs)]
 
-        def _derta_tokenize(tok, prompt, response, max_len=256):
+        legacy = self._extra.get("legacy_derta")
+        legacy = get_config().legacy_derta if legacy is None else legacy
+
+        def _derta_tokenize(tok, prompt, response, max_len=256, prefix=""):
             prompt_text = tok.apply_chat_template(
                 [{"role": "user", "content": prompt}],
                 tokenize=False, add_generation_prompt=True)
             enc = tok(prompt_text + response, truncation=True, max_length=max_len,
-                      padding="max_length")
-            plen = len(tok(prompt_text, truncation=True, max_length=max_len)["input_ids"])
+                      padding="max_length", add_special_tokens=False)
+            # The harmful prefix of an MLE row is context, masked like the
+            # prompt (the authors' `prefix` field); legacy trains on it.
+            plen = len(tok(prompt_text + prefix, truncation=True, max_length=max_len,
+                           add_special_tokens=False)["input_ids"])
             labels = list(enc["input_ids"])
             for i in range(len(labels)):
                 if i < plen or enc["attention_mask"][i] == 0:
@@ -208,8 +222,10 @@ class DeRTaTrainer(_HardenBase):
             return enc["input_ids"], enc["attention_mask"], labels
 
         rows = []
-        for r in prepare_derta_dataset(raw):
-            ids, mask, labels = _derta_tokenize(self.tok, r["prompt"], r["response"])
+        for r in prepare_derta_dataset(raw, legacy=legacy):
+            ids, mask, labels = _derta_tokenize(self.tok, r["prompt"], r["response"],
+                                                get_config().max_len or 256,
+                                                "" if legacy else r.get("prefix_text", ""))
             rows.append({"input_ids": ids, "attention_mask": mask,
                          "labels": labels, "safe": bool(r["safe"])})
             
@@ -220,7 +236,7 @@ class DeRTaTrainer(_HardenBase):
         # DeRTa's harmful/safe distinction. (cf. STARDSS which keeps safety_weights.)
         derta_ds.set_format(type="torch", columns=["input_ids", "attention_mask", "labels", "safe"])
 
-        tr = HARD.DeRTaTrainer(
+        tr = HARD.DeRTaHFTrainer(
             model=model, args=args, processing_class=self.tok,
             train_dataset=derta_ds, data_collator=_derta_collator)
         tr.train()

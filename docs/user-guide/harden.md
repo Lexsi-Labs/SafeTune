@@ -19,8 +19,60 @@ trainer.train(train_dataset, safety_dataset=safety_dataset)
 
 > **Data format:** `train_dataset` and `safety_dataset` are HuggingFace `Dataset`s
 > (or iterables of dicts) with `input_ids`, `attention_mask`, and `labels`
-> columns. For a quick start, `harden.load_harden_data(model_id)` returns a
-> ready `(train_dataset, safety_dataset)` pair built from BeaverTails.
+> columns, or raw rows that SafeTune tokenises with the chat template: chat
+> `messages`, ShareGPT `conversations`, Alpaca `instruction`/`input`/`output`, or
+> prompt/response (DPO `prompt`/`chosen`) columns. Rows without a response are
+> skipped with a warning, and prompt-only data raises. For a quick start,
+> `harden.load_harden_data(model_id)` returns a ready `(train_dataset,
+> safety_dataset)` pair built from BeaverTails.
+>
+> **Sequence length:** raw rows are tokenized with `max_len=None` by default:
+> the length is sized from the chat template as `max(256, longest templated
+> prompt among the first rows + 256)`, capped at 2048, so a long system
+> preamble (Tiny Aya's template adds about 366 tokens) does not fill the
+> sequence. An explicit `max_len` is used exactly; if it leaves no row with a
+> supervised token the loader raises (naming the templated prompt length), and
+> it warns with a count when only some rows are fully masked.
+
+A source string works too: a `safetune.data.dataset_ids` name, an HF id, a local
+file, or a dataset folder such as a CuratorKIT export with its config name:
+
+```python
+trainer.train("./curated_out", dataset_config="sft_sharegpt")
+```
+
+The checkpoint folder gets a `lexsi_provenance.json` that records the model and
+dataset it came from (and the CuratorKIT export's own provenance), and
+`safetune.push_to_hub(path, "org/name")` uploads it.
+
+`train()` wraps the model in a LoRA adapter, runs the method, merges the adapter
+and returns the path of the saved checkpoint.
+
+## One class per method
+
+`safetune.harden.SafeGradTrainer` and `safetune.runner.harden.SafeGradTrainer`
+are the same class; the same holds for every trainer in the catalog below.
+
+Most of these trainers run a `transformers.Trainer` subclass. It is exported as
+`<Name>HFTrainer` (`SafeGradHFTrainer`, `LisaHFTrainer`, ...; DOOR's is the
+`trl.DPOTrainer` subclass `SafetyDOORTrainer`), with its `<Name>Config`. Use it
+when you want your own training loop: your own `TrainingArguments` and data
+collators, no LoRA wrapping, and a `TrainOutput` back instead of a checkpoint.
+
+```python
+from safetune.harden import SafeGradHFTrainer, SafeGradConfig
+
+trainer = SafeGradHFTrainer(model=model, args=SafeGradConfig(output_dir="out"),
+                            train_dataset=train_dataset, safety_dataset=safety_loader,
+                            reference_model=reference_model)
+trainer.train()
+```
+
+Up to 0.1.3, `safetune.harden.SafeGradTrainer` was that `transformers.Trainer`
+subclass. The old call, `SafeGradTrainer(model=..., args=..., train_dataset=...)`,
+still works until 0.3: it returns a `SafeGradHFTrainer` and emits a
+`DeprecationWarning`. So does importing the old name from a submodule
+(`from safetune.harden.safegrad import SafeGradTrainer`).
 
 ## Lifecycle
 

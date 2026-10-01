@@ -52,7 +52,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from safetune._refusal_helpers import _get_decoder_layers
+from safetune._refusal_helpers import _encode_prompts, _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -71,18 +71,37 @@ class SpectralMonitorConfig:
         eigenvalue_floor: Numerical floor on singular values squared before
             normalization. Stops ``log(0)`` blowups on rank-deficient inputs.
         batch_size: Batch size for forward passes during calibration / scan.
+        skip_first_token: Leave each prompt's first token out of the SVD. It is
+            the attention sink: on Qwen2.5-0.5B its hidden state is ~100x the
+            norm of the others, so with it the spectrum is rank-1 and the
+            entropy is ~0.01 nats for every prompt and every model.
+        chat_template: Format each prompt as a chat user turn, as SafeTune's
+            generators do, so the monitor reads the hidden states the model
+            answers from.
+        ``None`` for either: True, or False with
+        ``safetune.configure(legacy_spectral_monitor=True)`` (the old monitor).
     """
 
     target_layers: Optional[List[int]] = None
     z_threshold: float = 2.0
     eigenvalue_floor: float = 1e-12
     batch_size: int = 8
+    skip_first_token: Optional[bool] = None
+    chat_template: Optional[bool] = None
+
+    def resolved(self, name: str) -> bool:
+        value = getattr(self, name)
+        if value is None:
+            from safetune.config import get_config
+            return not get_config().legacy_spectral_monitor
+        return bool(value)
 
 
 def _spectral_entropy(
     activation: torch.Tensor,
     floor: float,
     mask: Optional[torch.Tensor] = None,
+    skip_first: bool = False,
 ) -> float:
     """Spectral entropy of a single ``(seq, hidden)`` activation tensor.
 
@@ -98,6 +117,7 @@ def _spectral_entropy(
             how many padding tokens the batch tokenizer appended, i.e.
             length- and batch-invariant. ``None`` keeps every row (legacy
             behaviour, only safe for unpadded single-example input).
+        skip_first: drop the first real token (the attention sink).
     """
     if activation.dim() < 2:
         return 0.0
@@ -111,6 +131,8 @@ def _spectral_entropy(
         # activation rows (should not happen) fall back to no masking.
         if keep.numel() == a.shape[0]:
             a = a[keep]
+    if skip_first:
+        a = a[1:]
     # Need at least two real tokens for a meaningful covariance spectrum.
     if a.shape[0] < 2:
         return 0.0
@@ -206,13 +228,16 @@ class SpectralEntropyMonitor:
             eos = getattr(self.tokenizer, "eos_token", None)
             if eos is not None:
                 self.tokenizer.pad_token = eos
+        skip_first = self.config.resolved("skip_first_token")
         try:
             self.model.eval()
             per_prompt: List[Dict[int, float]] = []
             for i in range(0, len(prompts), self.config.batch_size):
                 batch = prompts[i : i + self.config.batch_size]
-                tokenized = self.tokenizer(
+                tokenized = _encode_prompts(
+                    self.tokenizer,
                     batch,
+                    self.config.resolved("chat_template"),
                     return_tensors="pt",
                     padding=True,
                     truncation=True,
@@ -240,7 +265,8 @@ class SpectralEntropyMonitor:
                         # Last entry of acts is the most recent batch.
                         h = acts[-1][b]  # (seq, hidden)
                         ent[layer_idx] = _spectral_entropy(
-                            h, self.config.eigenvalue_floor, mask=row_mask
+                            h, self.config.eigenvalue_floor, mask=row_mask,
+                            skip_first=skip_first,
                         )
                     per_prompt.append(ent)
                 # Drop captured tensors for this batch to bound memory.

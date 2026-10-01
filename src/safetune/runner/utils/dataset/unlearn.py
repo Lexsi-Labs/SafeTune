@@ -1,7 +1,8 @@
+from typing import Optional
 from safetune.runner.utils.data_utils import unlearn_forget_retain
 
 
-def load_unlearn_dataset(tok, *, n: int = 256, max_len: int = 256):
+def load_unlearn_dataset(tok, *, n: int = 256, max_len: Optional[int] = None):
     """Forget/retain tokenized datasets for unlearn training.
 
     Returns:

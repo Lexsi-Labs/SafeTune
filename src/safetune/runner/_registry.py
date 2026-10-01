@@ -42,6 +42,11 @@ HARDEN_REGISTRY: dict[str, str] = {
     "seal":           "SEALTrainer",
     "constrained":    "ConstrainedSFTTrainer",
     "loxharden":      "LoXHardenTrainer",
+    # previously "Python API only" — adapters in _dpo_adversarial.py
+    "cst":            "CSTTrainer",
+    "mart":           "MARTTrainer",
+    "deeprefusal":    "DeepRefusalTrainer",
+    "antibody":       "AntibodyTrainer",
 }
 
 RECOVER_REGISTRY: dict[str, str] = {

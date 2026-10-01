@@ -8,7 +8,11 @@ and YAML. For the full reference see [Usage](../user-guide/usage.md).
 New here? The fastest thing to run is the no-training STEER demo:
 
 ```bash
+# from a source checkout
 python examples/quickstart/quickstart.py
+# after `pip install safetune` (the wheel does not ship examples/): fetch the script
+curl -LO https://raw.githubusercontent.com/Lexsi-Labs/SafeTune/main/examples/quickstart/quickstart.py
+python quickstart.py
 ```
 
 It extracts a refusal direction from contrast prompts, ablates it live on

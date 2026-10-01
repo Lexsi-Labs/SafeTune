@@ -41,8 +41,8 @@ patched = trainer.apply(retain=retain_batches, forget=forget_batches)
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `retain` | `Iterable[dict]` | `[]` | Retain data batches (preserve utility) |
-| `forget` | `Iterable[dict]` | `[]` | Forget data batches (push away from harmful behavior) |
+| `retain` | `Iterable[dict] \| None` | `None` | Retain data batches (preserve utility); `None` is no batches |
+| `forget` | `Iterable[dict] \| None` | `None` | Forget data batches (push away from harmful behavior); `None` is no batches |
 
 ### Full example
 

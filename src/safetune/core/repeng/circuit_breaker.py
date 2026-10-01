@@ -13,6 +13,7 @@ import logging
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional
+from safetune._refusal_helpers import _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -128,11 +129,7 @@ class CircuitBreakerWrapper:
     # ── hook management ─────────────────────────────────────────
 
     def _get_layers(self) -> list:
-        if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return list(self.model.model.layers)
-        if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return list(self.model.transformer.h)
-        return []
+        return _get_decoder_layers(self.model)
 
     def _make_hook(self, layer_idx: int):
         def hook_fn(module: Any, inp: Any, out: Any):

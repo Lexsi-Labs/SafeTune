@@ -341,3 +341,4 @@ temp/
 site/
 uv.lock
 site/
+!examples/data/refusal_probes_demo.jsonl

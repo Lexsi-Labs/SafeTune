@@ -19,7 +19,7 @@ flowchart TB
 
 Shipped methods are faithfulness-audited against their cited papers; recently
 added methods may carry a pending verdict in the
-[checklist](../reference/LIBRARY_CHECKLIST.csv) until their audit completes.
+[Feature Map](../reference/feature-map.md) until their audit completes.
 The verdict categories:
 
 | Status | Meaning |

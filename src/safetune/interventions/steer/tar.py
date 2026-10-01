@@ -189,7 +189,7 @@ class TARModel:
 
     @classmethod
     def from_pretrained(cls, path: str, **kwargs: Any) -> "TARModel":
-        from transformers import AutoModelForCausalLM
+        from safetune._refusal_helpers import _load_pretrained_lm
 
-        model = AutoModelForCausalLM.from_pretrained(path)
+        model = _load_pretrained_lm(path)
         return cls(model, **kwargs)

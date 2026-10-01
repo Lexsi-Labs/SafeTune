@@ -211,7 +211,9 @@ SEAMTrainer(
     epochs: int = 1,
     batch_size: int = 4,
     lr: float = 1e-4,
-    bf16: bool = True,
+    bf16: bool | None = None,
+    fp16: bool | None = None,
+    wandb: bool = False,
     optimizer: str = "adamw_torch",
     logging_steps: int = 10,
     results_dir: str | None = None,
@@ -231,9 +233,8 @@ The `L_up` / `L_sd` mixing weights are `SEAMConfig` fields, not runner kwargs:
 
 ### Full example
 
-The runner trainer uses `SEAMConfig` defaults and does not expose these weights as
-constructor kwargs; set them on a `SEAMConfig` if you use the `safetune.harden`
-trainer directly.
+Any `SEAMConfig` field above can be passed to the constructor as a keyword
+argument, e.g. `harden.SEAMTrainer(model, tokenizer, seam_alpha=1.0)`.
 
 ```python
 from safetune.runner import harden
@@ -273,7 +274,9 @@ CTRAPTrainer(
     epochs: int = 1,
     batch_size: int = 4,
     lr: float = 1e-4,
-    bf16: bool = True,
+    bf16: bool | None = None,
+    fp16: bool | None = None,
+    wandb: bool = False,
     optimizer: str = "adamw_torch",
     logging_steps: int = 10,
     results_dir: str | None = None,
@@ -322,14 +325,15 @@ DOORTrainer(
     refusal_w: float = 1.0,
     unlearn_w: float = 1.0,
     base_model_path: str | None = None,
+    max_grad_norm: float = 1.0,
     **kwargs,
 )
 ```
 
 ### DOORConfig fields
 
-`door_pure_mode` is a `DOORConfig` field used by the `safetune.harden` trainer, not
-a runner kwarg:
+`door_pure_mode` is a `DOORConfig` field used by `harden.SafetyDOORTrainer` (the
+`trl.DPOTrainer` subclass), not a `harden.DOORTrainer` kwarg:
 
 | Field | Type | Default | Description |
 |---|---|---|---|
@@ -337,10 +341,11 @@ a runner kwarg:
 
 ### Full example
 
-The runner `DOORTrainer` runs a self-contained NPO + refusal loop and exposes
-`beta` (NPO temperature, `0.5`), `refusal_w` (refusal weight, `1.0`), and
-`unlearn_w` (NPO weight, `1.0`) as kwargs. `door_pure_mode` is a `DOORConfig`
-field used by the `safetune.harden` trainer, not by the runner.
+`harden.DOORTrainer` runs a self-contained NPO + refusal loop (the pure DOOR
+objective) and exposes `beta` (NPO temperature, `0.5`), `refusal_w` (refusal
+weight, `1.0`), and `unlearn_w` (NPO weight, `1.0`) as kwargs. W-DOOR (per-token
+weights from a `proxy_reward_model`) and `door_pure_mode` are only available on
+`harden.SafetyDOORTrainer`.
 
 ```python
 from safetune.runner import harden
@@ -405,7 +410,7 @@ MARTTrainer(
 
 ```python
 import copy
-from safetune.harden import MARTTrainer, MARTConfig
+from safetune.harden.mart import MARTTrainer, MARTConfig
 
 adv_model = copy.deepcopy(model)  # M_adv: a separate copy of the model
 
@@ -431,6 +436,10 @@ trainer = MARTTrainer(
 )
 trained_target = trainer.train()  # returns the fine-tuned target model
 ```
+
+The runner adapter derives the seed prompts (harmful contamination), the
+adversary (a copy of the target) and the refusal-prefix reward, so from the CLI:
+`safetune train --model <model> --algo mart`.
 
 `train()` runs the full MART co-evolution loop and returns the fine-tuned
 target model. The tiny config above is a smoke-test; the paper defaults are
@@ -509,7 +518,7 @@ Plus all standard `TrainingArguments` (`output_dir`, `max_steps`,
 import tempfile
 import torch
 from datasets import Dataset
-from safetune.harden import DeepRefusalTrainer, DeepRefusalConfig
+from safetune.harden.deeprefusal import DeepRefusalTrainer, DeepRefusalConfig
 
 # A refusal direction (unit vector) of shape (hidden_size,). In practice extract
 # it with safetune.steer.extract_refusal_direction; here a random placeholder
@@ -547,10 +556,13 @@ with tempfile.TemporaryDirectory() as out_dir:
     trainer.train()  # HF Trainer.train() — datasets came in via the constructor
 ```
 
+The runner adapter derives the refusal direction from the harmful/harmless
+prompt contrast, so from the CLI: `safetune train --model <model> --algo deeprefusal`.
+
 ### When to use
 
 - **Best for:** LoRA FT with stochastic per-layer refusal-direction ablation hooks.
-- **Trade-offs:** LoRA-based; needs a precomputed `refusal_direction` plus harmful and benign datasets (see the config fields above).
+- **Trade-offs:** LoRA-based; needs a refusal direction plus harmful and benign datasets (see the config fields above). The runner adapter derives all three (direction from the harmful/harmless prompt contrast, harmful from the refusal set, benign from the task set); only the Python-level class needs them passed in.
 
 ### Citation
 
@@ -585,9 +597,14 @@ AntibodyTrainer(
     train_dataset: Dataset,
     *,
     harmful_dataset: Dataset | None = None,
-    mode: str = "align",
-    xi: float = 0.0,
+    refusal_dataset: Dataset | None = None,
+    mode: str = "align",           # "align" or "finetune"
+    refresh_every: int = 1,
     sam_rho: float | None = None,  # overrides args.sam_rho when set
+    lambda_refusal: float = 1.0,
+    lambda_cap: float = 10.0,
+    xi: float = 0.0,
+    tau: float = 1.0,
     **trainer_kwargs,              # forwarded to transformers.Trainer
 )
 ```
@@ -599,7 +616,14 @@ AntibodyTrainer(
 | `model` | `PreTrainedModel` | required | Model to fine-tune |
 | `args` | `AntibodyConfig` | required | `TrainingArguments` subclass carrying `sam_rho` / `sim_threshold` |
 | `train_dataset` | `Dataset` | required | SFT data for the main loss |
-| `harmful_dataset` | `Dataset \| None` | `None` (kwarg) | Harmful reference batch for the alignment defense |
+| `harmful_dataset` | `Dataset \| None` | `None` (kwarg) | Harmful batches for the alignment-stage SAM flatness regularizer (cycled) |
+| `refusal_dataset` | `Dataset \| None` | `None` (kwarg) | Refusal batches `(x, y_r)` for the alignment-stage refusal loss and the fine-tuning-stage likelihood ratio (cycled) |
+| `mode` | `str` | `"align"` (kwarg) | `"align"`: SAM flatness alignment stage; `"finetune"`: likelihood-ratio sample reweighting stage |
+| `refresh_every` | `int` | `1` (kwarg) | Steps between fresh harmful / refusal batches in the alignment stage |
+| `sam_rho` | `float \| None` | `None` (kwarg) | SAM radius; `None` reads `args.sam_rho` |
+| `lambda_refusal` | `float` | `1.0` (kwarg) | Weight of the alignment-stage refusal loss |
+| `lambda_cap` | `float` | `10.0` (kwarg) | Upper clamp on the adaptive flatness weight $\lambda_t$ |
+| `tau` | `float` | `1.0` (kwarg) | Softmax temperature for the fine-tuning-stage reweighting |
 | `xi` | `float` | `0.0` (kwarg) | Theorem 4.1 coefficient: $\lambda_t = \max\{0,\ \xi - \langle g_{\text{sharp}}, g_{\text{align}}\rangle / \|g_{\text{sharp}}\|^2\}$ |
 
 ### AntibodyConfig fields (on `args`)
@@ -616,7 +640,7 @@ Plus all standard `TrainingArguments` (`output_dir`, `max_steps`, ...).
 ```python
 import tempfile
 from datasets import Dataset
-from safetune.harden import AntibodyTrainer, AntibodyConfig
+from safetune.harden.antibody import AntibodyTrainer, AntibodyConfig
 
 def make_ds(texts):
     enc = tokenizer(texts, padding="max_length", truncation=True, max_length=16)
@@ -645,6 +669,9 @@ with tempfile.TemporaryDirectory() as out_dir:
     )
     trainer.train()  # HF Trainer.train() — datasets came in via the constructor
 ```
+
+The runner adapter runs both stages and derives the harmful/refusal iterators,
+so from the CLI: `safetune train --model <model> --algo antibody`.
 
 Captures a harmful reference gradient and scales per-step gradients by
 `1 - max(0, cos-sim)` — updates aligned with harmful fine-tuning are
@@ -691,13 +718,13 @@ LookAheadTrainer(
 | `prefix_mode` | `str` | `"virtual"` | `"virtual"` or `"real"` prefix mode |
 | `prefix_length` | `int` | `6` | Number of preview tokens |
 | `prefix_token_ids` | `list[int] \| None` | `None` | Token IDs for the safe-opener prefix; derived from `prefix_text` when unset |
-| `prefix_text` | `str` | `"Let's solve this problem."` | Text tokenized into the preview prefix when `prefix_token_ids` is unset |
+| `prefix_text` | `str` | `"Let's solve this problem. "` (trailing space) | Text tokenized into the preview prefix when `prefix_token_ids` is unset |
 
 ### Full example
 
 The runner `LookAheadTrainer` exposes `prefix_mode` and `prefix_length` only; the
 prefix content comes from the `LookAheadConfig` defaults (`prefix_text` /
-`prefix_token_ids`). Use the `safetune.harden` trainer with a custom
+`prefix_token_ids`). Use `harden.LookAheadHFTrainer` with a custom
 `LookAheadConfig` to set the prefix tokens explicitly.
 
 ```python

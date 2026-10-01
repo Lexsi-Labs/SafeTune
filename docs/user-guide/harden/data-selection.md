@@ -13,7 +13,9 @@ harden.SEALTrainer(
     epochs: int = 1,
     batch_size: int = 4,
     lr: float = 1e-4,
-    bf16: bool = True,
+    bf16: bool | None = None,
+    fp16: bool | None = None,
+    wandb: bool = False,
     optimizer: str = "adamw_torch",
     logging_steps: int = 10,
     results_dir: str = None,
@@ -35,7 +37,9 @@ not to the constructor (see the [Full example](#full-example)).
 | `epochs` | `int` | `1` | Number of training epochs |
 | `batch_size` | `int` | `4` | Per-device train batch size |
 | `lr` | `float` | `1e-4` | Learning rate |
-| `bf16` | `bool` | `True` | Train in bfloat16 |
+| `bf16` | `bool \| None` | `None` | Train in bfloat16. `None`: from the runtime dtype (`safetune.configure(dtype=...)`; bf16 where supported) |
+| `fp16` | `bool \| None` | `None` | Train in float16. `None`: from the runtime dtype |
+| `wandb` | `bool` | `False` | Log to Weights & Biases |
 | `optimizer` | `str` | `"adamw_torch"` | Optimizer name |
 | `logging_steps` | `int` | `10` | Steps between log entries |
 | `results_dir` | `str` | `None` | Output directory for checkpoints/results |
@@ -58,9 +62,9 @@ trainer = harden.SEALTrainer(model, tokenizer)
 trainer.train(task_ds, safety_dataset=safety_ds)
 ```
 
-The runner wrapper uses the `SEALConfig` defaults above. To set `seal_temperature`
-or `seal_rescore_every`, use the `safetune.harden.SEALTrainer` API with an explicit
-`SEALConfig`. `safety_dataset` is built automatically if not passed.
+Any `SEALConfig` field above can be passed as a keyword argument, e.g.
+`harden.SEALTrainer(model, tokenizer, seal_temperature=0.5)`. `safety_dataset` is
+built automatically if not passed.
 
 ### When to use
 

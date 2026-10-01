@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "safetune"
-version = "0.1.3"
-description = "SafeTune: a unified library for preserving and restoring safety in fine-tuned LLMs — train-time (harden), weight-space (recover, unlearn), inference-time (steer) interventions plus diagnosis (interpret) and evaluation, for the Hugging Face ecosystem."
+version = "0.1.6"
+description = "SafeTune: a unified, faithful library for auditing and repairing safety drift in fine-tuned LLMs — train-time (harden), weight-space (recover, unlearn), inference-time (steer) interventions plus diagnosis (interpret) and evaluation, for the Hugging Face ecosystem."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE.md" }
 authors = [
     {name = "Pratinav Seth", email = "pratinav.seth@lexsi.ai"},
-    {name = "Anshul Kaushal", email = "anshul.kaushal@lexsi.ai"},
     {name = "Saisab Sadhu", email = "saisab.sadhu@lexsi.ai"},
+    {name = "Anshul Kaushal", email = "anshul.kaushal@lexsi.ai"},
     {name = "Vinay Kumar Sankarapu", email = "v.k@lexsi.ai"},
 ]
 keywords = [
@@ -59,7 +59,7 @@ classifiers = [
 dependencies = [
     # Core ML dependencies (upper bounds guard against major-version breakage)
     "torch>=2.7.0",
-    "transformers>=4.48.3,<6",
+    "transformers>=5.15,<6",
     "datasets>=2.14.0,<6",
     "accelerate>=0.24.0,<2",
     "peft>=0.6.0,<1",
@@ -97,6 +97,10 @@ dependencies = [
     "langdetect>=1.0.9",
     "immutabledict>=2.0.0",
     "nltk>=3.8.0",
+    # evaluate()'s default judge (allenai/wildguard) and the other suite judges
+    # load Mistral/Llama tokenizers; transformers needs these to build them.
+    "sentencepiece>=0.1.99",
+    "tiktoken>=0.5.0",
 
     # Device management (Linux/Windows only)
     "nvidia-ml-py>=11.495.46; platform_system!='Darwin'",
@@ -128,6 +132,10 @@ docs = [
     # API-reference autodoc (Reference > API Reference pages use ::: blocks)
     "mkdocstrings[python]>=0.24.0",
 ]
+vision = [
+    # transformers needs torchvision to build North (cohere_compass) image processors.
+    "torchvision",
+]
 viz = [
     "matplotlib>=3.5.0",
     "seaborn>=0.11.0",
@@ -156,7 +164,7 @@ text-metrics = [
 [project.urls]
 Homepage = "https://github.com/Lexsi-Labs/SafeTune"
 Repository = "https://github.com/Lexsi-Labs/SafeTune"
-Documentation = "https://lexsi-labs.github.io/SafeTune/"
+Documentation = "https://safetune.lexsi.ai/"
 "Bug Tracker" = "https://github.com/Lexsi-Labs/SafeTune/issues"
 "Changelog" = "https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"
 "Discussions" = "https://github.com/Lexsi-Labs/SafeTune/discussions"

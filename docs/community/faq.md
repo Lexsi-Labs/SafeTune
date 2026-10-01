@@ -62,13 +62,14 @@ recommended workflow.
 ## How do I cite SafeTune?
 
 ```bibtex
-@misc{seth2026safetune,
-  title  = {SafeTune: A Unified Library for Preserving and Restoring
-            Safety in Fine-Tuned {LLM}s},
-  author = {Seth, Pratinav and Kaushal, Anshul and Sadhu, Saisab and
-            Sankarapu, Vinay Kumar},
-  year   = {2026},
-  note   = {Pratinav Seth, Anshul Kaushal, and Saisab Sadhu contributed equally.},
+@misc{seth2026safetuneunifiedfaithfullibrary,
+      title={SafeTune: A Unified Faithful Library for Auditing and Repairing Safety Drift in Fine-Tuned LLMs},
+      author={Pratinav Seth and Saisab Sadhu and Anshul Kaushal and Vinay Kumar Sankarapu},
+      year={2026},
+      eprint={2609.22153},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2609.22153},
 }
 ```
 

@@ -46,7 +46,7 @@ def main() -> int:
     print("      anomalies = monitor.scan(test_prompts)")
     print("      # Returns (prompt_idx, layer_idx, entropy, z_score) for outliers\n")
 
-    print("See docs/guides/evaluate/ for the full catalog of methods and benchmarks.")
+    print("See docs/user-guide/evaluate/ for the full catalog of methods and benchmarks.")
     return 0
 
 

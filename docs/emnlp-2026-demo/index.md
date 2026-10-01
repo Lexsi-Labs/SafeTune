@@ -149,12 +149,13 @@ the best balance, in 4.3 s and with no gradient updates.
 ## Citation
 
 ```bibtex
-@misc{seth2026safetune,
-  title        = {SafeTune: A Unified, Faithful Library for Auditing and
-                  Repairing Safety Drift in Fine-Tuned {LLM}s},
-  author       = {Seth, Pratinav and Sadhu, Saisab and Kaushal, Anshul and
-                  Sankarapu, Vinay Kumar},
-  year         = {2026},
-  howpublished = {\url{https://github.com/Lexsi-Labs/SafeTune}},
+@misc{seth2026safetuneunifiedfaithfullibrary,
+      title={SafeTune: A Unified Faithful Library for Auditing and Repairing Safety Drift in Fine-Tuned LLMs},
+      author={Pratinav Seth and Saisab Sadhu and Anshul Kaushal and Vinay Kumar Sankarapu},
+      year={2026},
+      eprint={2609.22153},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2609.22153},
 }
 ```

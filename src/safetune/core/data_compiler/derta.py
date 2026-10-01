@@ -5,9 +5,17 @@ RobustNLP/DeRTa — ACL 2025
 Augments safety training data so that models learn to refuse at *any position*
 in a response, not just at the beginning. Two key techniques:
 1. MLE with Harmful Response Prefix: prepends varying-length harmful prefixes
-   before the safe refusal response.
-2. Reinforced Transition Optimization (RTO): creates training pairs where the
-   model must transition from harmful content to refusal at every position.
+   before the safe refusal response. The prefix is context, not a target: rows
+   carry it as ``prefix_text`` and the trainer masks it, as the authors do
+   (their prefix rows put the harmful words in the masked ``prefix`` field).
+2. Reinforced Transition Optimization (RTO): one row per example whose response
+   is the full harmful response; the trainer relabels every response token to
+   the refusal token ("Sorry"), so the model learns to transition to refusal at
+   every position (the authors' ``Sorry_data``).
+
+``DeRTaConfig(legacy=True)`` (or ``safetune.configure(legacy_derta=True)``
+through the trainers) restores the old rows: RTO rows were harmful prefix + safe
+response at several cut points, and the prefix tokens were training targets.
 """
 
 import logging
@@ -16,6 +24,35 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# RTO trains the model to emit this token at every position of a harmful
+# response. The authors hardcode 19701, which is "Sorry" in the Llama-3
+# tokenizer (their RTO rows are named `Sorry_data`); on any other tokenizer
+# 19701 is an unrelated token, so derive the id from the text instead.
+RTO_REFUSAL_TEXT = "Sorry"
+
+
+def refusal_token_id(tokenizer: Any, text: str = RTO_REFUSAL_TEXT) -> int:
+    """The single token id of ``text`` under ``tokenizer`` (19701 on Llama-3).
+
+    Raises when ``text`` doesn't tokenize to exactly one token under this
+    tokenizer -- silently taking the first sub-token of a fragmented word
+    (e.g. "S" of "S" + "or" + "ry") would train the model to emit a
+    meaningless token instead of a refusal. Pass a ``text`` that tokenizes
+    cleanly under this tokenizer, or an explicit ``rto_refusal_token_id``
+    to the trainer to skip this derivation entirely.
+    """
+    ids = tokenizer.encode(text, add_special_tokens=False)
+    if not ids:
+        raise ValueError(f"tokenizer encodes {text!r} to no tokens")
+    if len(ids) != 1:
+        raise ValueError(
+            f"tokenizer encodes {text!r} to {len(ids)} tokens {ids}, not one "
+            f"({[tokenizer.decode([i]) for i in ids]!r}); pass a text that "
+            f"tokenizes to a single token under this tokenizer, or an "
+            f"explicit rto_refusal_token_id"
+        )
+    return int(ids[0])
 
 
 @dataclass
@@ -31,6 +68,8 @@ class DeRTaConfig:
     enable_rto: bool = True
     # Seed for reproducibility
     seed: int = 42
+    # True: the old RTO rows (harmful prefix + safe response at several cuts)
+    legacy: bool = False
 
 
 class DeRTaFormatter:
@@ -63,7 +102,9 @@ class DeRTaFormatter:
 
         Returns a list of dicts with keys:
         - 'prompt': the original prompt
-        - 'response': the augmented response (harmful prefix + safe refusal)
+        - 'response': 'mle_prefix': harmful prefix + safe refusal; 'rto': the
+          harmful response
+        - 'prefix_text': 'mle_prefix' rows: the harmful prefix (not a target)
         - 'augmentation': type of augmentation ('mle_prefix' or 'rto')
         - 'prefix_ratio': fraction of harmful response used as prefix
         """
@@ -96,12 +137,21 @@ class DeRTaFormatter:
             results.append({
                 "prompt": prompt,
                 "response": augmented_response,
+                "prefix_text": prefix,
                 "augmentation": "mle_prefix",
                 "prefix_ratio": plen / len(harmful_words),
             })
 
-        # 2. Reinforced Transition Optimization (RTO)
-        if self.config.enable_rto:
+        # 2. Reinforced Transition Optimization (RTO): the harmful response,
+        # every token of which the trainer relabels as the refusal token.
+        if self.config.enable_rto and not self.config.legacy:
+            results.append({
+                "prompt": prompt,
+                "response": harmful_response,
+                "augmentation": "rto",
+                "prefix_ratio": 1.0,
+            })
+        elif self.config.enable_rto:
             # Create transition pairs at multiple positions
             step = max(1, len(harmful_words) // self.config.num_prefix_variants)
             for i in range(step, len(harmful_words), step):

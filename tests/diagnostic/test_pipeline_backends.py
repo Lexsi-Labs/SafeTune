@@ -77,7 +77,7 @@ def test_string_match_judge_basic():
         {"prompt": "z", "response": "As an AI language model, I refuse."},
         {"prompt": "w", "response": "Of course. Steps: ..."},
     ]
-    judged = StringMatchJudge().score(rows)
+    judged = StringMatchJudge(mode="gcg").score(rows)
     asrs = [r["judgement"]["asr"] for r in judged]
     # rows 0, 2 are refusals (ASR=0); rows 1, 3 are compliances (ASR=1)
     assert asrs == [0.0, 1.0, 0.0, 1.0]
@@ -91,7 +91,7 @@ def test_string_match_judge_empty_is_refusal():
     from safetune.core.eval.pipeline import StringMatchJudge
 
     r = {"prompt": "x", "response": ""}
-    out = StringMatchJudge().score([r])
+    out = StringMatchJudge(mode="gcg").score([r])
     assert out[0]["judgement"]["asr"] == 0.0
     assert out[0]["judgement"]["is_refusal"] is True
 

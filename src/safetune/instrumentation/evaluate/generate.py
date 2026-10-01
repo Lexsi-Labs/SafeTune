@@ -7,6 +7,7 @@ import os
 from typing import List, Optional
 
 from .judges import JUDGE_REGISTRY  # re-export for convenience
+from safetune.config import dtype_name, get_config, resolve_device, resolve_dtype
 
 _TRITON_ATTN = os.environ.get("SAFETUNE_TRITON_ATTN", "1") == "1"
 
@@ -39,7 +40,8 @@ def _generate_vllm(
         gpu_memory_utilization=gpu_memory_utilization,
         max_model_len=max_model_len,
         enforce_eager=True,
-        dtype="bfloat16",
+        dtype=dtype_name(device="cuda"),
+        tensor_parallel_size=get_config().tensor_parallel_size,
         limit_mm_per_prompt={"image": 0, "video": 0, "audio": 0},
     )
     if tokenizer_name:
@@ -78,12 +80,14 @@ def _generate_hf(
     max_new_tokens: int,
     temperature: float,
     tokenizer_name: Optional[str],
-    batch_size: int = 8,
+    batch_size: Optional[int] = None,
+    add_special_tokens: bool = True,
 ) -> List[str]:
-    """Run generation with HuggingFace Transformers (device_map=auto, bfloat16)."""
+    """Run generation with HuggingFace Transformers on the runtime device/dtype."""
     try:
         import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoTokenizer
+        from safetune._refusal_helpers import _load_pretrained_lm
     except ImportError as exc:
         raise ImportError(
             "transformers is required for the hf backend. "
@@ -98,17 +102,16 @@ def _generate_hf(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
+    rt = get_config()
+    batch_size = batch_size or rt.gen_batch_size
+    model = _load_pretrained_lm(
         model_path,
-        device_map="auto",
-        dtype=torch.bfloat16,
+        device_map="auto" if rt.device == "auto" else resolve_device(),
+        dtype=resolve_dtype(),
     )
     model.eval()
-    if model.config.pad_token_id is None:
-        pad_id = tokenizer.pad_token_id or tokenizer.eos_token_id
-        model.config.pad_token_id = pad_id
-        if hasattr(model, "generation_config"):
-            model.generation_config.pad_token_id = pad_id
+    from safetune.runner.utils.model_utils import _fix_pad_token
+    _fix_pad_token(model, tokenizer)  # text config for vision-language models
 
     responses: List[str] = []
     for i in range(0, len(formatted_prompts), batch_size):
@@ -118,7 +121,8 @@ def _generate_hf(
             return_tensors="pt",
             padding=True,
             truncation=True,
-            max_length=4096,
+            max_length=rt.max_model_len,
+            add_special_tokens=add_special_tokens,
         ).to(model.device)
         gen_kwargs: dict = dict(
             max_new_tokens=max_new_tokens,
@@ -143,10 +147,10 @@ def generate_responses(
     model_path: str,
     prompts: List[str],
     *,
-    max_new_tokens: int = 512,
+    max_new_tokens: Optional[int] = None,
     temperature: float = 0.0,
-    gpu_memory_utilization: float = 0.85,
-    max_model_len: int = 4096,
+    gpu_memory_utilization: Optional[float] = None,
+    max_model_len: Optional[int] = None,
     apply_chat_template: bool = True,
     tokenizer_name: Optional[str] = None,
     backend: str = "vllm",
@@ -156,10 +160,12 @@ def generate_responses(
     Args:
         model_path: Path or HF Hub ID of the model to use for generation.
         prompts: List of raw user-facing prompts.
-        max_new_tokens: Maximum number of tokens to generate per prompt.
+        max_new_tokens: Maximum number of tokens to generate per prompt
+            (default: runtime ``safety_max_new_tokens``, 512).
         temperature: Sampling temperature. 0.0 = greedy / deterministic.
-        gpu_memory_utilization: Fraction of GPU memory to allocate (vLLM only).
-        max_model_len: Maximum total sequence length (vLLM only).
+        gpu_memory_utilization: Fraction of GPU memory to allocate (vLLM only;
+            default: runtime setting, else 0.85).
+        max_model_len: Maximum total sequence length (default: runtime, 4096).
         apply_chat_template: When True, wrap each prompt as a user message via the
             model's chat template before generation. When False the prompt string is
             passed to the model verbatim.
@@ -172,6 +178,10 @@ def generate_responses(
     if not prompts:
         return []
 
+    rt = get_config()
+    max_new_tokens = max_new_tokens or rt.safety_max_new_tokens
+    gpu_memory_utilization = gpu_memory_utilization or rt.gpu_memory_utilization or 0.85
+    max_model_len = max_model_len or rt.max_model_len
     tok_name = tokenizer_name or model_path
 
     # Optionally format prompts through the model's chat template.
@@ -199,6 +209,10 @@ def generate_responses(
         formatted = list(prompts)
 
     if backend == "vllm":
+        if apply_chat_template:
+            from safetune._refusal_helpers import _strip_bos
+            # vLLM adds BOS to a text prompt; drop the one the template rendered.
+            formatted = _strip_bos(tokenizer, formatted)
         return _generate_vllm(
             model_path,
             formatted,
@@ -215,6 +229,8 @@ def generate_responses(
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             tokenizer_name=tok_name,
+            # chat-template text already carries BOS
+            add_special_tokens=not apply_chat_template,
         )
     else:
         raise ValueError(f"Unknown backend: {backend!r}. Supported: 'vllm', 'hf'.")

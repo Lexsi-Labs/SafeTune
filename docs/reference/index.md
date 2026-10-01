@@ -10,3 +10,4 @@ Lookup material for SafeTune: the generated API, the command-line interface, the
 | [Feature Map](feature-map.md) | Per-method faithfulness-audit verdicts against each source paper. |
 | [System Design](system-design.md) | How SafeTune is structured — pillars, registries, and the runner. |
 | [API Contract](api-contract.md) | The stable public surface and the guarantees SafeTune makes about it. |
+| [Error Codes](error-codes.md) | Every structured exception's `error_code`, what raises it, and how to catch it. |

@@ -34,7 +34,7 @@ safetune train \
   --output ./results/lisa
 ```
 
-Relevant flags: `--algo`, `--model`, `--train-dataset`, `--train-split`, `--epochs`, `--batch-size`, `--lr`, `--precision`, `--output`, `--wandb`.
+Relevant flags: `--algo`, `--model`, `--train-dataset`, `--train-config`, `--train-split`, `--epochs`, `--batch-size`, `--lr`, `--precision`, `--output`, `--wandb`.
 
 !!! note "Programmatic-only harden methods"
     A few harden methods — `cst`, `mart`, `deeprefusal`, `antibody` — need method-specific data/config that the uniform CLI train contract can't supply. Running e.g. `safetune train --algo cst` prints a hint pointing at the Python API (`from safetune.runner.harden import CSTTrainer`) and exits. Use these from Python; see the harden guide.
@@ -99,12 +99,17 @@ All flags are global — they parse regardless of command, though not every comm
 | `--output`, `--output-dir` | `./results` | Output directory. |
 | `--epochs` | `1` | Training epochs. |
 | `--batch-size` | `1` | Batch size. |
-| `--lr`, `--learning-rate` | `5e-5` | Learning rate / alpha. |
+| `--lr`, `--learning-rate` | `5e-5` | Learning rate for `train` / `unlearn`. Not used by `patch`; use `--alpha`. |
 | `--base` | — | Base model path (for `patch`/recover). |
 | `--aligned` | — | Aligned model path (for `patch`/recover). |
-| `--precision` | `bf16` | Compute precision: `fp16`, `bf16`, or `fp32`. |
-| `--train-dataset` | `beavertails` | Training dataset: `beavertails` or any HF dataset id. |
+| `--alpha` | — | Strength for `patch` (recover) methods, passed as the trainer's `alpha`. Unset: the method's default. |
+| `--precision` | `None` | Compute precision: `fp16`, `bf16`, or `fp32`. Unset: the runtime dtype (`safetune.configure(dtype=...)`; bf16 where supported). |
+| `--train-dataset` | `beavertails` | Training dataset: `beavertails`, an HF dataset id, a local file, or a dataset folder such as a CuratorKIT export. Rows may be chat `messages`, ShareGPT `conversations`, Alpaca `instruction`/`input`/`output` or prompt/response columns; SafeTune tokenises them. Prompt-only rows (e.g. CuratorKIT `ppo`) are an error. |
+| `--train-config` | — | Config of `--train-dataset` (`load_dataset(dir, config)`), e.g. `sft_sharegpt` for a CuratorKIT export. |
 | `--train-split` | — | Split for `--train-dataset` (default: `30k_train` for beavertails, else `train`). |
+| `--safety-dataset` | — | Safety set for harden methods that take one (`safegrad`, `lisa`, `sap`, ...): a `safetune.data.dataset_ids` name or any HF id, local file or URL. Default: the method's built-in set |
+| `--safety-config` | — | Config of `--safety-dataset`. |
+| `--safety-split` | — | Split to load from `--safety-dataset` (default: the table's split, else `train`) |
 | `--eval-backend` | auto | Generation backend for eval: `vllm` or `hf` (auto: vLLM if installed, else `hf`). |
 | `--wandb` | off | Enable Weights & Biases logging. |
 

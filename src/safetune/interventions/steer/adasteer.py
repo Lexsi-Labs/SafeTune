@@ -56,6 +56,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
+from safetune._refusal_helpers import _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -412,14 +413,7 @@ class AdaSteerModel:
 
     # -- layer access -------------------------------------------------------
     def _get_layers(self) -> list:
-        m = self.model
-        if hasattr(m, "model") and hasattr(m.model, "layers"):
-            return list(m.model.layers)
-        if hasattr(m, "transformer") and hasattr(m.transformer, "h"):
-            return list(m.transformer.h)
-        if hasattr(m, "gpt_neox") and hasattr(m.gpt_neox, "layers"):
-            return list(m.gpt_neox.layers)
-        return []
+        return _get_decoder_layers(self.model)
 
     # -- calibration --------------------------------------------------------
     def fit_adaptive(
@@ -455,11 +449,18 @@ class AdaSteerModel:
     def _probe_hook(self, layer_idx: int):
         """Capture the last-token activation at a probe layer (RD or HD)."""
 
+        first_probe = min(self.config.rd_probe_layer, self.config.hd_probe_layer)
+
         def hook(module: Any, inp: Any, output: Any):
             hidden = output[0] if isinstance(output, tuple) else output
             # Only the prompt forward (seq_len > 1) carries a meaningful
             # last instruction token; skip per-step decoding forwards.
             if hidden.dim() == 3 and hidden.shape[1] > 1:
+                if layer_idx == first_probe:
+                    # A new prompt: recompute the coefficients for it, as
+                    # generate() does, also when the caller drives
+                    # model.generate directly under ``with``.
+                    self._reset_adaptive_state()
                 self._captured[layer_idx] = hidden[:, -1, :].detach()
             return output
 
@@ -605,7 +606,7 @@ class AdaSteerModel:
 
     @classmethod
     def from_pretrained(cls, path: str, **kwargs: Any) -> "AdaSteerModel":
-        from transformers import AutoModelForCausalLM
+        from safetune._refusal_helpers import _load_pretrained_lm
 
-        model = AutoModelForCausalLM.from_pretrained(path)
+        model = _load_pretrained_lm(path)
         return cls(model, **kwargs)

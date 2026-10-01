@@ -12,6 +12,7 @@ Usage::
 """
 from __future__ import annotations
 import os
+from typing import Optional
 
 os.environ.setdefault("USE_TF", "0")
 os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
@@ -24,7 +25,7 @@ from ._data_shaping import (
     STARDSSTrainer,
     DeRTaTrainer,
 )
-from safetune.harden import CSTTrainer
+from ._dpo_adversarial import CSTTrainer
 from ._regularization import (
     AsFTTrainer,
     SAPTrainer,
@@ -41,7 +42,7 @@ from ._tamper_resistant import (
     SEAMTrainer,
     DOORTrainer,
 )
-from safetune.harden import MARTTrainer, DeepRefusalTrainer, AntibodyTrainer
+from ._dpo_adversarial import MARTTrainer, DeepRefusalTrainer, AntibodyTrainer
 from ._other import (
     TARTrainer,
     SaLoRATrainer,
@@ -51,10 +52,11 @@ from ._other import (
 )
 
 
-def load_harden_data(model_id, n: int = 512, max_len: int = 256):
+def load_harden_data(model_id, n: int = 512, max_len: Optional[int] = None, harmful_frac: float = 0.15):
     from safetune.runner.utils.dataset import load_harden_dataset
     from safetune.runner.utils.model_utils import load_tok
-    return load_harden_dataset(load_tok(model_id), n=n, max_len=max_len)
+    return load_harden_dataset(load_tok(model_id), n=n, max_len=max_len,
+                               harmful_frac=harmful_frac)
 
 
 __all__ = [

@@ -55,13 +55,15 @@ from ._other import (
 )
 
 
-def load_recover_data(model_id, max_len: int = 64):
-    """Tokenized calibration inputs for recover methods."""
-    import torch
+def load_recover_data(model_id, max_len: int = 64, n: int = None):
+    """Tokenized calibration inputs for recover methods, on the runtime device.
+
+    ``n`` prompts per side defaults to the runtime ``calib_n`` (256).
+    """
+    from safetune.config import resolve_device
     from safetune.runner.utils.dataset import load_recover_dataset
     from safetune.runner.utils.model_utils import load_tok
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    return load_recover_dataset(load_tok(model_id), device, max_len=max_len)
+    return load_recover_dataset(load_tok(model_id), resolve_device(), max_len=max_len, n=n)
 
 
 __all__ = [

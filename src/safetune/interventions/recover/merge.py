@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ._invariant import assert_mutates
+from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,8 @@ def _resolve_pre_model(
         )
 
     try:
-        from transformers import AutoModelForCausalLM  # type: ignore[import-not-found]
+        import transformers  # noqa: F401  # type: ignore[import-not-found]
+        from safetune._refusal_helpers import _load_pretrained_lm
     except ImportError as exc:
         raise ImportError(
             "transformers is required to load pre_model from a path or HF id. "
@@ -42,12 +44,14 @@ def _resolve_pre_model(
         ) from exc
 
     logger.info("apply_prepost_merge: loading pre_model from %r", pre_model)
-    return AutoModelForCausalLM.from_pretrained(pre_model, torch_dtype="auto")
+    return _load_pretrained_lm(pre_model, torch_dtype="auto")
 
 
 @assert_mutates("task_arithmetic")
+@keyword_refs("base", "aligned", "alpha")
 def task_arithmetic(
     finetuned: nn.Module,
+    *,
     base: nn.Module,
     aligned: nn.Module,
     alpha: float = 1.0,
@@ -110,10 +114,12 @@ def _somf_subspace_mask(
 
 
 @assert_mutates("somf_merge")
+@keyword_refs("aligned", "base", "mask_threshold", "lam", "subspace_mask")
 def somf_merge(
     finetuned: nn.Module,
-    aligned: nn.Module,
+    *,
     base: nn.Module,
+    aligned: nn.Module,
     mask_threshold: float = 0.9,
     lam: float = 1.0,
     subspace_mask: dict | None = None,
@@ -164,10 +170,13 @@ def somf_merge(
     return finetuned
 
 
+@keyword_refs("aligned", "base", "preference_data", "num_steps", "lr",
+              "temperature", "beta", "lam", "device", "seed")
 def learn_somf_mask(
     finetuned: nn.Module,
-    aligned: nn.Module,
+    *,
     base: nn.Module,
+    aligned: nn.Module,
     preference_data: Iterable[Mapping],
     num_steps: int = 200,
     lr: float = 1e-2,

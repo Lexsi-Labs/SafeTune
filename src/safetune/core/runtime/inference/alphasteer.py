@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
 import torch
+from safetune._refusal_helpers import _get_decoder_layers
 
 
 @dataclass
@@ -64,16 +65,10 @@ class AlphaSteerWrapper:
         return self.M
 
     def _get_layer(self) -> Any:
-        if hasattr(self.model, "language_model") and hasattr(self.model.language_model, "layers"):
-            return self.model.language_model.layers[self.config.layer_id]
-        if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return self.model.model.layers[self.config.layer_id]
-        if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return self.model.transformer.h[self.config.layer_id]
-        raise AttributeError(
-            "Could not locate transformer layers on model "
-            "(tried language_model.layers, model.layers, transformer.h)"
-        )
+        layers = _get_decoder_layers(self.model)
+        if not layers:
+            raise AttributeError("Could not locate transformer layers on model")
+        return layers[self.config.layer_id]
 
     def _hook_fn(self) -> Callable:
         def hook(module: Any, inputs: Any, output: Any) -> Any:

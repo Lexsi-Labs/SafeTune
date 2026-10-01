@@ -271,20 +271,23 @@ class SafeTuneDecodeLogitsProcessor(_V1LogitsProcessor):  # type: ignore[misc]
     # ----- one-time heavy build -------------------------------------------
     def _build(self) -> None:
         from transformers import AutoModelForCausalLM, AutoTokenizer
+        from safetune.utils.errors import hf_access_errors
 
         # Tokenizer of the *target* (vLLM) model -- the SafeTune processors
         # build their vocab-translation table from target vs aux tokenizers.
-        self._tok = AutoTokenizer.from_pretrained(self._target_model_id)
-        aux_tok = AutoTokenizer.from_pretrained(self.spec.aux_model)
-
-        self._aux = AutoModelForCausalLM.from_pretrained(
-            self.spec.aux_model, dtype=self._dtype,
-        ).to(self.device).eval()
+        with hf_access_errors(self._target_model_id, kind="model"):
+            self._tok = AutoTokenizer.from_pretrained(self._target_model_id)
+        with hf_access_errors(self.spec.aux_model, kind="auxiliary model"):
+            aux_tok = AutoTokenizer.from_pretrained(self.spec.aux_model)
+            self._aux = AutoModelForCausalLM.from_pretrained(
+                self.spec.aux_model, dtype=self._dtype,
+            ).to(self.device).eval()
 
         if self.spec.aux_model_2:
-            self._aux2 = AutoModelForCausalLM.from_pretrained(
-                self.spec.aux_model_2, dtype=self._dtype,
-            ).to(self.device).eval()
+            with hf_access_errors(self.spec.aux_model_2, kind="auxiliary model"):
+                self._aux2 = AutoModelForCausalLM.from_pretrained(
+                    self.spec.aux_model_2, dtype=self._dtype,
+                ).to(self.device).eval()
 
         # Instantiate the genuine SafeTune processor -- we reuse its combine()
         # / _common_token_mask() / config math verbatim. We never call its
@@ -501,10 +504,12 @@ class VLLMDecodeSteer:
         *,
         gpu_memory_utilization: float = 0.55,
         max_model_len: int = 4096,
-        dtype: str = "bfloat16",
+        dtype: str = None,
         enforce_eager: bool = True,
         **vllm_kwargs: Any,
     ) -> None:
+        from safetune.config import dtype_name
+        dtype = dtype or dtype_name(device="cuda")  # bf16 on sm80+, else fp16
         self.target_model = target_model
         self.spec = spec
 
@@ -527,20 +532,22 @@ class VLLMDecodeSteer:
         #    Note: gpu_memory_utilization is left low-ish by default so the
         #    auxiliary HF model has room on the same GPU.
         from vllm import LLM  # noqa: WPS433
+        from safetune.utils.errors import hf_access_errors
 
         # vLLM accepts a logitsproc *class* directly; passing the class avoids
         # an FQCN-resolution round-trip, but the class still has to be
         # importable in the worker (handled by PYTHONPATH above). We pass the
         # FQCN string for robustness across spawn.
-        self.llm = LLM(
-            model=target_model,
-            logits_processors=[self._FQCN],
-            gpu_memory_utilization=gpu_memory_utilization,
-            max_model_len=max_model_len,
-            dtype=dtype,
-            enforce_eager=enforce_eager,
-            **vllm_kwargs,
-        )
+        with hf_access_errors(target_model, kind="model"):
+            self.llm = LLM(
+                model=target_model,
+                logits_processors=[self._FQCN],
+                gpu_memory_utilization=gpu_memory_utilization,
+                max_model_len=max_model_len,
+                dtype=dtype,
+                enforce_eager=enforce_eager,
+                **vllm_kwargs,
+            )
         self.tokenizer = self.llm.get_tokenizer()
 
     def generate(
@@ -560,7 +567,8 @@ class VLLMDecodeSteer:
             prompts = [prompts]
         # Shared chat-template rendering: falls back to the raw prompt when the
         # tokenizer carries no chat_template (base models), instead of raising.
-        rendered = render_prompts(self.tokenizer, prompts, apply_chat_template)
+        rendered = render_prompts(self.tokenizer, prompts, apply_chat_template,
+                                  strip_bos=True)
         sp = SamplingParams(temperature=temperature, max_tokens=max_tokens,
                             **sp_kwargs)
         outs = self.llm.generate(rendered, sp)

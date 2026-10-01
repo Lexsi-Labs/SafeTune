@@ -24,7 +24,6 @@ from scripts.release import (
 def _version_tree(root: Path, version: str = "1.0.0") -> Path:
     (root / "src/safetune").mkdir(parents=True)
     (root / "pyproject.toml").write_text(f'[project]\nversion = "{version}"\n')
-    (root / "src/safetune/__init__.py").write_text(f'__version__ = "{version}"\n')
     (root / "CITATION.cff").write_text(f'version: "{version}"\n')
     return root
 
@@ -71,7 +70,6 @@ def test_set_version_updates_every_authoritative_location(tmp_path):
     set_version("1.0.1", root)
     assert current_version(root) == "1.0.1"
     assert "1.0.1" in (root / "pyproject.toml").read_text()
-    assert "1.0.1" in (root / "src/safetune/__init__.py").read_text()
     assert "1.0.1" in (root / "CITATION.cff").read_text()
 
 

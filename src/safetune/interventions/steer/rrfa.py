@@ -165,7 +165,7 @@ class RRFAEnsemble:
         For real RRFA protection ``path`` should point to a model whose LoRA
         adapters were trained with the upstream RRFA repository.
         """
-        from transformers import AutoModelForCausalLM
+        from safetune._refusal_helpers import _load_pretrained_lm
 
-        model = AutoModelForCausalLM.from_pretrained(path)
+        model = _load_pretrained_lm(path)
         return cls(model, **kwargs)

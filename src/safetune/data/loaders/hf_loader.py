@@ -1,5 +1,5 @@
 from typing import Optional, Any
-from datasets import load_dataset
+import datasets
 from .base import BaseLoader
 
 class HFLoader(BaseLoader):
@@ -31,7 +31,7 @@ class HFLoader(BaseLoader):
         if self.config_name:
             load_args.append(self.config_name)
             
-        dataset = load_dataset(
+        dataset = datasets.load_dataset(
             *load_args,
             split=self.split,
             **self.kwargs

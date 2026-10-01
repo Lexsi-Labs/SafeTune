@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import os
+
 from safetune.runner import unlearn
 from safetune.runner.utils.model_utils import load_tok, load_model
 

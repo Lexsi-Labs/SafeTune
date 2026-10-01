@@ -88,7 +88,7 @@ honest, explicit approximation — not silently mislabelled as exact.
 
 Usage::
 
-    from safetune.harden.ctrap import CTRAPTrainer, CTRAPConfig
+    from safetune.harden.ctrap import CTRAPHFTrainer, CTRAPConfig
 
     config = CTRAPConfig(
         output_dir="ctrap_out",
@@ -97,7 +97,7 @@ Usage::
         ctrap_alpha=0.1,         # α inner step size in Eq. (2)
         ctrap_collapse_token_id=None,   # token e; defaults to EOS/pad if None
     )
-    trainer = CTRAPTrainer(
+    trainer = CTRAPHFTrainer(
         model=model,
         args=config,
         train_dataset=alignment_dataset,
@@ -282,7 +282,7 @@ def _logits_of(outputs: Any) -> "torch.Tensor":
         return outputs.logits
     if isinstance(outputs, (list, tuple)) and len(outputs) > 0:
         return outputs[0]
-    raise ValueError("CTRAPTrainer: model output has no logits.")
+    raise ValueError("CTRAPHFTrainer: model output has no logits.")
 
 
 def _harmful_ce_loss(outputs: Any, labels: "torch.Tensor") -> "torch.Tensor":
@@ -324,10 +324,10 @@ def _forward(model: Any, batch: Any) -> Any:
 
 
 # ---------------------------------------------------------------------------
-# CTRAPTrainer
+# CTRAPHFTrainer
 # ---------------------------------------------------------------------------
 
-class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class CTRAPHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """HuggingFace Trainer implementing the CTRAP collapse trap (Eq. 1 & 2).
 
     Per step::
@@ -353,15 +353,15 @@ class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for CTRAPTrainer"
+                "transformers is required for CTRAPHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _TORCH_IMPORT_ERROR is not None:
             raise ImportError(
-                "torch is required for CTRAPTrainer"
+                "torch is required for CTRAPHFTrainer"
             ) from _TORCH_IMPORT_ERROR
         if harmful_dataset is None:
             raise ValueError(
-                "CTRAPTrainer requires a 'harmful_dataset' argument."
+                "CTRAPHFTrainer requires a 'harmful_dataset' argument."
             )
 
         super().__init__(*args, **kwargs)
@@ -370,7 +370,7 @@ class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
         gamma = getattr(self.args, "ctrap_gamma", None)
         if gamma is not None:
             logger.warning(
-                "CTRAPTrainer: 'ctrap_gamma' is deprecated; use 'ctrap_lambda'."
+                "CTRAPHFTrainer: 'ctrap_gamma' is deprecated; use 'ctrap_lambda'."
             )
             self._lambda = float(gamma)
         else:
@@ -383,7 +383,7 @@ class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
         # eager attention, so training never crashes in the outer backward.
         if self._second_order and not _model_uses_eager_attention(self.model):
             logger.warning(
-                "CTRAPTrainer: model is not using eager attention; the faithful "
+                "CTRAPHFTrainer: model is not using eager attention; the faithful "
                 "second-order bi-level term needs an attention double-backward "
                 "that fused kernels do not support. Downgrading to the "
                 "first-order approximation. Load the model with "
@@ -394,7 +394,7 @@ class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
             self.model, getattr(self.args, "ctrap_collapse_token_id", None)
         )
         logger.info(
-            "CTRAPTrainer: λ=%.4g, α=%.4g, collapse_token_id=%d, second_order=%s",
+            "CTRAPHFTrainer: λ=%.4g, α=%.4g, collapse_token_id=%d, second_order=%s",
             self._lambda, self._alpha, self._collapse_token_id, self._second_order,
         )
 
@@ -439,7 +439,7 @@ class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
         labels = harm_batch.get("labels")
         if labels is None:
             raise ValueError(
-                "CTRAPTrainer: harmful batch needs 'labels' to compute "
+                "CTRAPHFTrainer: harmful batch needs 'labels' to compute "
                 "the simulated-attack gradient ∇_θ L(θ; D_harmful)."
             )
         l_harm = _harmful_ce_loss(harm_out, labels)
@@ -515,7 +515,7 @@ class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
             labels = inputs.get("labels")
             if labels is None:
                 raise ValueError(
-                    "CTRAPTrainer: alignment inputs need 'labels' (or the model "
+                    "CTRAPHFTrainer: alignment inputs need 'labels' (or the model "
                     "must return a loss) to compute L(θ; D_alignment)."
                 )
             l_align = _harmful_ce_loss(align_outputs, labels)
@@ -539,7 +539,7 @@ class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
             l_collapse = self._collapse_loss_at(model, theta_prime, general_batch)
         except Exception as exc:
             logger.warning(
-                "CTRAPTrainer: simulated-attack / collapse path failed (%s); "
+                "CTRAPHFTrainer: simulated-attack / collapse path failed (%s); "
                 "L_collapse=0 this step.", exc,
             )
             l_collapse = next(iter(model.parameters())).sum() * 0.0
@@ -550,4 +550,9 @@ class CTRAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
         return (loss, align_outputs) if return_outputs else loss
 
 
-__all__ = ["CTRAPConfig", "CTRAPTrainer"]
+__all__ = ["CTRAPConfig", "CTRAPHFTrainer"]
+
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, CTRAPTrainer="CTRAPHFTrainer")  # old name, remove in 0.3

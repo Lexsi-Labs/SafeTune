@@ -24,6 +24,7 @@ All trainers expose::
 """
 from __future__ import annotations
 import os
+from typing import Optional
 
 os.environ.setdefault("USE_TF", "0")
 os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
@@ -35,7 +36,7 @@ from ._flat import FLATTrainer
 from ._simdpo import SimDPOTrainer
 
 
-def load_unlearn_data(model_id, n: int = 256, max_len: int = 256):
+def load_unlearn_data(model_id, n: int = 256, max_len: Optional[int] = None):
     from safetune.runner.utils.dataset import load_unlearn_dataset
     from safetune.runner.utils.model_utils import load_tok
     return load_unlearn_dataset(load_tok(model_id), n=n, max_len=max_len)

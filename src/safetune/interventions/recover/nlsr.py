@@ -142,8 +142,8 @@ def _resolve_pre_model(pre_model: Union[nn.Module, str]) -> nn.Module:
         return pre_model
     if not isinstance(pre_model, str):
         raise TypeError(f"pre_model must be an nn.Module or string; got {type(pre_model)!r}")
-    from transformers import AutoModelForCausalLM  # type: ignore[import-not-found]
-    return AutoModelForCausalLM.from_pretrained(pre_model, torch_dtype="auto")
+    from safetune._refusal_helpers import _load_pretrained_lm
+    return _load_pretrained_lm(pre_model, torch_dtype="auto")
 
 
 @assert_mutates("task_arithmetic")

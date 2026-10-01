@@ -51,14 +51,15 @@ for bench, result in results.items():
 
 | Benchmark | Prompts | What it measures |
 |---|---|---|
-| `harmbench` | 400 | Refusal of harmful requests (standard behaviors) |
+| `harmbench` | 400 | Refusal of harmful requests (standard 200 + contextual 100 + copyright 100 behaviours) |
 | `xstest` | 450 | Over-refusal: does the model refuse benign prompts? |
 | `advbench` | 520 | Adversarial harmful behaviors |
 | `beavertails` | ~30k | Safety alignment on diverse harms |
 | `jailbreakbench` | 200 | Resistance to jailbreak behaviors |
 
 The full registry also includes `wildjailbreak`, `sorrybench_v1`, `hexphi`,
-`orbench`, `ailuminate`, `safedialbench`, and capability sets (`mmlu`,
+`orbench` (and its splits `orbench_hard`, `orbench_toxic`), `ailuminate`,
+`safedialbench`, and capability sets (`mmlu`,
 `gsm8k`, `humaneval`). If `benchmarks` is omitted, `evaluate` runs the paper
 safety suite.
 

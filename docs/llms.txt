@@ -15,27 +15,27 @@ Every method is checked against the paper it comes from and carries a badge for 
 
 ## Docs
 
-- [Getting started](https://lexsi-labs.github.io/SafeTune/getting-started/): install, quickstart, and the taxonomy
-- [Installation](https://lexsi-labs.github.io/SafeTune/getting-started/installation/): pip install and optional extras
-- [Quick start](https://lexsi-labs.github.io/SafeTune/getting-started/quickstart/): run the first method in ~60 seconds
-- [Taxonomy / core concepts](https://lexsi-labs.github.io/SafeTune/getting-started/taxonomy/): the 2-tier method taxonomy (source of truth)
-- [User guide](https://lexsi-labs.github.io/SafeTune/user-guide/): per-pillar usage guides with code
-- [Audit your model](https://lexsi-labs.github.io/SafeTune/user-guide/audit-your-model/): measure → attack → interpret → intervene walkthrough
-- [CLI, YAML, and Python usage](https://lexsi-labs.github.io/SafeTune/user-guide/usage/): the three ways to run any method
+- [Getting started](https://safetune.lexsi.ai/getting-started/): install, quickstart, and the taxonomy
+- [Installation](https://safetune.lexsi.ai/getting-started/installation/): pip install and optional extras
+- [Quick start](https://safetune.lexsi.ai/getting-started/quickstart/): run the first method in ~60 seconds
+- [Taxonomy / core concepts](https://safetune.lexsi.ai/getting-started/taxonomy/): the 2-tier method taxonomy (source of truth)
+- [User guide](https://safetune.lexsi.ai/user-guide/): per-pillar usage guides with code
+- [Audit your model](https://safetune.lexsi.ai/user-guide/audit-your-model/): measure → attack → interpret → intervene walkthrough
+- [CLI, YAML, and Python usage](https://safetune.lexsi.ai/user-guide/usage/): the three ways to run any method
 
 ## Reference
 
-- [Feature Map](https://lexsi-labs.github.io/SafeTune/reference/feature-map/): every method with its faithfulness badge
-- [References](https://lexsi-labs.github.io/SafeTune/reference/references/): per-method paper / venue / arXiv / repo table
-- [CLI reference](https://lexsi-labs.github.io/SafeTune/reference/cli/): full command-line reference
-- [API reference](https://lexsi-labs.github.io/SafeTune/reference/api/): harden, recover, unlearn, steer, interpret, evaluate, config
-- [System design](https://lexsi-labs.github.io/SafeTune/reference/system-design/): architecture and API contracts
+- [Feature Map](https://safetune.lexsi.ai/reference/feature-map/): every method with its faithfulness badge
+- [References](https://safetune.lexsi.ai/reference/references/): per-method paper / venue / arXiv / repo table
+- [CLI reference](https://safetune.lexsi.ai/reference/cli/): full command-line reference
+- [API reference](https://safetune.lexsi.ai/reference/api/): harden, recover, unlearn, steer, interpret, evaluate, config
+- [System design](https://safetune.lexsi.ai/reference/system-design/): architecture and API contracts
 
 ## Examples
 
-- [Examples index](https://lexsi-labs.github.io/SafeTune/examples/): runnable scripts and notebooks
-- [Notebooks](https://lexsi-labs.github.io/SafeTune/examples/notebooks/): Colab notebooks, one per pillar
-- [Case study: refusal rides on a single direction](https://lexsi-labs.github.io/SafeTune/examples/single-direction-jailbreak/): a reproducible, judge-free red-team run
+- [Examples index](https://safetune.lexsi.ai/examples/): runnable scripts and notebooks
+- [Notebooks](https://safetune.lexsi.ai/examples/notebooks/): Colab notebooks, one per pillar
+- [Case study: refusal rides on a single direction](https://safetune.lexsi.ai/examples/single-direction-jailbreak/): a reproducible, judge-free red-team run
 
 ## Optional
 

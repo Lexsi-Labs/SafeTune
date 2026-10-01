@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from .generate import generate_responses
 from .judges import JUDGE_REGISTRY, run_judge
+from safetune.config import get_config
 
 log = logging.getLogger(__name__)
 
@@ -30,9 +31,6 @@ _SOURCE_TO_JUDGE: Dict[str, str] = {
     "advbench": "advbench",
 }
 
-# OR-Bench has two sub-splits tracked separately.
-_ORBENCH_SPLITS = ("or-bench-hard-1k", "or-bench-toxic")
-
 # safetune bench name → cthetha-eval file stem (for write_bench_jsonl raw output)
 _BENCH_TO_FILE: Dict[str, str] = {
     "harmbench":    "harmbench",
@@ -44,34 +42,15 @@ _BENCH_TO_FILE: Dict[str, str] = {
     "advbench":     "advbench",
 }
 
-# Loader map: benchmark name → (module_path, function_name)
-_LOADERS: Dict[str, tuple[str, str]] = {
-    "harmbench": ("safetune.data.loaders.benchmarks", "load_harmbench"),
-    "wildjailbreak": ("safetune.data.loaders.benchmarks", "load_wildjailbreak"),
-    "sorrybench_v1": ("safetune.data.loaders.benchmarks", "load_sorrybench"),
-    "hexphi": ("safetune.data.loaders.benchmarks", "load_hexphi"),
-    "orbench": ("safetune.data.loaders.benchmarks", "load_orbench"),
-    "ailuminate": ("safetune.data.loaders.benchmarks", "load_ailuminate"),
-    "advbench": ("safetune.data.loaders.benchmarks", "load_advbench"),
-}
-
 
 def _load_benchmark(name: str) -> list:
-    """Load a benchmark dataset by name via the safetune.data.loaders.benchmarks
-    module. Returns a list of dicts with at least a 'prompt' key."""
-    import importlib
-
-    if name not in _LOADERS:
-        raise ValueError(
-            f"Unknown benchmark: {name!r}. Supported: {list(_LOADERS)}"
-        )
-    mod_path, fn_name = _LOADERS[name]
-    loader = getattr(importlib.import_module(mod_path), fn_name)
-    ds = loader()
+    """Load a registered benchmark (suite REGISTRY → safetune.data.loaders).
+    Returns a list of dicts with at least a 'prompt' key."""
+    from .suite.benchmarks import load_benchmark
 
     # Normalise to list[dict] with a 'prompt' field.
     rows: list = []
-    for item in ds:
+    for item in load_benchmark(name):
         if isinstance(item, dict):
             rows.append(item)
         else:
@@ -138,7 +117,7 @@ def write_jsonl(
                     "prompt": prompts[i] if i < len(prompts) else "",
                     "response": responses[i] if i < len(responses) else "",
                     "score": score,
-                    "refused": score < 0.5,  # harness._refusal_rate() reads this field
+                    "refused": score < 0.5,  # eval_runner.safety_metrics() reads this field
                     "bench": bench_name,
                 }
                 fh.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -154,26 +133,45 @@ def generate_bench_responses(
     model_path: str,
     benchmarks: List[str],
     *,
-    gpu_memory_utilization: float = 0.5,
-    max_new_tokens: int = 512,
+    gpu_memory_utilization: Optional[float] = None,
+    max_new_tokens: Optional[int] = None,
     tokenizer_name: Optional[str] = None,
     backend: str = "vllm",
+    max_prompts: Optional[int] = None,
+    strict: Optional[bool] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """Phase 1: load target model once, generate responses for all benchmarks.
 
-    Returns dict: bench_name → {prompts, responses, rows}.
+    ``max_prompts`` caps prompts per benchmark (default: runtime ``max_prompts``,
+    None = all). Returns dict: bench_name → {prompts, responses, rows}.
     Does NOT run judges — call _score_with_judges separately after GPU flush.
+
+    ``strict`` (default: runtime ``eval_strict``, True): a benchmark that fails
+    to load or has no prompts raises before any generation, and a generation
+    failure raises. ``False``: those are logged and skipped (``{}`` when
+    generation fails).
     """
+    rt = get_config()
+    gpu_memory_utilization = gpu_memory_utilization or rt.gpu_memory_utilization or 0.5
+    max_prompts = max_prompts if max_prompts is not None else rt.max_prompts
+    strict = rt.eval_strict if strict is None else strict
     bench_data: Dict[str, Dict] = {}
     valid_benches = []
     for bench_name in benchmarks:
         try:
             rows = _load_benchmark(bench_name)
         except Exception as exc:
+            if strict:
+                exc.add_note(f"while loading benchmark {bench_name!r}")
+                raise
             log.error("[%s] Failed to load dataset: %s", bench_name, exc)
             continue
+        if max_prompts is not None:
+            rows = rows[:max_prompts]
         prompts = _extract_prompts(rows)
-        if not prompts:
+        if not any(prompts):
+            if strict:
+                raise ValueError(f"benchmark {bench_name!r}: no prompts found")
             log.warning("[%s] No prompts found — skipping.", bench_name)
             continue
         bench_data[bench_name] = {"rows": rows, "prompts": prompts}
@@ -198,12 +196,14 @@ def generate_bench_responses(
             max_new_tokens=max_new_tokens,
             temperature=0.0,
             gpu_memory_utilization=gpu_memory_utilization,
-            max_model_len=4096,
+            max_model_len=rt.max_model_len,
             apply_chat_template=True,
             tokenizer_name=tokenizer_name,
             backend=backend,
         )
     except Exception as exc:
+        if strict:
+            raise
         log.error("Generation failed: %s", exc)
         return {}
 
@@ -222,13 +222,15 @@ def write_bench_jsonl(
     """Write raw (unscored) response JSONL files for _score_with_judges to read.
 
     Output: <output_dir>/<model_folder_name>__base__<bench>.jsonl
-    Each line: {"prompt": ..., "response": ...}
+    Each line: {"prompt": ..., "response": ...}, plus the row's "split" when it
+    has one (OR-Bench: hard-1k vs toxic, read back by safety_metrics).
     """
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
     for bench_name, data in bench_data.items():
         prompts   = data.get("prompts", [])
         responses = data.get("responses", [])
+        rows      = data.get("rows") or [{}] * len(prompts)
         if not responses:
             log.warning("[%s] No responses to write.", bench_name)
             continue
@@ -236,8 +238,11 @@ def write_bench_jsonl(
         file_stem = _BENCH_TO_FILE.get(bench_name, bench_name)
         fname = out_path / f"{model_folder_name}__base__{file_stem}.jsonl"
         with open(fname, "w", encoding="utf-8") as fh:
-            for p, r in zip(prompts, responses):
-                fh.write(json.dumps({"prompt": p, "response": r}, ensure_ascii=False) + "\n")
+            for row, p, r in zip(rows, prompts, responses):
+                rec = {"prompt": p, "response": r}
+                if row.get("split"):
+                    rec["split"] = row["split"]
+                fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
         log.info("Wrote %d responses to %s", len(responses), fname)
 
 
@@ -249,8 +254,8 @@ def run_safety_eval(
     model_path: str,
     benchmarks: List[str],
     *,
-    gpu_memory_utilization: float = 0.85,
-    max_new_tokens: int = 512,
+    gpu_memory_utilization: Optional[float] = None,
+    max_new_tokens: Optional[int] = None,
     tokenizer_name: Optional[str] = None,
     backend: str = "vllm",
 ) -> Dict[str, Dict[str, Any]]:
@@ -290,6 +295,8 @@ def run_safety_eval(
           - ``judge``         — which judge was used
     """
     results: Dict[str, Dict[str, Any]] = {}
+    rt = get_config()
+    gpu_memory_utilization = gpu_memory_utilization or rt.gpu_memory_utilization or 0.85
 
     # ── Phase 1: load all datasets ──────────────────────────────────────────
     bench_data: Dict[str, Dict] = {}
@@ -334,7 +341,7 @@ def run_safety_eval(
             max_new_tokens=max_new_tokens,
             temperature=0.0,
             gpu_memory_utilization=gpu_memory_utilization,
-            max_model_len=4096,
+            max_model_len=rt.max_model_len,
             apply_chat_template=True,
             tokenizer_name=tokenizer_name,
             backend=backend,

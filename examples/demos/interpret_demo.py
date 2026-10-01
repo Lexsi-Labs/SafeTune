@@ -45,8 +45,9 @@ def main() -> int:
     print("      Edge Attribution Patching locates the edges (MLP + attention)")
     print("      most responsible for the safety response.")
     print("      import: from safetune.interpret import eap_safety_circuit, EAPSafetyCircuitConfig\n")
-    print("      cfg = EAPSafetyCircuitConfig(method='eap_ig', top_k_edges=100)")
-    print("      circuit = eap_safety_circuit(model, tokenizer, harmful, harmless, cfg)")
+    print("      cfg = EAPSafetyCircuitConfig(method='eap-ig', top_k_edges=100)")
+    print("      circuit = eap_safety_circuit(model, harmful, harmless, cfg, tokenizer=tokenizer)")
+    print("      # model: an HF id/path, or an already-loaded model (no second copy)")
     print("      # circuit is a CircuitInfo with edge-level attribution scores\n")
 
     # 4. CircuitInfo bridge to downstream pillars.
@@ -56,7 +57,7 @@ def main() -> int:
     print("  from safetune.core.neuron_safety import get_lora_targeting_from_circuit")
     print("  targeting = get_lora_targeting_from_circuit(circuit)   # → Recover\n")
 
-    print("See docs/guides/interpret/ for the full catalog of methods.")
+    print("See docs/user-guide/interpret/ for the full catalog of methods.")
     return 0
 
 

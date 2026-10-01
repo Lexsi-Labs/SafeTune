@@ -90,7 +90,7 @@ def _flat_grad(
     return torch.cat(parts)
 
 
-class SEALTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class SEALHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """HuggingFace Trainer implementing SEAL importance-weighted SFT.
 
     Uses gradient-conflict scoring to identify safety-sensitive training
@@ -110,10 +110,10 @@ class SEALTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for SEALTrainer"
+                "transformers is required for SEALHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if safety_dataset is None:
-            raise ValueError("SEALTrainer requires a 'safety_dataset' argument.")
+            raise ValueError("SEALHFTrainer requires a 'safety_dataset' argument.")
 
         super().__init__(*args, **kwargs)
 
@@ -226,7 +226,7 @@ class SEALTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
                 g_align = self._alignment_gradient(model)
                 self._cached_weights = self._score_examples(model, inputs, g_align)
             except Exception as exc:
-                logger.warning("SEALTrainer: scoring failed (%s); using uniform weights.", exc)
+                logger.warning("SEALHFTrainer: scoring failed (%s); using uniform weights.", exc)
                 self._cached_weights = torch.ones(B)
 
         # Non-rescore steps reuse the LAST computed weights (docstring:
@@ -265,4 +265,8 @@ class SEALTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
         return loss
 
 
-__all__ = ["SEALConfig", "SEALTrainer"]
+__all__ = ["SEALConfig", "SEALHFTrainer"]
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, SEALTrainer="SEALHFTrainer")  # old name, remove in 0.3

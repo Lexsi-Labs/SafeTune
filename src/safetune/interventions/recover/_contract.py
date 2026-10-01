@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import functools
 import inspect
+import os
+import warnings
 from typing import Any, Callable
 
 # All accepted spellings of the primary (target) model argument.
@@ -58,4 +60,34 @@ def accept_target_alias(fn: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-__all__ = ["accept_target_alias"]
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def keyword_refs(*legacy: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Accept the old positional form of a function whose arguments after the
+    first are now keyword-only, with a ``DeprecationWarning``, for one release.
+
+    ``legacy`` is the function's old positional order after the target model.
+    Recover functions did not share one (``task_arithmetic(ft, base, aligned)``
+    but ``somf_merge(ft, aligned, base)``), so switching methods with positional
+    arguments swapped ``base`` and ``aligned`` silently. Put this decorator
+    directly on the ``def``, under ``@assert_mutates``.
+    """
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(fn)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            if len(args) < 2:
+                return fn(*args, **kwargs)
+            names = legacy[:len(args) - 1]
+            warnings.warn(
+                f"{fn.__name__}: passing {', '.join(names)} by position is deprecated "
+                f"and stops working in 0.3. Use keywords: "
+                f"{fn.__name__}(model, {', '.join(n + '=...' for n in names)}).",
+                DeprecationWarning, skip_file_prefixes=(_HERE,))
+            # Two sources for one name raise TypeError, as the old call did.
+            return fn(args[0], *args[1 + len(names):], **dict(zip(names, args[1:])), **kwargs)
+        return wrapper
+    return decorator
+
+
+__all__ = ["accept_target_alias", "keyword_refs"]

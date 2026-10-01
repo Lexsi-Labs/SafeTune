@@ -424,19 +424,17 @@ class MARTTrainer:
         # trailing pad tokens would sit between the prompt and the first
         # generated token, so every sequence would be conditioned on pads.
         # Save/restore so the caller's tokenizer is not left mutated.
-        _has_padding_side = hasattr(self.tokenizer, "padding_side")
-        if _has_padding_side:
-            saved_padding_side = self.tokenizer.padding_side
-            self.tokenizer.padding_side = "left"
+        from safetune._refusal_helpers import _left_padding
         try:
             # Tokenise all prompts as a left-padded batch.
-            enc = self.tokenizer(
-                prompts,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=self.config.max_prompt_length,
-            )
+            with _left_padding(self.tokenizer):
+                enc = self.tokenizer(
+                    prompts,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=self.config.max_prompt_length,
+                )
             input_ids = enc["input_ids"].to(device)
             attention_mask = enc["attention_mask"].to(device)
 
@@ -462,9 +460,6 @@ class MARTTrainer:
             logger.warning("MART: generation failed (%s); returning empty strings.", exc)
             results = [""] * (len(prompts) * n)
         finally:
-            # Restore the caller's tokenizer padding side.
-            if _has_padding_side:
-                self.tokenizer.padding_side = saved_padding_side
             # Move back to CPU to free GPU memory between phases.
             if model_device != device:
                 model.to(model_device)

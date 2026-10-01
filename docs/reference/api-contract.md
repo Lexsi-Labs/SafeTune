@@ -16,8 +16,8 @@ __all__ = [
 import safetune
 
 # All six pillars accessible as attributes
-safetune.harden.SafeGradTrainer(...)
-safetune.recover.apply_resta(finetuned=..., base=..., aligned=...)
+safetune.harden.SafeGradTrainer(model, tokenizer).train(train_dataset)
+safetune.recover.apply_resta(finetuned, base=..., aligned=...)
 safetune.unlearn.rmu_unlearn(...)
 safetune.steer.RefusalDirectionModel(model, direction=...)
 safetune.interpret.safety_circuit_info(model, tokenizer, harmful, harmless)
@@ -30,14 +30,13 @@ safetune.evaluate.evaluate(model, benchmarks=["harmbench"])
 
 ```python
 __all__ = [
-    "SafeGradTrainer", "SafeGradConfig",
-    "LisaTrainer", "LisaConfig",
-    "AsFTTrainer", "AsFTConfig", ...
+    "SafeGradTrainer", "LisaTrainer", ...          # = safetune.runner.harden.* (section 1.3)
+    "SafeGradHFTrainer", "SafeGradConfig",         # the transformers.Trainer subclasses
+    "LisaHFTrainer", "LisaConfig", ...
 ]
-class XxxTrainer(transformers.Trainer):
-    """Input: model, train_dataset[, safety_dataset, reference_model]
-       Output: trained model checkpoint"""
-    def train(self, *args, **kwargs): ...
+class XxxHFTrainer(transformers.Trainer):
+    """Input: model, args=XxxConfig, train_dataset[, safety_dataset, reference_model]
+       Output: TrainOutput"""
 ```
 
 #### `safetune.recover` — Weight-space patching
@@ -47,10 +46,18 @@ __all__ = [
     "apply_resta", "apply_lox", "apply_ctheta",
     "apply_safe_delta", "task_arithmetic", ...
 ]
-def apply_resta(finetuned, base, aligned, alpha=1.0, ...) -> nn.Module:
+def apply_resta(finetuned, *, base, aligned, alpha=1.0, ...) -> nn.Module:
     """Input: drifted (finetuned) model + base + aligned reference
        Output: patched model (same type as finetuned)"""
 ```
+
+The recover functions that take both a base and an aligned reference
+(`task_arithmetic`, `somf_merge`, `learn_somf_mask`, `apply_resta`, `apply_lox`,
+`apply_lssf`, `apply_safemerge`, `apply_aaq`, `apply_safe_lora`) take the model
+positionally and everything else by keyword, so `base` and `aligned` cannot be
+swapped by position. Until 0.1.3 their positional order differed
+(`task_arithmetic(ft, base, aligned)`, `somf_merge(ft, aligned, base)`); the old
+positional calls still work until 0.2, with a `DeprecationWarning`.
 
 #### `safetune.unlearn` — Forget-set training
 
@@ -211,7 +218,7 @@ forwarded to the trainer constructor, so method-specific hyperparameters
 
 ## 4. Backward Compatibility Policy
 
-- SemVer since v0.1.0 (current: 0.1.3)
+- SemVer since v0.1.0 (current: 0.1.6)
 - `safetune.evaluate` is the Measure pillar; the old `verify` name was removed
   (not aliased — `import safetune.verify` raises `ModuleNotFoundError`)
 - `safetune.core.unlearn` → `safetune.unlearn` (shim maintained at old path)

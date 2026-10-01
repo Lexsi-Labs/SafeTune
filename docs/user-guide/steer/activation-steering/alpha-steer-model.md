@@ -16,6 +16,7 @@ AlphaSteerTrainer(
     *,
     alpha: float = 20.0,
     layers: list[int] | None = None,
+    legacy_alphasteer_layers: bool | None = None,
 )
 ```
 
@@ -26,7 +27,8 @@ AlphaSteerTrainer(
 | `model` | `PreTrainedModel` | required | Model to steer |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
 | `alpha` | `float` | `20.0` | Global scaling (`strength`) on the computed steering matrix |
-| `layers` | `list[int] \| None` | `None` | Target layers to steer; defaults to layers 10–19 if `None` |
+| `layers` | `list[int] \| None` | `None` | Target layers to steer; defaults to layers 10–19 on a 32-layer model; `None` scales them to the model's depth (for example 4–7 on 12 layers). `safetune.configure(legacy_steer_layers=True)` keeps 10–19 on any depth. Each steering matrix is hooked at the decoder layer it was fitted on |
+| `legacy_alphasteer_layers` | `bool \| None` | `None` | `True` restores the old mapping: the matrix fitted on `layers[i]` is hooked at decoder layer `i` (fitted on 10–19 scaled to depth, applied on 0–9). `None` reads `safetune.configure(legacy_alphasteer_layers=...)`, default `False` |
 
 ## Full example
 

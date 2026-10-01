@@ -84,6 +84,7 @@ import torch
 import torch.nn as nn
 
 from ._invariant import assert_mutates
+from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
 
@@ -138,8 +139,11 @@ def _weighted_basis(U: torch.Tensor, S: torch.Tensor, r: int, weight_max: float)
 
 
 @assert_mutates("apply_lssf")
+@keyword_refs("base", "aligned", "alpha", "rank", "min_param_dim", "skip_param_substrings",
+              "eta", "weight_max", "subspace_basis")
 def apply_lssf(
     finetuned: nn.Module,
+    *,
     base: nn.Module,
     aligned: nn.Module,
     alpha: float = 1.0,

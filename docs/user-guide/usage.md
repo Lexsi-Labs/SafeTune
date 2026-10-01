@@ -63,7 +63,8 @@ safetune train --config run.yaml --epochs 5
 | `--lr` | `5e-5` | Learning rate |
 | `--base` | — | Base model path (for `patch`) |
 | `--aligned` | — | Aligned model path (for `patch`) |
-| `--precision` | `bf16` | `fp16` / `bf16` / `fp32` |
+| `--alpha` | — | Strength for `patch` methods (the trainer's `alpha`); unset: the method's default |
+| `--precision` | `None` | `fp16` / `bf16` / `fp32`; unset: the runtime dtype (bf16 where supported) |
 | `--wandb` | off | Enable WandB logging |
 
 ---
@@ -126,7 +127,7 @@ ns = cfg.to_namespace()
 | `epochs` | `1` | Training epochs |
 | `batch_size` | `1` | Per-device batch size |
 | `lr` | `5e-5` | Learning rate |
-| `precision` | `"bf16"` | `fp16` / `bf16` / `fp32` |
+| `precision` | `None` | `fp16` / `bf16` / `fp32`; `None`: the runtime dtype (bf16 where supported) |
 | `optimizer` | `"adamw_torch"` | Optimizer name |
 | `logging_steps` | `10` | Log every N steps |
 | `train_dataset` | `"beavertails"` | `beavertails` or HF dataset id |

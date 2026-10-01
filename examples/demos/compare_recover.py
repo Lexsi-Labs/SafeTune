@@ -85,7 +85,7 @@ def main() -> int:
             print(f"{name:<25} {'ERROR':>10}      {e}")
 
     print("\nTip: Higher safety Δ is better, but check capability impact too.")
-    print("See docs/guides/recover/ for detailed trade-offs per method.")
+    print("See docs/user-guide/recover/ for detailed trade-offs per method.")
     return 0
 
 

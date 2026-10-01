@@ -100,6 +100,8 @@ def _count_decoder_layers(model: Any) -> Optional[int]:
     """Best-effort count of transformer decoder layers in ``model``."""
     # 1) HF config — the reliable path.
     cfg = getattr(model, "config", None)
+    if hasattr(cfg, "get_text_config"):
+        cfg = cfg.get_text_config()  # vision-language configs keep the depth here
     for attr in ("num_hidden_layers", "n_layer", "num_layers", "n_layers"):
         n = getattr(cfg, attr, None)
         if isinstance(n, int) and n > 0:
@@ -108,10 +110,9 @@ def _count_decoder_layers(model: Any) -> Optional[int]:
     max_idx = -1
     try:
         for name, _ in model.named_parameters():
-            parts = name.split(".")
-            for i, p in enumerate(parts):
-                if p == "layers" and i + 1 < len(parts) and parts[i + 1].isdigit():
-                    max_idx = max(max_idx, int(parts[i + 1]))
+            idx = _layer_index(name)
+            if idx is not None:
+                max_idx = max(max_idx, idx)
     except Exception:  # pragma: no cover - defensive
         return None
     return max_idx + 1 if max_idx >= 0 else None
@@ -154,7 +155,7 @@ def _middle_layer_indices(
     return indices
 
 
-class SPPFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class SPPFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """Trainer subclass that freezes safety-critical layers before training.
 
     By default the safety layers are the **contiguous middle layers** of the
@@ -182,7 +183,7 @@ class SPPFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for SPPFTTrainer"
+                "transformers is required for SPPFTHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _SPPFT_IMPORT_ERROR is not None:
             raise ImportError(
@@ -262,3 +263,9 @@ class SPPFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # typ
             return super().training_step(model, inputs, num_items_in_batch)
         except TypeError:
             return super().training_step(model, inputs)
+
+
+from ._deprecated import renamed as _renamed
+from safetune._refusal_helpers import _layer_index
+
+__getattr__ = _renamed(__name__, SPPFTTrainer="SPPFTHFTrainer")  # old name, remove in 0.3

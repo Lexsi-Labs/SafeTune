@@ -697,9 +697,9 @@ def test_cast_legacy_probe_gate():
         alpha=1.0,
     )
 
-    # _gate_fires returns (bool, float) in legacy mode.
+    # _gate_fires returns one (bool, float) per prompt in legacy-probe mode (ST-11).
     harmful_ids = tok(harmful[:1])["input_ids"]
-    fires, score = cast._gate_fires(harmful_ids)
+    (fires,), (score,) = cast._gate_fires(harmful_ids)
     assert isinstance(fires, bool)
     assert isinstance(score, float), f"_gate_fires score should be float, got {type(score)}"
 
@@ -798,8 +798,8 @@ def test_cast_condition_gate_selective():
 
     h_ids = tok(["h_held"])["input_ids"]
     b_ids = tok(["b_held"])["input_ids"]
-    fires_h, sim_h = cast._gate_fires(h_ids)
-    fires_b, sim_b = cast._gate_fires(b_ids)
+    (fires_h,), (sim_h,) = cast._gate_fires(h_ids)  # one result per prompt (ST-11)
+    (fires_b,), (sim_b,) = cast._gate_fires(b_ids)
 
     assert fires_h is True, f"gate should fire on harmful (sim={sim_h}, thr={cond.threshold}, comp={cond.comparator})"
     assert fires_b is False, f"gate should NOT fire on benign (sim={sim_b}, thr={cond.threshold}, comp={cond.comparator})"

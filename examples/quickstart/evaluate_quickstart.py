@@ -35,7 +35,8 @@ def main() -> int:
 
     try:
         import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoTokenizer
+        from safetune.runner.utils.model_utils import load_model  # causal or vision-language
         from safetune.evaluate import evaluate, AbliterationAttack
         from safetune.evaluate import SpectralEntropyMonitor, SpectralMonitorConfig
     except Exception as exc:
@@ -50,22 +51,27 @@ def main() -> int:
         tok = AutoTokenizer.from_pretrained(args.model)
         if tok.pad_token is None:
             tok.pad_token = tok.eos_token
-        model = AutoModelForCausalLM.from_pretrained(
-            args.model, torch_dtype=torch.float32).to(device)
+        model = load_model(args.model, dtype=torch.float32, device=device)
     except Exception as exc:
         print(f"Could not load '{args.model}': {exc}")
         return 1
 
-    # 1. Safety benchmark
+    failed = []
+
+    # 1. Safety benchmark. Needs access to walledai/HarmBench. Scored with the
+    # HarmBench judge (cais/HarmBench-Mistral-7b-val-cls) rather than the library's
+    # wildguard default, since wildguard (allenai/wildguard) is gated and most
+    # accounts can't load it out of the box.
     print("[1/3] Running safety benchmark (harmbench) ...")
     try:
-        results = evaluate(model, tokenizer=tok, benchmarks=["harmbench"], judge="wildguard",
+        results = evaluate(model, tokenizer=tok, benchmarks=["harmbench"], judge="harmbench",
                           batch_size=args.batch_size)
         r = results["harmbench"]
         print(f"      Refusal rate:     {r['refusal_rate']:.1%}")
         print(f"      Attack success:   {r['asr']:.1%}\n")
     except Exception as exc:
-        print(f"      Skipped (eval requires GPU with vLLM or HF): {exc}\n")
+        failed.append("safety benchmark")
+        print(f"      FAILED: {type(exc).__name__}: {exc}\n")
 
     # 2. Red-team attack
     print("[2/3] Running AbliterationAttack (red-team) ...")
@@ -76,7 +82,8 @@ def main() -> int:
         print("      ✓ Abliteration applied (effect size grows with model)\n")
         attack.revert()
     except Exception as exc:
-        print(f"      Skipped: {exc}\n")
+        failed.append("AbliterationAttack")
+        print(f"      FAILED: {type(exc).__name__}: {exc}\n")
 
     # 3. Spectral entropy monitoring
     print("[3/3] Running SpectralEntropyMonitor ...")
@@ -87,10 +94,14 @@ def main() -> int:
         anomalies = monitor.scan(HARMFUL)
         print(f"      Scanned {len(HARMFUL)} prompts, found {len(anomalies)} anomalies\n")
     except Exception as exc:
-        print(f"      Skipped: {exc}\n")
+        failed.append("SpectralEntropyMonitor")
+        print(f"      FAILED: {type(exc).__name__}: {exc}\n")
 
+    if failed:
+        print(f"✗ Evaluate quickstart: {len(failed)} of 3 steps failed ({', '.join(failed)}).")
+        return 1
     print("✓ Evaluate ran successfully.")
-    print("  See docs/guides/evaluate/ for the full method catalog and benchmarks.")
+    print("  See docs/user-guide/evaluate.md for the full method catalog and benchmarks.")
     return 0
 
 

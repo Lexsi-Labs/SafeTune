@@ -8,7 +8,8 @@ from typing import Optional, Dict, Any, List, Callable
 
 # Import Eval Components
 from .rl_evaluator import RLEvaluator
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer
+from safetune._refusal_helpers import _load_pretrained_lm
 from peft import PeftConfig
 from datasets import DatasetDict
 
@@ -385,7 +386,7 @@ def run_eval(config: EvalConfig, dataset_dict: Optional[DatasetDict] = None) -> 
                 logger.info(f"Loaded tokenizer from base model: vocab_size={len(tokenizer)}")
             
             # Load base model
-            base_model = AutoModelForCausalLM.from_pretrained(
+            base_model = _load_pretrained_lm(
                 base_path,
                 device_map=config.device,
                 torch_dtype=torch_dtype,
@@ -420,7 +421,7 @@ def run_eval(config: EvalConfig, dataset_dict: Optional[DatasetDict] = None) -> 
             
         else:
             logger.info("Loading Standard Model...")
-            model = AutoModelForCausalLM.from_pretrained(
+            model = _load_pretrained_lm(
                 config.model_path,
                 device_map=config.device,
                 torch_dtype=torch_dtype,
@@ -480,7 +481,7 @@ def run_eval(config: EvalConfig, dataset_dict: Optional[DatasetDict] = None) -> 
             FastLanguageModel.for_inference(model_ref)
             ref_model = model_ref
         else:
-            ref_model = AutoModelForCausalLM.from_pretrained(
+            ref_model = _load_pretrained_lm(
                 config.reference_model_path,
                 device_map=config.device,
                 torch_dtype=torch_dtype,

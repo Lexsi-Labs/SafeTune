@@ -51,6 +51,7 @@ import torch
 import torch.nn as nn
 
 from ._invariant import assert_mutates
+from safetune._refusal_helpers import _layer_index
 
 logger = logging.getLogger(__name__)
 
@@ -284,12 +285,7 @@ def apply_repnoise_recover(
                 continue
 
             # Determine which layer this parameter belongs to.
-            layer_idx: Optional[int] = None
-            parts = name.split(".")
-            for i, p in enumerate(parts):
-                if p == "layers" and i + 1 < len(parts) and parts[i + 1].isdigit():
-                    layer_idx = int(parts[i + 1])
-                    break
+            layer_idx = _layer_index(name)
             if layer_idx is None or layer_idx not in layer_reps:
                 continue
 

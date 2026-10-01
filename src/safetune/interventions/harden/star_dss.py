@@ -97,7 +97,7 @@ else:  # pragma: no cover
         pass
 
 
-class STARDSSTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class STARDSSHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """Trainer that applies the STAR-DSS dynamic-safety-shaping loss.
 
     If a batch contains a ``safety_weights`` tensor (the per-token STAR
@@ -126,7 +126,7 @@ class STARDSSTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for STARDSSTrainer"
+                "transformers is required for STARDSSHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _STAR_IMPORT_ERROR is not None:
             raise ImportError(
@@ -149,7 +149,7 @@ class STARDSSTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
         if self._use_kl_penalty:
             if ref_model is False:
                 logger.warning(
-                    "STARDSSTrainer: use_kl_penalty is on but ref_model is "
+                    "STARDSSHFTrainer: use_kl_penalty is on but ref_model is "
                     "disabled; the unsafe-content suppression (KL) term of "
                     "STAR-DSS Eq. (3) will not fire."
                 )
@@ -204,3 +204,8 @@ class STARDSSTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
             ref_logits=ref_logits,
         )
         return (loss, outputs) if return_outputs else loss
+
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, STARDSSTrainer="STARDSSHFTrainer")  # old name, remove in 0.3

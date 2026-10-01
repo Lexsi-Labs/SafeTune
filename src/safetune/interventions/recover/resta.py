@@ -18,64 +18,58 @@ The bare ``dare=False`` path is the RESTA-without-DARE baseline.
 """
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Optional
 
 import torch
 import torch.nn as nn
 
 from ._invariant import assert_mutates
+from ._contract import keyword_refs
 
 
 def _dare_drop_and_rescale(
-    safety_vector: Dict[str, torch.Tensor],
+    delta: torch.Tensor,
     drop_rate: float,
     generator: Optional[torch.Generator] = None,
-) -> Dict[str, torch.Tensor]:
-    """Apply DARE (Drop-And-Rescale) to a safety vector."""
+) -> torch.Tensor:
+    """Apply DARE (Drop-And-Rescale) to one fp32 safety-vector tensor."""
     if not (0.0 <= drop_rate < 1.0):
         raise ValueError(f"dare drop_rate must be in [0, 1), got {drop_rate}")
     if drop_rate == 0.0:
-        return {k: v.clone() for k, v in safety_vector.items()}
-
+        return delta
     keep_prob = 1.0 - drop_rate
-    rescale = 1.0 / keep_prob
-    out: Dict[str, torch.Tensor] = {}
-    
-    # Determine generator device fallback
-    gen_device = generator.device if generator is not None else 'cpu'
-
-    for key, delta in safety_vector.items():
-        orig_dtype = delta.dtype
-        # Calculate in fp32 to avoid precision issues
-        delta_fp32 = delta.float()
-        
-        # Generate random values on the generator's device, then move to delta's device.
-        # Using torch.rand is typically faster and safer for cross-device masking than bernoulli
-        rand_vals = torch.rand(delta_fp32.shape, generator=generator, device=gen_device)
-        mask = (rand_vals < keep_prob).to(delta.device)
-        
-        # Apply mask and rescale, then immediately downcast to save memory
-        out[key] = (delta_fp32 * mask * rescale).to(orig_dtype)
-        
-    return out
+    # Draw on the generator's device (CPU by default) so a seed gives the same
+    # mask on any device, then move the mask to the delta.
+    gen_device = generator.device if generator is not None else "cpu"
+    mask = (torch.rand(delta.shape, generator=generator, device=gen_device) < keep_prob)
+    return delta * mask.to(delta.device) * (1.0 / keep_prob)
 
 
 @assert_mutates("apply_resta")
+@keyword_refs("base", "aligned", "alpha", "param_filter", "dare", "dare_drop_rate", "dare_seed",
+              "device")
 def apply_resta(
     finetuned: nn.Module,
+    *,
     base: nn.Module,
     aligned: nn.Module,
     alpha: float = 1.0,
     param_filter: Optional[list] = None,
     dare: bool = False,
-    dare_drop_rate: float = 0.9,
+    dare_drop_rate: Optional[float] = None,
     dare_seed: Optional[int] = None,
+    device: Optional[object] = None,
 ) -> nn.Module:
     """Apply the RESTA safety vector ``(aligned - base)`` to a fine-tuned model.
 
     Computes the safety vector ``v = theta_aligned - theta_base`` and applies
     ``theta_safe = theta_finetuned + alpha * v``. Mutates ``finetuned``
-    in-place via ``load_state_dict`` and returns it.
+    in place and returns it.
+
+    Streams one tensor at a time: for each parameter, ``aligned - base`` is
+    computed in fp32, DARE is applied to it, ``alpha * delta`` is added to the
+    fine-tuned weight in place (cast back to its dtype), and the delta is freed.
+    Extra memory is a few copies of the largest tensor, not of the model.
 
     Args:
         finetuned: the compromised fine-tuned model to re-align (mutated).
@@ -88,9 +82,17 @@ def apply_resta(
             reducing interference with the fine-tuned task. If False (default,
             for backward compatibility) the plain RESTA-without-DARE addition
             is performed.
-        dare_drop_rate: DARE drop probability ``p`` (default ``0.9``, the value
-            used by mergekit's ``dare`` mode and the RESTA paper's experiments).
+        dare_drop_rate: DARE drop probability ``p``. ``None``: 0.3, the RESTA
+            paper's value ("we keep hyperparameters p = 0.3 and gamma = 0.5",
+            Bhardwaj et al. 2024, Sec. 4), or the old 0.9 with
+            ``safetune.configure(legacy_resta_drop_rate=True)``. At 0.9 (90% of
+            entries dropped, the rest scaled by 10) Qwen2.5-0.5B's full
+            base-to-instruct safety vector breaks the model (2/16 HarmBench
+            refusals, garbled answers); at 0.3 it restores 13/16.
         dare_seed: optional seed for reproducible DARE drop masks.
+        device: where each delta is computed. ``None`` (default): the
+            fine-tuned weight's device. ``"cpu"`` keeps the extra memory off
+            the GPU when ``base`` and ``aligned`` are on CPU.
 
     Returns:
         The mutated ``finetuned`` model.
@@ -109,32 +111,34 @@ def apply_resta(
         config=cfg,
     )
 
-    if dare:
-        # Reproduce the RESTA repo's mergekit ``dare`` pre-processing: drop a
-        # fraction of the safety-vector entries and rescale the survivors,
-        # then add the sparsified vector with theta_ft + alpha * v_dare.
-        generator: Optional[torch.Generator] = None
-        if dare_seed is not None:
-            generator = torch.Generator(device='cpu')
-            generator.manual_seed(int(dare_seed))
-        safety_vector = wrapper.get_safety_vector()
-        dare_vector = _dare_drop_and_rescale(
-            safety_vector, drop_rate=dare_drop_rate, generator=generator
-        )
-        ft_sd = finetuned.state_dict()
-        new_sd: Dict[str, torch.Tensor] = {}
-        for key, val in ft_sd.items():
-            if key in dare_vector:
-                dare_device = dare_vector[key].to(val.device)
-                merged = val.float() + alpha * dare_device
-                new_sd[key] = merged.to(val.dtype)
-            else:
-                new_sd[key] = val
-    else:
-        new_sd = wrapper.apply(finetuned.state_dict(), alpha=alpha)
+    if dare_drop_rate is None:
+        from safetune.config import get_config
+        dare_drop_rate = 0.9 if get_config().legacy_resta_drop_rate else 0.3
+    # ``dare`` reproduces the RESTA repo's mergekit ``dare`` pre-processing:
+    # drop a fraction of the safety-vector entries and rescale the survivors.
+    generator: Optional[torch.Generator] = None
+    if dare and dare_seed is not None:
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(int(dare_seed))
 
-    finetuned.load_state_dict(new_sd, strict=False)
+    ft_sd = finetuned.state_dict()  # views of the live weights
+    # A tied weight (embed / lm_head) appears under several names. The old
+    # load_state_dict path let the last name win; keep that (it matters under
+    # DARE, where each name draws its own mask).
+    keys = set(wrapper.keys)
+    owner = {v.data_ptr(): k for k, v in ft_sd.items() if k in keys}
+    with torch.no_grad():
+        for key in wrapper.keys:  # aligned order: the DARE masks match a seed
+            val = ft_sd.get(key)
+            delta = wrapper.delta(key, device if device is not None
+                                  else (val.device if val is not None else None))
+            if dare:
+                delta = _dare_drop_and_rescale(delta, drop_rate=dare_drop_rate,
+                                               generator=generator)
+            if val is None or owner[val.data_ptr()] != key:
+                continue
+            val.copy_((val.float() + alpha * delta.to(val.device)).to(val.dtype))
+            del delta
     return finetuned
-
 
 __all__ = ["apply_resta"]

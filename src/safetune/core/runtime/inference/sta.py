@@ -10,6 +10,7 @@ precise and less disruptive than full-layer steering.
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
+from safetune._refusal_helpers import _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +49,7 @@ class STAWrapper:
         self._hooks: List[Any] = []
 
     def _get_layers(self) -> list:
-        if hasattr(self.model, "language_model") and hasattr(self.model.language_model, "layers"):
-            return list(self.model.language_model.layers)
-        elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return list(self.model.model.layers)
-        elif hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return list(self.model.transformer.h)
-        return []
+        return _get_decoder_layers(self.model)
 
     def _hook_fn(self, layer_idx: int):
         """Hook that modifies specific attention head outputs."""

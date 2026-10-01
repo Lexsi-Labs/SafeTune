@@ -30,7 +30,7 @@ class SafeDecodingTrainer(_SteerBase):
         return S.SafeDecodingProcessor(self.expert_model, self.tok,
                                        prompt_length=0, config=cfg)
 
-    def make_processor(self, harmful=None, harmless=None, *, calib_n: int = 256):
+    def make_processor(self, harmful=None, harmless=None, *, calib_n: int = None):
         return self._do_calibrate(harmful=harmful, harmless=harmless, calib_n=calib_n)
 
 
@@ -110,5 +110,5 @@ class NudgingTrainer(_SteerBase):
         )
         return S.NudgingProcessor(self.model, self.tok, config=cfg)
 
-    def make_processor(self, harmful=None, harmless=None, *, calib_n: int = 256):
+    def make_processor(self, harmful=None, harmless=None, *, calib_n: int = None):
         return self._do_calibrate(harmful=harmful, harmless=harmless, calib_n=calib_n)

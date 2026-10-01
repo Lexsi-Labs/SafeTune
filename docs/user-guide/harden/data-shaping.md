@@ -75,7 +75,9 @@ DeRTaTrainer(
     epochs: int = 1,
     batch_size: int = 4,
     lr: float = 1e-4,
-    bf16: bool = True,
+    bf16: bool | None = None,
+    fp16: bool | None = None,
+    wandb: bool = False,
     optimizer: str = "adamw_torch",
     logging_steps: int = 10,
     results_dir: str = None,
@@ -97,7 +99,9 @@ constructor.
 | `epochs` | `int` | `1` | Number of training epochs |
 | `batch_size` | `int` | `4` | Per-device batch size |
 | `lr` | `float` | `1e-4` | Learning rate |
-| `bf16` | `bool` | `True` | Use bfloat16 |
+| `bf16` | `bool \| None` | `None` | Train in bfloat16. `None`: from the runtime dtype (`safetune.configure(dtype=...)`; bf16 where supported) |
+| `fp16` | `bool \| None` | `None` | Train in float16. `None`: from the runtime dtype |
+| `wandb` | `bool` | `False` | Log to Weights & Biases |
 | `optimizer` | `str` | `"adamw_torch"` | Optimizer name |
 | `logging_steps` | `int` | `10` | Logging interval in steps |
 | `results_dir` | `str` | `None` | Output directory for results |
@@ -105,15 +109,17 @@ constructor.
 
 ### DeRTaConfig fields
 
-The runner constructor above uses the `DeRTaConfig` defaults below. To set
-`rto_weight` or `rto_refusal_text`, use the `safetune.harden.DeRTaTrainer` API
-with an explicit `DeRTaConfig`.
+Any `DeRTaConfig` field below can be passed to the constructor as a keyword
+argument, e.g. `harden.DeRTaTrainer(model, tokenizer, legacy_derta=True, rto_weight=0.5)`.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `enable_rto` | `bool` | `True` | Enable Reinforced Transition Optimization; `False` = plain SFT |
-| `rto_weight` | `float` | `1.0` | Weight on the RTO transition loss term |
-| `rto_refusal_text` | `str` | `"I"` | Text whose first token is the forced transition-to-refusal token |
+| `rto_weight` | `float` | `1.0` | Weight on the separate RTO loss term; only used by the legacy two-term loss (`legacy_derta=True`); a value other than `1.0` without it raises a warning |
+| `rto_refusal_text` | `str` | `"Sorry"` | Text whose first token is the forced transition-to-refusal token (19701 on Llama-3, the authors' id) |
+| `rto_refusal_token_id` | `int \| None` | `None` | Explicit transition token id; `None` derives it from `rto_refusal_text` with the model's tokenizer |
+| `legacy_derta` | `bool \| None` | `None` | `None` is the authors' objective (one cross-entropy over MLE and RTO rows) unless `safetune.configure(legacy_derta=True)`. `True` gives the old objective: MLE over every response token, harmful prefix included, plus `rto_weight` x a separate RTO loss on prefix + refusal rows |
+| `loss_type` | `str` | `"nll"` | Loss type passed to TRL; `"nll"` keeps the logits the legacy RTO term reads |
 
 ### Full example
 
@@ -124,13 +130,14 @@ trainer = harden.DeRTaTrainer(model, tokenizer)
 trainer.train(ds)
 ```
 
-The runner builds its own contamination/refusal pairs and uses the `DeRTaConfig`
-defaults. To set `rto_weight` or `rto_refusal_text`, use the
-`safetune.harden.DeRTaTrainer` API with an explicit `DeRTaConfig`.
+The trainer builds its own contamination/refusal pairs unless you pass
+`contamination_pairs=` and `refusal_pairs=` to `train()`. To run DeRTa on your own
+prepared dataset and HF training loop, use `harden.DeRTaHFTrainer` with a
+`DeRTaConfig`.
 
 ### When to use
 
-- **Best for:** teaching refusal at any response position by training on sequences that start with a harmful-response prefix and then refuse (MLE), plus a Reinforced Transition Optimization term that reinforces the transition to the refusal token.
+- **Best for:** teaching refusal at any response position. As the authors do, MLE rows are a harmful-response prefix followed by the refusal, with the prefix masked so only the refusal is a target; each example also gets one Reinforced Transition Optimization row, the full harmful response with every token relabelled to the refusal token (`rto_refusal_text`, `"Sorry"`). One cross-entropy covers both row types. `prepare_derta_dataset()` sets `safe=1` only on the RTO rows (`legacy=True` also marks the prefix rows).
 - **Trade-offs:** needs paired harmful/refusal responses to build the training sequences.
 
 ### Citation
@@ -217,7 +224,9 @@ SPPFTTrainer(
     epochs: int = 1,
     batch_size: int = 4,
     lr: float = 1e-4,
-    bf16: bool = True,
+    bf16: bool | None = None,
+    fp16: bool | None = None,
+    wandb: bool = False,
     optimizer: str = "adamw_torch",
     logging_steps: int = 10,
     results_dir: str = None,
@@ -227,9 +236,8 @@ SPPFTTrainer(
 ```
 
 The `train_dataset` is passed to `trainer.train(train_dataset)`, not to the
-constructor. The runner uses the `SPPFTConfig` defaults below; to set explicit
-`safety_layer_indices` or the range bounds, use the `safetune.harden.SPPFTTrainer`
-API with an explicit `SPPFTConfig`.
+constructor. Any `SPPFTConfig` field below can be passed to the constructor as a
+keyword argument, e.g. `harden.SPPFTTrainer(model, tokenizer, safety_layer_indices=[8, 9, 10])`.
 
 ### SPPFTConfig fields
 
@@ -254,9 +262,8 @@ trainer = harden.SPPFTTrainer(model, tokenizer)
 trainer.train(ds)
 ```
 
-The runner uses the `SPPFTConfig` defaults above. To set explicit
-`safety_layer_indices` or the range bounds, use the `safetune.harden.SPPFTTrainer`
-API with an explicit `SPPFTConfig`.
+The `SPPFTConfig` fields above can be passed as keyword arguments; the
+`transformers.Trainer` subclass underneath is `harden.SPPFTHFTrainer`.
 
 ### When to use
 
@@ -318,9 +325,19 @@ raw_examples = [
     },
 ]
 
-trainer = harden.CSTTrainer(model, raw_examples=raw_examples)
-trainer.train()
+trainer = harden.CSTTrainer(model, tokenizer)
+trainer.train(cst_examples=raw_examples)
 ```
+
+Omit `cst_examples` to pair the harden contamination set with the matched
+refusal set (what the CLI does):
+
+```bash
+safetune train --model Qwen/Qwen2.5-0.5B-Instruct --algo cst
+```
+
+For the raw TRL `DPOTrainer` (full control of `CSTConfig`), import the
+intervention class from its module: `from safetune.harden.cst import CSTTrainer`.
 
 ### When to use
 

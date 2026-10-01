@@ -36,6 +36,23 @@ trainer.unlearn(forget=forget_batches, retain=retain_batches)
 > `unlearn.load_unlearn_data(model_id)` returns a `(forget, retain)` pair. FLAT
 > and SimDPO train on refusal/harmful preference pairs; pass raw `forget` batches
 > and they build the pairs for you (see their pages).
+>
+> **Sequence length:** `load_unlearn_data` tokenizes with `max_len=None` by default:
+> the length is sized from the chat template as `max(256, longest templated
+> prompt among the first rows + 256)`, capped at 2048, so a long system
+> preamble (Tiny Aya's template adds about 366 tokens) does not fill the
+> sequence. An explicit `max_len` is used exactly; if it leaves no row with a
+> supervised token the loader raises (naming the templated prompt length), and
+> it warns with a count when only some rows are fully masked.
+
+## Precision
+
+Every unlearn trainer takes `upcast: bool = True`: a model loaded in fp16 or
+bf16 is cast to fp32 before `unlearn()` runs (with a warning). fp16 overflows,
+and bf16 has 8 mantissa bits, so at `lr=1e-5` most updates round away (about 80%
+lost on Tiny Aya) and unlearning silently does little. `upcast=False` keeps the
+low-precision weights, e.g. to save memory. `upcast_fp16` is a deprecated alias
+of `upcast`. Results therefore depend on the dtype you train in.
 
 ## Catalog of alternatives
 

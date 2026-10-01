@@ -35,13 +35,16 @@ import torch
 import torch.nn as nn
 
 from ._invariant import assert_mutates
+from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
 
 
 @assert_mutates("apply_lox")
+@keyword_refs("base", "aligned", "rank", "extrapolation_factor", "param_filter")
 def apply_lox(
     model: nn.Module,
+    *,
     base: nn.Module,
     aligned: nn.Module,
     rank: int = 64,

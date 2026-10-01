@@ -17,7 +17,7 @@ GradientAscentTrainer(
     epochs: int = 5,
     max_steps: int = 200,
     lr: float = 1e-5,
-    forget_clip: float = 0.5,
+    forget_clip: float | None = None,
 )
 
 # GradDiff convenience trainer — fixes the grad_diff loss (no forget_loss arg)
@@ -47,12 +47,16 @@ unlearned = trainer.unlearn(forget=forget_batches, retain=retain_batches)
 | `lr` | `float` | `1e-5` | Learning rate |
 | `weight_decay` | `float` | `0.01` | Weight decay |
 | `optimizer` | `str` | `"adamw"` | `"adamw"` or `"sgd"` |
-| `forget_clip` | `float \| None` | `None` | Cap on per-batch forget CE before negation; prevents gradient explosion |
+| `forget_clip` | `float \| None` | `None` | Cap on per-batch forget CE before negation; `None` is pure ascent. The gradient of the forget term is zero while the CE is above the cap |
 | `max_steps` | `int \| None` | `None` | Hard cap on optimizer steps |
 
-The values above are the `GradientAscentConfig` dataclass defaults. Two differ
-through `GradientAscentTrainer`: it defaults `max_steps` to `200` (not `None`)
-and `forget_clip` to `0.5` (not `None`).
+The values above are the `GradientAscentConfig` dataclass defaults.
+`GradientAscentTrainer` and `GradDiffTrainer` default `max_steps` to `200` (not
+`None`) and keep `forget_clip=None` (TOFU's pure ascent). Before, the runner
+trainers defaulted `forget_clip` to `0.5`; real forget sets start above that
+(BeaverTails completions: CE around 2.4), so the clamp left no forget gradient
+and nothing was unlearned. `forget_clip=0.5` or
+`safetune.configure(legacy_ga_forget_clip=True)` restores the old default.
 
 ## Full example
 
@@ -65,7 +69,6 @@ trainer = unlearn.GradientAscentTrainer(
     forget_loss="KL",
     epochs=5,
     lr=1e-5,
-    forget_clip=1.0,
 )
 unlearned = trainer.unlearn(forget=forget_batches, retain=retain_batches)
 ckpt_path = trainer.save_checkpoint(unlearned, tokenizer, "ga_ckpt")

@@ -56,6 +56,7 @@ with backward-compatible defaults.
 from __future__ import annotations
 
 from typing import Any, List, Optional, Sequence, Union
+from safetune._refusal_helpers import _get_decoder_layers
 
 try:  # torch is required for the real implementation; degrade gracefully.
     import torch
@@ -344,13 +345,10 @@ class AlphaSteerModel:
         raise ValueError(f"targets must be 1-D or 2-D; got {tuple(t.shape)}")
 
     def _resolve_layers(self) -> Any:
-        if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return self.model.model.layers
-        if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return self.model.transformer.h
-        if hasattr(self.model, "layers"):
-            return self.model.layers
-        raise AttributeError("Could not locate transformer layers on model")
+        layers = _get_decoder_layers(self.model)
+        if not layers:
+            raise AttributeError("Could not locate transformer layers on model")
+        return layers
 
     @staticmethod
     def _last_valid_index(
@@ -387,15 +385,19 @@ class AlphaSteerModel:
             if self.prefill_only and T <= 1:
                 return output
 
-            sm = steering.to(device=hidden.device, dtype=hidden.dtype)
+            # The steering math runs in fp32 and is cast back with the result
+            # clamped to the model dtype's range: in fp16 the steered states
+            # overflowed to inf (NaN logits from the next layer on).
+            sm = steering.to(device=hidden.device, dtype=torch.float32)
+            dtype, hidden = hidden.dtype, hidden.float()
 
             if self.last_token_only:
                 # Build the steering vector from the last valid token's hidden
                 # state and broadcast it across every position (authors'
                 # AlphaLlamaDecoderLayer.forward).
                 attn = None
-                if isinstance(inputs, (tuple, list)) and len(inputs) > 1:
-                    attn = inputs[1]
+                if isinstance(inputs, (tuple, list)) and len(inputs) > 1 and torch.is_tensor(inputs[1]):
+                    attn = inputs[1]  # GPT-2 blocks pass the KV cache here, not a mask
                 last_idx = self._last_valid_index(attn, B, T, hidden.device)
                 batch_idx = torch.arange(B, device=hidden.device)
                 last_hidden = hidden[batch_idx, last_idx, :]      # [B, D]
@@ -405,6 +407,8 @@ class AlphaSteerModel:
                 # Per-position variant: steer every token by its own state.
                 hidden = hidden + (hidden @ sm) * strength
 
+            big = torch.finfo(dtype).max
+            hidden = hidden.clamp(-big, big).to(dtype)
             return (hidden,) + tuple(output[1:]) if is_tuple else hidden
 
         return hook
@@ -444,7 +448,7 @@ class AlphaSteerModel:
 
     @classmethod
     def from_pretrained(cls, path: str, **kwargs: Any) -> "AlphaSteerModel":
-        from transformers import AutoModelForCausalLM
+        from safetune._refusal_helpers import _load_pretrained_lm
 
-        model = AutoModelForCausalLM.from_pretrained(path)
+        model = _load_pretrained_lm(path)
         return cls(model, **kwargs)

@@ -24,6 +24,7 @@ for backward compatibility; the faithful gradient editor in
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
+from safetune._refusal_helpers import _layer_index
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +69,7 @@ class ToxicNeuronLocator:
         for name in clean_state_dict:
             if name not in toxic_state_dict:
                 continue
-            parts = name.split(".")
-            layer_idx = None
-            for i, p in enumerate(parts):
-                if p == "layers" and i + 1 < len(parts) and parts[i + 1].isdigit():
-                    layer_idx = int(parts[i + 1])
-                    break
+            layer_idx = _layer_index(name)
             if layer_idx is None:
                 continue
             if self.config.target_layers and layer_idx not in self.config.target_layers:
@@ -137,12 +133,7 @@ class PKEEditor:
         edited = 0
         current_sd = self.model.state_dict()
         for name in current_sd:
-            parts = name.split(".")
-            layer_idx = None
-            for i, p in enumerate(parts):
-                if p == "layers" and i + 1 < len(parts) and parts[i + 1].isdigit():
-                    layer_idx = int(parts[i + 1])
-                    break
+            layer_idx = _layer_index(name)
             if layer_idx is None or layer_idx not in self.toxic_neurons:
                 continue
             if name not in clean_state_dict:

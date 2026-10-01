@@ -2,7 +2,7 @@
 import logging
 import os
 import torch
-from transformers import AutoModelForCausalLM
+from safetune._refusal_helpers import _load_pretrained_lm
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +10,7 @@ from ._base import (
     _HardenBase, _keep_model_columns, default_data_collator, _BFLOAT16,
 )
 from safetune.runner.utils.model_utils import free
+from safetune.config import get_config
 import safetune.harden as HARD
 from torch.utils.data import DataLoader
 
@@ -23,21 +24,25 @@ class DOORTrainer(_HardenBase):
         refusal_w: refusal reward loss weight. Default 1.0.
         unlearn_w: NPO unlearn loss weight. Default 1.0.
         base_model_path: reference model path for NPO log-ratio.
+        max_grad_norm: gradient clipping norm. Default 1.0.
     """
 
     METHOD = "DOOR"
+    HF_TRAINER = HARD.SafetyDOORTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  beta: float = 0.5,
                  refusal_w: float = 1.0,
                  unlearn_w: float = 1.0,
                  base_model_path: str = None,
+                 max_grad_norm: float = 1.0,
                  **kwargs):
         super().__init__(model, tokenizer, **kwargs)
         self.beta = beta
         self.refusal_w = refusal_w
         self.unlearn_w = unlearn_w
         self.base_model_path = base_model_path
+        self.max_grad_norm = max_grad_norm
 
     def train(self, train_dataset, out_dir: str = None, *,
               contamination_pairs=None, refusal_pairs=None, **kwargs) -> str:
@@ -59,7 +64,7 @@ class DOORTrainer(_HardenBase):
 
         if contamination_pairs is None or refusal_pairs is None:
             from safetune.runner.utils.data_utils import harden_contamination_pairs
-            _cont, _, _ref = harden_contamination_pairs(256)
+            _cont, _, _ref = harden_contamination_pairs()
             contamination_pairs = _cont
             refusal_pairs = _ref
 
@@ -69,18 +74,20 @@ class DOORTrainer(_HardenBase):
         ref_path = self.base_model_path or getattr(self.tok, "name_or_path", None)
         # Load the reference on the SAME device/dtype as the model — device-agnostic
         # (CUDA / Apple-Silicon MPS / CPU) rather than forcing a single device.
-        ref = AutoModelForCausalLM.from_pretrained(
+        ref = _load_pretrained_lm(
             ref_path, torch_dtype=next(model.parameters()).dtype).to(dev).eval()
         for p in ref.parameters():
             p.requires_grad_(False)
+
+        max_len = get_config().max_len or 256
 
         def _tok_pairs(pairs):
             from safetune.runner.utils.data_utils import _chat_text
             ids, masks, all_labels = [], [], []
             for u, a in pairs:
                 enc = self.tok(_chat_text(self.tok, u, a), truncation=True,
-                               max_length=256, padding="max_length",
-                               return_tensors="pt")
+                               max_length=max_len, padding="max_length",
+                               return_tensors="pt", add_special_tokens=False)
                 input_ids = enc["input_ids"][0]
                 attn = enc["attention_mask"][0]
                 # Mask the prompt span (as the sibling DeRTa / data_utils
@@ -89,8 +96,8 @@ class DOORTrainer(_HardenBase):
                 prompt_text = self.tok.apply_chat_template(
                     [{"role": "user", "content": u}],
                     tokenize=False, add_generation_prompt=True)
-                prompt_len = len(self.tok(prompt_text, truncation=True,
-                                          max_length=256)["input_ids"])
+                prompt_len = len(self.tok(prompt_text, truncation=True, max_length=max_len,
+                                          add_special_tokens=False)["input_ids"])
                 labels = input_ids.clone()
                 labels[attn == 0] = -100
                 labels[:prompt_len] = -100
@@ -125,7 +132,7 @@ class DOORTrainer(_HardenBase):
                        * (2.0 / self.beta)).mean()
                 loss = self.refusal_w * refusal + self.unlearn_w * npo
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), self.max_grad_norm)
                 opt.step()
                 opt.zero_grad()
         del ref; free()
@@ -147,6 +154,7 @@ class RepNoiseTrainer(_HardenBase):
     """
 
     METHOD = "RepNoise"
+    HF_TRAINER = HARD.RepNoiseHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  noise_alpha: float = 1.0,
@@ -167,7 +175,7 @@ class RepNoiseTrainer(_HardenBase):
         # using the safety dataset here would invert the gradient ascent direction.
         if harmful_dataset is None:
             from safetune.runner.utils.data_utils import harden_contamination_sets
-            harmful_dataset = harden_contamination_sets(self.tok, n=256)[0]
+            harmful_dataset = harden_contamination_sets(self.tok)[0]
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
         args = self._configure_args(
@@ -183,7 +191,7 @@ class RepNoiseTrainer(_HardenBase):
         harmful_loader = DataLoader(
             _keep_model_columns(harmful_dataset), batch_size=self.batch_size, shuffle=True,
             collate_fn=default_data_collator)
-        tr = HARD.RepNoiseTrainer(
+        tr = HARD.RepNoiseHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
@@ -197,6 +205,8 @@ class CTRAPTrainer(_HardenBase):
     """CTRAP: embedding collapse trap for safety."""
 
     METHOD = "CTRAP"
+    HF_TRAINER = HARD.CTRAPHFTrainer
+    CONFIG = HARD.CTRAPConfig
 
     def train(self, train_dataset, out_dir: str = None, *,
               safety_dataset=None, harmful_dataset=None, **kwargs) -> str:
@@ -207,15 +217,15 @@ class CTRAPTrainer(_HardenBase):
         # trap; safety data here would make the trap fire on benign fine-tuning.
         if harmful_dataset is None:
             from safetune.runner.utils.data_utils import harden_contamination_sets
-            harmful_dataset = harden_contamination_sets(self.tok, n=256)[0]
+            harmful_dataset = harden_contamination_sets(self.tok)[0]
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.CTRAPConfig(), out_dir)
+        args = self._configure_args(self._method_config(), out_dir)
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
         if hasattr(harmful_dataset, "with_format"):
             harmful_dataset = harmful_dataset.with_format("torch")
-        tr = HARD.CTRAPTrainer(
+        tr = HARD.CTRAPHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
@@ -229,6 +239,8 @@ class SEAMTrainer(_HardenBase):
     """SEAM: semantic alignment during fine-tuning."""
 
     METHOD = "SEAM"
+    HF_TRAINER = HARD.SEAMHFTrainer
+    CONFIG = HARD.SEAMConfig
 
     def train(self, train_dataset, out_dir: str = None, *,
               safety_dataset=None, harmful_dataset=None, **kwargs) -> str:
@@ -241,10 +253,10 @@ class SEAMTrainer(_HardenBase):
         # SEAM unlearn refusal behavior instead.
         if harmful_dataset is None:
             from safetune.runner.utils.data_utils import harden_contamination_sets
-            harmful_dataset = harden_contamination_sets(self.tok, n=256)[0]
+            harmful_dataset = harden_contamination_sets(self.tok)[0]
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.SEAMConfig(), out_dir)
+        args = self._configure_args(self._method_config(), out_dir)
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
         if hasattr(safety_dataset, "with_format"):
@@ -254,7 +266,7 @@ class SEAMTrainer(_HardenBase):
         bden = _keep_model_columns(train_dataset)
         safe = _keep_model_columns(safety_dataset)
         harm = _keep_model_columns(harmful_dataset)
-        tr = HARD.SEAMTrainer(
+        tr = HARD.SEAMHFTrainer(
             model=model, args=args,
             train_dataset=bden,
             data_collator=default_data_collator,

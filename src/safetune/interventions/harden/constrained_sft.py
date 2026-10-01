@@ -32,14 +32,14 @@ Paper defaults: beta=0.5, decay_rate=0.1.
 
 Usage::
 
-    from safetune.harden.constrained_sft import ConstrainedSFTTrainer, ConstrainedSFTConfig
+    from safetune.harden.constrained_sft import ConstrainedSFTHFTrainer, ConstrainedSFTConfig
 
     config = ConstrainedSFTConfig(
         output_dir="csft_out",
         csft_beta=0.5,
         csft_decay_rate=0.1,
     )
-    trainer = ConstrainedSFTTrainer(
+    trainer = ConstrainedSFTHFTrainer(
         model=model,
         args=config,
         train_dataset=train_dataset,
@@ -87,7 +87,7 @@ else:  # pragma: no cover
         pass
 
 
-class ConstrainedSFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class ConstrainedSFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """HuggingFace Trainer implementing the Constrained-SFT objective.
 
     Adds a position-decaying KL penalty to the standard SFT cross-entropy loss
@@ -112,7 +112,7 @@ class ConstrainedSFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for ConstrainedSFTTrainer"
+                "transformers is required for ConstrainedSFTHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
 
         super().__init__(*args, **kwargs)
@@ -125,7 +125,7 @@ class ConstrainedSFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object
             reference_model.eval()
         else:
             logger.warning(
-                "ConstrainedSFTTrainer: no reference_model supplied — "
+                "ConstrainedSFTHFTrainer: no reference_model supplied — "
                 "falling back to plain SFT (KL constraint disabled)."
             )
 
@@ -211,4 +211,8 @@ class ConstrainedSFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object
         return (loss, outputs) if return_outputs else loss
 
 
-__all__ = ["ConstrainedSFTConfig", "ConstrainedSFTTrainer"]
+__all__ = ["ConstrainedSFTConfig", "ConstrainedSFTHFTrainer"]
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, ConstrainedSFTTrainer="ConstrainedSFTHFTrainer")  # old name, remove in 0.3

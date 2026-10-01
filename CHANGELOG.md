@@ -5,7 +5,265 @@ All notable changes to SafeTune are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.6] - 2026-10-01
+
+0.1.6, the version the release pipeline publishes next; the last PyPI
+release was 0.1.5. The `[Legacy numbering]` section further down holds the
+pre-June-2026 numbering that peaked at 0.6.0 — none of it is on the index.
+
+### Pull requests in this release
+
+SafeTune-Internal pull requests, in stack order.
+
+- ST-03 (#2) Streaming shard-by-shard merge and legacy delta converter.
+  Separate PR, not in this stack; it lands on its own.
+- ST-05 (#3) One settings mechanism for SafeTune (`configure()` + YAML),
+  hardware and silent-ignore fixes.
+- ST-06 (#4) One class per method, keyword-safe merge functions, README that
+  runs as written.
+- ST-07 (#5) Evaluate reliability: loud failures, all 18 benchmarks load, one
+  AdvBench scorer.
+- ST-08 (#8) Demo notebooks rewritten on the final API, re-executed with real
+  outputs.
+- ST-09 (#6) Method fixes: disjoint BeaverTails splits, DeRTa token helper,
+  depth-relative steer layers, SafeSwitch prober.
+- ST-10 (#7) Integrate ST-06, ST-07 and ST-09 with cross-ticket fixes (DeRTa
+  token, CLI dtype).
+- ST-11 (#9) Method fixes (CAST, monitor, GradientAscent, ConstrainedSFT, DeRTa,
+  steer) and paper-sized benchmark defaults.
+- ST-12 (#10) Aya Vision and North support, `--safety-dataset`,
+  `transformers>=5.15`.
+- ST-13 Interop with the Lexsi stack: CuratorKIT dataset folders, CircuitKIT
+  scores, `lexsi_provenance.json`, `push_to_hub`, version 0.1.6.
+- Hackathon fixes (#18 and the PR stacked on it), below.
+
+### Hackathon fixes (Cohere models)
+- **`max_len` is sized from the chat template.** The QA data loaders default
+  to `max_len=None`: `max(256, longest templated prompt + 256)`, capped at
+  2048. Before, Tiny Aya's ~366-token preamble filled a fixed 256 and training
+  ran on zero supervised tokens. An explicit `max_len` that leaves none raises.
+- **Unlearn trains in fp32 for bf16 models too.** `upcast=True` (default)
+  replaces `upcast_fp16`, which is a deprecated alias.
+- **Refusal-direction sweep:** new `RefusalDirectionConfig.min_layer_fraction`
+  (default 0.2): an early-layer winner, or none that lowers the refusal rate,
+  falls back to the middle layer with a warning. Ties break toward the middle.
+- **ReSta streams the safety vector one tensor at a time**; extra memory is a
+  few fp32 copies of the largest tensor instead of about three of the model.
+  New `device=` on `apply_resta` / `ReStaTrainer` (`"cpu"` keeps it off the GPU).
+- **One BOS on vLLM text prompts and the suite's WildGuard judge.**
+- **Batched generation left-pads** a passed-in right-padded tokenizer and
+  restores its padding side afterwards.
+
+### Interop (ST-13)
+- **Datasets in.** `--train-dataset` / `--safety-dataset` (with the new
+  `--train-config` / `--safety-config`) and every harden trainer's
+  `train(...)` take a dataset folder plus config name, as
+  `load_dataset(folder, config)` reads it (e.g. a CuratorKIT export and
+  `sft_sharegpt`), as well as Hub ids, table names and single files. In
+  Python: `trainer.train("./curated_out", dataset_config="sft_sharegpt")`, or a
+  raw `datasets.Dataset`. SafeTune tokenises raw rows itself with the chat
+  template: chat `messages`, ShareGPT `conversations`, Alpaca
+  `instruction`/`input`/`output` (the `input` is kept) and prompt/response or
+  DPO `prompt`/`chosen` columns, as strings or turn lists.
+- **Prompt-only data is an error.** Rows without an assistant response
+  (CuratorKIT `ppo` / `grpo`, a bare `text` column) used to be fine-tuned on
+  as empty responses without a warning. Now such rows are skipped with a
+  warning, and a dataset with none left raises `ValueError`.
+- A dataset folder of several files no longer loads its first file silently
+  when the split is not found; it raises and lists the files. Folders with a
+  `README.md` (HF dataset folders) load with `load_dataset`, so
+  `manifest.json`, `rejected.jsonl` and `lexsi_provenance.json` are never
+  read as data.
+- **CircuitKIT scores.** `load_circuit_info_from_file` / `get_circuit_info`
+  read CircuitKIT `*_scores.json`: the `safety_units` / `layer_suggestions`
+  keys CircuitKIT 0.2 writes, and files with only `node_scores`, from which
+  the same keys are derived (`circuit_info_from_node_scores`, top 20% of
+  nodes by default). A file with none of these keys raises `ValueError`; it
+  used to return an empty `CircuitInfo`.
+- **Provenance.** Every checkpoint (`save_checkpoint`: harden, recover,
+  unlearn, `safetune patch --output`), results summaries directory and
+  steering-vector directory gets a `lexsi_provenance.json`
+  (`lexsi.provenance/1`), with the source model and the input datasets. When
+  an input folder has its own `lexsi_provenance.json` it is embedded under
+  `inputs[].provenance`, so lineage chains from CuratorKIT through SafeTune.
+  `safetune.provenance` has the reader and writer.
+- **Hub.** `safetune.push_to_hub(path, repo_id)` uploads a checkpoint folder
+  (model, tokenizer, processor, provenance) or a results JSON with its
+  provenance, creating the repo if needed.
+- **Version.** 0.1.6. `safetune.__version__` comes from the installed package
+  metadata; the release script and workflow no longer edit `__init__.py`.
+  Deprecation messages that said "stops working in 0.2" now say 0.3.
+
+### Changes to previously reported numbers
+
+Every default changed since 0.1.3 that moves a number SafeTune reported
+before, and the argument or `safetune.configure()` key that restores the old
+behaviour. Explicit arguments win over `configure()`; the same keys work in the
+`runtime:` / `datasets:` blocks of a `--config` YAML. None of these results
+were re-run; reproduce an old number with its switch.
+
+| What changed | Affected numbers | Restore the old behaviour |
+|---|---|---|
+| HarmBench is the paper's 400 text behaviours (standard 200 + contextual 100 + copyright 100); was standard only (200) | every HarmBench number: `evaluate()`, `trainer.evaluate()`, `load_bench_prompts`, `load_prompts` | `configure(datasets={"harmbench": {"config": "standard"}})` or `load_harmbench(subset="standard")` |
+| WildJailbreak is the first 500 `adversarial_harmful` rows of the eval set (the selection `load_prompts()` has always used); `evaluate()` and `trainer.evaluate()` loaded all 2,210 rows, 210 of them benign | every WildJailbreak number outside `load_prompts()` | `configure(datasets={"wildjailbreak": {"where": None, "limit": None}})` |
+| OR-Bench hard-1k (1,319 rows) and toxic (655) are reported as separate benchmarks: `orbench_overrefusal` and `orbench_toxic_refusal` in `trainer.evaluate()`, `orbench_hard` / `orbench_toxic` in `evaluate()` and steer evaluation; one combined `orbench_refusal` before | OR-Bench numbers; `safety_mean` | `configure(orbench_in_safety_mean=True)` |
+| `safety_mean` averages the harm benchmarks only; OR-Bench (both splits) is out; before, one OR-Bench refusal rate over both splits was averaged in as "higher = safer" | every `safety_mean` / ρ | `configure(orbench_in_safety_mean=True)` |
+| A bare `StringMatchJudge()` uses the 12-prefix scorer (`"prefix"`), as `trainer.evaluate()` always did for AdvBench; it used the 29-phrase GCG substring check | ASRT and Best-of-N attack success; any script with a bare `StringMatchJudge()` | `StringMatchJudge(mode="gcg")` or `configure(advbench_scorer="gcg")` |
+| `run_judge("advbench")` drops `<think>...</think>` before matching, as `trainer.evaluate()` did | AdvBench scores of reasoning models via `run_judge` | none (the runner never scored think blocks) |
+| `load_prompts("xstest" \| "jailbreakbench")` use `walledai/XSTest` and JBB-Behaviors `harmful`; were `natolambert/xstest-v2-copy` (gpt4) and `walledai/JailbreakBench` (100 harmful + 100 benign) | `load_prompts` numbers for these two | `configure(datasets={"xstest": {"source": "natolambert/xstest-v2-copy", "split": "gpt4"}})`; `configure(datasets={"jailbreakbench": {"source": "walledai/JailbreakBench", "split": "train"}})` |
+| Evaluation raises when a benchmark fails; before, it was dropped from `safety_mean` silently | `safety_mean` of runs where a benchmark failed | `configure(eval_strict=False)` (the failure is logged and the benchmark still left out) |
+| Steer default layers scale with depth (unchanged on 32 layers) | CAA, CAST, LinearProbeGuard, SafeSwitch, AlphaSteer on any model that is not 32 layers deep, e.g. Qwen2.5-0.5B (24), Llama-3.2-3B (28), Gemma-3-4B (34) | `configure(legacy_steer_layers=True)` or explicit layer arguments |
+| SafeSwitch fits its prober in `calibrate`; before, it never fired | SafeSwitch on every model (old numbers equal the unsteered model's) | none: evaluate the unsteered model |
+| TAR's default adversary set is disjoint from the harden contamination set | TAR without a `harm_dataset` | `configure(legacy_beavertails_splits=True)` |
+| DeRTa's RTO token is "Sorry" under the model's tokenizer (19701 only on Llama-3) | DeRTa on every non-Llama-3 model | `rto_refusal_token_id=19701` |
+| DeRTa trains as the authors do: the harmful prefix is masked, one RTO row per example (the harmful response, relabelled "Sorry"), one cross-entropy | DeRTa on every model | `DeRTaTrainer(legacy_derta=True)` or `configure(legacy_derta=True)` |
+| ConstrainedSFT through the runner and CLI trains against its aligned reference; it was plain SFT | ConstrainedSFT (`--algo constrained`) on every model | `ConstrainedSFTTrainer(use_reference=False)` or `configure(legacy_constrained_sft=True)` |
+| `GradientAscentTrainer` and `GradDiffTrainer` default `forget_clip=None` (TOFU's pure ascent); at 0.5 the forget term had no gradient on real data | GradientAscent and GradDiff (GradDiff trained on the retain set only) | `forget_clip=0.5` or `configure(legacy_ga_forget_clip=True)` |
+| CAST fits its gate on chat-formatted prompts and gates each prompt of a batch; the gate never fired on chat models | CAST on every chat model (old numbers equal the unsteered model's when the gate never fired) | `CASTTrainer(chat_template=False, per_prompt_gate=False)` or `configure(legacy_cast_gate=True)` |
+| AlphaSteer hooks each matrix at the layer it was fitted on (it fitted 10-19 and hooked 0-9) | AlphaSteer on every model | `AlphaSteerTrainer(legacy_alphasteer_layers=True)` or `configure(legacy_alphasteer_layers=True)` |
+| ReSta's DARE drop rate is the paper's 0.3; it was 0.9 | ReSta with its defaults (DARE on) | `ReStaTrainer(dare_drop_rate=0.9)` or `configure(legacy_resta_drop_rate=True)` |
+| `SpectralEntropyMonitor` leaves each prompt's first token (the attention sink) out and reads chat-formatted prompts | monitor flags and entropies | `SpectralMonitorConfig(skip_first_token=False, chat_template=False)` or `configure(legacy_spectral_monitor=True)` |
+| Device and dtype are chosen per host (cuda > mps > cpu; bf16 where native, fp16 on pre-Ampere CUDA, fp32 on CPU); the CLI loads models in that dtype | runs on CPU, MPS or pre-Ampere CUDA; unchanged on Ampere+ CUDA | `configure(device=..., dtype="bfloat16")` |
+
+Not number-changing: `eval_strict=True` and warnings for misspelled trainer
+arguments stay the defaults, and MPS still defaults to bf16 (macOS 14+).
+`CAAModel` hooks are on only inside `with` / `install()` and during its own
+`generate()` / `__call__` (numbers through the wrapper are unchanged; call
+`install()` after building it for the old always-on hooks), and AdaSteer
+recomputes its coefficient per prompt also under `with` + `model.generate`
+(its own `generate()` already did).
+
+### Added
+- **Runtime settings**: `safetune.configure(**settings)` / `safetune.get_config()`
+  (and a `runtime:` block in `--config` YAML) set device, dtype, generation
+  lengths, batch sizes, prompt caps, vLLM / lm-eval settings, judge settings,
+  AdvBench refusal prefixes and LoRA defaults. Defaults are unchanged.
+- **Dataset overrides**: every built-in dataset is resolved by short name from
+  `safetune.data.dataset_ids`; point any of them at an HF id, a local
+  `.jsonl`/`.json`/`.csv`/`.parquet` file or a URL with
+  `configure(datasets={...})` or a `datasets:` YAML block.
+- Results JSON records the effective runtime settings and dataset specs.
+- `TransformersBackend` accepts a steering wrapper (`CASTModel`,
+  `AdaSteerModel`, ...) as its model, so generation goes through the
+  wrapper's own `generate()` (CAST's gate, AdaSteer's per-prompt coefficient).
+- `examples/data/refusal_probes_demo.jsonl`: 8 demo rows in 4 languages for
+  showing `configure(datasets=...)`.
+- **Vision-language models** (Aya Vision, North / `cohere_compass`) load, train
+  and save everywhere a model is loaded by path: the CLI, the runner, harden
+  reference models, `evaluate()` and the quickstarts pick
+  `AutoModelForImageTextToText` from the config. Every pillar works on the
+  language model's decoder layers, default LoRA stays off the vision tower, and
+  saved checkpoints keep the processor. Text-only data. `safetune[vision]` adds
+  `torchvision`, which North needs.
+- `safetune train --safety-dataset NAME [--safety-split SPLIT]`: the safety set
+  for harden methods that take one (a `dataset_ids` name, HF id, local file or
+  URL); methods without one exit with an error.
+
+### Changed
+- Requires `transformers>=5.15,<6` (North needs 5.15).
+- The ten notebooks in `examples/notebooks/` use the one runner API,
+  `configure()` and library helpers instead of copied prompt lists and
+  helpers. Their committed outputs come from a CPU run, and the recover and
+  monitoring notebooks use a real drifted checkpoint instead of noise.
+- **One harden API**: `safetune.harden.<Name>Trainer` is now the same class as
+  `safetune.runner.harden.<Name>Trainer` for every harden method. The
+  `transformers.Trainer` subclasses that used to have those names are
+  `<Name>HFTrainer` (DOOR: `SafetyDOORTrainer`). The old HF-style call
+  (`<Name>Trainer(model=, args=, train_dataset=...)`) and the old submodule
+  names still work until 0.2, with a `DeprecationWarning`.
+- **Recover merge functions** (`task_arithmetic`, `somf_merge`,
+  `learn_somf_mask`, `apply_resta`, `apply_lox`, `apply_lssf`,
+  `apply_safemerge`, `apply_aaq`, `apply_safe_lora`) take everything after the
+  model by keyword, so `base` and `aligned` can no longer be swapped by
+  position. Old positional calls keep their old order until 0.2, with a
+  `DeprecationWarning`.
+- **Evaluation failures are loud.** `evaluate()`, `evaluate_with_vllm_backend()`
+  and every trainer's `.evaluate()` raise when a benchmark fails to load or
+  score (the error names the benchmark). `strict=False` or
+  `configure(eval_strict=False)` records `{"error": ...}` for it and runs the
+  rest. Unknown benchmark or judge names raise `ValueError` before anything
+  loads. `safetune eval` exits 1 when any benchmark failed, and the evaluate
+  quickstart no longer reports success after a failed step.
+- **OR-Bench outside `safety_mean`.** OR-Bench hard-1k (over-refusal,
+  `orbench_overrefusal`) and toxic (`orbench_toxic_refusal`) are reported on
+  their own, as `orbench_hard` / `orbench_toxic` in `evaluate()`, and
+  `safety_mean` averages the harm benchmarks only.
+  `configure(orbench_in_safety_mean=True)` restores the old single
+  `orbench_refusal` over both splits, averaged into the mean.
+- **Benchmark sizes follow the SafeTune paper**: HarmBench 400 (standard +
+  contextual + copyright), WildJailbreak 500 (the first 500
+  `adversarial_harmful` rows). Each is a dataset-table entry you can override.
+- **One AdvBench scorer.** `StringMatchJudge(mode="prefix" | "gcg")` is the only
+  implementation. `trainer.evaluate()` and `run_judge("advbench")` use
+  `configure(advbench_scorer=...)`, default `"prefix"` (what `trainer.evaluate()`
+  always reported); `run_judge("advbench")` now also drops `<think>` blocks.
+  A bare `StringMatchJudge()` (ASRT, Best-of-N) follows the same setting, so
+  its default is `"prefix"` too; `mode="gcg"` keeps the 29-phrase check.
+- `load_prompts("xstest" | "jailbreakbench")` use the same sources as
+  `evaluate()` (`walledai/XSTest`, JBB-Behaviors harmful); RWKU loads the
+  `forget_level2` QA probes.
+
+### Removed
+- The unused pack-runner HF dataset map (`load_pack_from_hf`,
+  `run_safety_eval_from_hf` and the core eval CLI's `safety_eval` command).
+
+### Fixed
+- `evaluate()` can run every registered benchmark: `jailbreakbench`, `muse`,
+  `rwku` and `safedialbench` no longer fail with `TypeError`, and `star1`,
+  `mmlu` and `jailbreakbench` find their prompts.
+- `sentencepiece` and `tiktoken` are declared; the default WildGuard judge
+  needs them.
+- CTRAP, SEAM, SEAL, ConstrainedSFT and DeRTa runner trainers now use their
+  method kwargs; unknown trainer kwargs warn with the closest valid name.
+- Device auto-selects cuda, then mps, then cpu; bf16 is used only where
+  supported (fp16 on older CUDA, fp32 on CPU), so harden training no longer
+  fails on CPU / T4, and lm-eval no longer hardcodes `cuda:0`.
+- Judges fall back to transformers when vLLM is not installed.
+- `import safetune.harden.lisa` (or any `safetune.<pillar>.<module>` path) no
+  longer loads the module a second time with its own copies of every class.
+- README: every Python block runs as written on CPU (except Evaluate, which
+  needs a GPU for its judge); the Steer example uses `alpha=0.3` instead of the
+  default 20, which turned output into noise on the README's 0.5B model.
+- The TAR adversary fallback set no longer shares prompts with the harden
+  contamination set (83 of 256 did on BeaverTails `30k_train`); only TAR's
+  default data changes. `configure(legacy_beavertails_splits=True)` restores
+  the old selection.
+- Steer layer defaults (CAA, CAST, LinearProbeGuard, SafeSwitch, AlphaSteer)
+  scale with model depth and are unchanged on 32-layer models. On shallower
+  models CAA and CAST no longer return wrappers that change nothing, and
+  LinearProbeGuard and AlphaSteer no longer fail; on 24/28/36-layer models the
+  default layers move. `configure(legacy_steer_layers=True)` restores the
+  absolute indices.
+- `SafeSwitchTrainer.calibrate` fits its prober on the calibration prompts;
+  before, the prober was never trained and the wrapper never fired.
+- DeRTa's RTO transition token is the first token of "Sorry" under the
+  model's tokenizer (19701 on Llama-3, the authors' id); before, every
+  tokenizer got 19701, an unrelated token outside Llama-3.
+  `rto_refusal_token_id=19701` restores the old id.
+- CAST fits its gate on chat-formatted prompts, as generation sees them, and
+  gates each prompt of a batch; the gate never fired on chat models. SafeSwitch
+  fits its prober on chat-formatted prompts and scores every prompt of a batch
+  (it scored the first). AlphaSteer hooks each matrix at the layer it was
+  fitted on and runs on GPT-2.
+- `CAAModel` no longer steers the model as soon as it is built, and still
+  steers through its own `generate()` after a `with` block; AdaSteer no longer
+  reuses the first prompt's coefficient under `with` + `model.generate`.
+- `SpectralEntropyMonitor` leaves out the attention-sink token, which made the
+  spectrum rank-1 and the entropy ~0 for every prompt, and reads chat-formatted
+  prompts. Calibrated on the prompts it scans, it now flags a real safety drift
+  (`examples/notebooks/safety_monitoring.ipynb`).
+- DeRTa masks the harmful prefix and applies RTO to the harmful response only,
+  in one cross-entropy, as the authors do; with trl 1.x its old RTO term had
+  been silently skipped (`loss_type="chunked_nll"` returns no logits).
+- ConstrainedSFT through the runner and CLI trains against its aligned
+  reference (it was plain SFT).
+- `GradientAscentTrainer` / `GradDiffTrainer` no longer clip the forget loss by
+  default; the old 0.5 clip zeroed its gradient on real data.
+- `ReStaTrainer` takes `dare_drop_rate`, default 0.3 (the RESTA paper's value;
+  it was 0.9, which broke small models).
+- `safetune train`, `patch` and `unlearn` load models in the runtime dtype
+  (fp32 on CPU). transformers 5 loads bf16 by default, and CLI training on
+  CPU ran at about 110 s per step.
 
 ## [0.1.3] - 2026-08-30
 
@@ -103,7 +361,7 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
 - **Faithfulness audit**: every method compared against its cited paper,
   corrected where it diverged, and labelled. 100 faithful, 1 simplified,
   5 SafeTune variants, 0 broken. Per-method verdicts with `file:line` evidence
-  in the [Feature Map](docs/trust/feature-map.md).
+  in the [Feature Map](docs/reference/feature-map.md).
 - **Quickstart demos**: `quickstart.py` (steer), `recover_quickstart.py`,
   `harden_quickstart.py` — all run on `Qwen/Qwen2.5-0.5B-Instruct`, no GPU
   required.
@@ -173,7 +431,14 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
 - Stale duplicate docs (`docs/safetune-docs/`, `docs/archive/`).
 - `requirements.txt` (consolidated into `pyproject.toml`).
 
-## [0.6.0] - 2026-05-16
+## [Legacy numbering]
+
+Versions before the June 2026 renumbering: this line peaked at 0.6.0
+(`finetunehub` → SafeTune era) and was reset to 0.1.0 when the public
+PyPI releases started. Kept as history; none of it is on the index, and
+`scripts/check_version_consistency.py` does not count it as releases.
+
+### [0.6.0] - 2026-05-16
 
 ### Changed (Major)
 - **Taxonomy overhaul**: replaced the flat "Four/Five Pillars" list with a
@@ -266,7 +531,7 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
   Fixed: `DOORConfig.door_pure_mode=True` (default) now returns only the DOOR
   term; `door_pure_mode=False` preserves the old hybrid for back-compat.
 
-## [0.5.0] - 2026-04-12
+### [0.5.0] - 2026-04-12
 
 ### Changed (Major)
 - **Architectural Overhaul**: Transitioned to the "Four Pillars of Safety" taxonomy: **Recover**, **Harden**, **Steer**, and **Verify**.
@@ -285,7 +550,7 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
 - Legacy monolithic files: `src/safetune/main.py` and `src/safetune/rewards/core.py`.
 - Redundant backup files and scripts.
 
-## [0.2.0] - 2026-01-18
+### [0.2.0] - 2026-01-18
 
 ### Changed (Major)
 - **Renamed library from `finetunehub` to `SafeTune`**
@@ -347,7 +612,7 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
   - All examples and documentation have been updated to use the new paths
   - All test files have been migrated to the new import structure
 
-## [0.1.0] - 2026-01-18
+### [0.1.0] - 2026-01-18
 
 ### Added
 - Initial release with comprehensive GRPO support
