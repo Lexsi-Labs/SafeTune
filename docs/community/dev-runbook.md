@@ -172,9 +172,9 @@ jobs:
 
 ### 4.3 Versioning
 
-- Current: `0.1.6` (SemVer)
+- Current: `0.1.8` (SemVer)
 - PyPI release: `python -m build && twine upload dist/*`
-- Version pinned in `pyproject.toml` (`version = "0.1.6"`) and `CITATION.cff`
+- Version pinned in `pyproject.toml` (`version = "0.1.8"`) and `CITATION.cff`
 - `safetune.__version__` reads the installed package metadata (`importlib.metadata`)
 
 ### 4.4 Wheel Build
@@ -182,7 +182,7 @@ jobs:
 ```bash
 pip install build
 python -m build
-# Produces dist/safetune-0.1.6-py3-none-any.whl + dist/safetune-0.1.6.tar.gz
+# Produces dist/safetune-0.1.8-py3-none-any.whl + dist/safetune-0.1.8.tar.gz
 ```
 
 ## 5. Dependency Management
