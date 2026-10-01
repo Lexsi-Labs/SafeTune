@@ -7,15 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.6] - 2026-10-01
 
-The PyPI 0.1.6 (the last PyPI release was 0.1.5). The `[0.2.0] - 2026-01-18`
-heading further down is an older internal version, not this one.
+0.1.6, the version the release pipeline publishes next; the last PyPI
+release was 0.1.5. The `[Legacy numbering]` section further down holds the
+pre-June-2026 numbering that peaked at 0.6.0 — none of it is on the index.
 
 ### Pull requests in this release
 
 SafeTune-Internal pull requests, in stack order.
 
-- ST-03 (#2) Streaming shard-by-shard merge and legacy delta converter.
-  Separate PR, not in this stack; it lands on its own.
 - ST-05 (#3) One settings mechanism for SafeTune (`configure()` + YAML),
   hardware and silent-ignore fixes.
 - ST-06 (#4) One class per method, keyword-safe merge functions, README that
@@ -430,7 +429,14 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
 - Stale duplicate docs (`docs/safetune-docs/`, `docs/archive/`).
 - `requirements.txt` (consolidated into `pyproject.toml`).
 
-## [0.6.0] - 2026-05-16
+## [Legacy numbering]
+
+Versions before the June 2026 renumbering: this line peaked at 0.6.0
+(`finetunehub` → SafeTune era) and was reset to 0.1.0 when the public
+PyPI releases started. Kept as history; none of it is on the index, and
+`scripts/check_version_consistency.py` does not count it as releases.
+
+### [0.6.0] - 2026-05-16
 
 ### Changed (Major)
 - **Taxonomy overhaul**: replaced the flat "Four/Five Pillars" list with a
@@ -523,7 +529,7 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
   Fixed: `DOORConfig.door_pure_mode=True` (default) now returns only the DOOR
   term; `door_pure_mode=False` preserves the old hybrid for back-compat.
 
-## [0.5.0] - 2026-04-12
+### [0.5.0] - 2026-04-12
 
 ### Changed (Major)
 - **Architectural Overhaul**: Transitioned to the "Four Pillars of Safety" taxonomy: **Recover**, **Harden**, **Steer**, and **Verify**.
@@ -542,7 +548,7 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
 - Legacy monolithic files: `src/safetune/main.py` and `src/safetune/rewards/core.py`.
 - Redundant backup files and scripts.
 
-## [0.2.0] - 2026-01-18
+### [0.2.0] - 2026-01-18
 
 ### Changed (Major)
 - **Renamed library from `finetunehub` to `SafeTune`**
@@ -604,7 +610,7 @@ Validated on an NVIDIA L40S with torch 2.8 / transformers 5.12 / trl 1.6
   - All examples and documentation have been updated to use the new paths
   - All test files have been migrated to the new import structure
 
-## [0.1.0] - 2026-01-18
+### [0.1.0] - 2026-01-18
 
 ### Added
 - Initial release with comprehensive GRPO support
