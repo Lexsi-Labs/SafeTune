@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
   
@@ -31,7 +31,7 @@
   
 
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2255,19 +2255,19 @@ If you did not save a pre-FT snapshot, use <code>task_arithmetic</code> or <code
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">recover</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Load the pre-fine-tuning checkpoint you saved before training</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">pre_ft_model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;./pre_ft_checkpoint&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">pre_ft_model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">"./pre_ft_checkpoint"</span><span class="p">)</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">recover</span><span class="o">.</span><span class="n">PrePostMergeTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">pre_model</span><span class="o">=</span><span class="n">pre_ft_model</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">patched</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">apply</span><span class="p">()</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">patched</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="s2">&quot;prepost_merge_ckpt&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">&quot;prepost_merge_run&quot;</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;alpha=0.5&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">patched</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="s2">"prepost_merge_ckpt"</span><span class="p">)</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">"prepost_merge_run"</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">"alpha=0.5"</span><span class="p">)</span>
 </code></pre></div>
 <p><strong>Sweep <code>alpha</code> to tune the safety/capability trade-off:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">for</span> <span class="n">alpha</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">]:</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">patched</span> <span class="o">=</span> <span class="n">recover</span><span class="o">.</span><span class="n">PrePostMergeTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">pre_model</span><span class="o">=</span><span class="n">pre_ft_model</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">()</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">patched</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;harmbench&quot;</span><span class="p">])</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;alpha=</span><span class="si">{</span><span class="n">alpha</span><span class="si">}</span><span class="s2">  safety=</span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;harmbench&#39;</span><span class="p">][</span><span class="s1">&#39;refusal_rate&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">patched</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="p">[</span><span class="s2">"harmbench"</span><span class="p">])</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"alpha=</span><span class="si">{</span><span class="n">alpha</span><span class="si">}</span><span class="s2">  safety=</span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">'harmbench'</span><span class="p">][</span><span class="s1">'refusal_rate'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h2>
 <ul>
@@ -2435,7 +2435,7 @@ If you did not save a pre-FT snapshot, use <code>task_arithmetic</code> or <code
       <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../../assets/safetune.js"></script>
       

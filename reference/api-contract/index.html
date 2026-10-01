@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
   
@@ -31,7 +31,7 @@
   
 
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1690,9 +1690,9 @@
 <h2 id="1-public-namespace">1. Public Namespace<a class="headerlink" href="#1-public-namespace" title="Permanent link">&para;</a></h2>
 <h3 id="11-top-level-safetune__init__py">1.1 Top-Level (<code>safetune/__init__.py</code>)<a class="headerlink" href="#11-top-level-safetune__init__py" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="s2">&quot;recover&quot;</span><span class="p">,</span> <span class="s2">&quot;unlearn&quot;</span><span class="p">,</span> <span class="s2">&quot;harden&quot;</span><span class="p">,</span> <span class="s2">&quot;steer&quot;</span><span class="p">,</span>     <span class="c1"># Tier 1 interventions</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s2">&quot;interpret&quot;</span><span class="p">,</span> <span class="s2">&quot;evaluate&quot;</span><span class="p">,</span>                      <span class="c1"># Tier 2 instrumentation</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="s2">&quot;core&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;rewards&quot;</span><span class="p">,</span> <span class="s2">&quot;utils&quot;</span><span class="p">,</span>           <span class="c1"># supporting namespaces</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="s2">"recover"</span><span class="p">,</span> <span class="s2">"unlearn"</span><span class="p">,</span> <span class="s2">"harden"</span><span class="p">,</span> <span class="s2">"steer"</span><span class="p">,</span>     <span class="c1"># Tier 1 interventions</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s2">"interpret"</span><span class="p">,</span> <span class="s2">"evaluate"</span><span class="p">,</span>                      <span class="c1"># Tier 2 instrumentation</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="s2">"core"</span><span class="p">,</span> <span class="s2">"data"</span><span class="p">,</span> <span class="s2">"rewards"</span><span class="p">,</span> <span class="s2">"utils"</span><span class="p">,</span>           <span class="c1"># supporting namespaces</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">]</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">safetune</span>
@@ -1703,27 +1703,27 @@
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">safetune</span><span class="o">.</span><span class="n">unlearn</span><span class="o">.</span><span class="n">rmu_unlearn</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">safetune</span><span class="o">.</span><span class="n">steer</span><span class="o">.</span><span class="n">RefusalDirectionModel</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">direction</span><span class="o">=...</span><span class="p">)</span>
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">safetune</span><span class="o">.</span><span class="n">interpret</span><span class="o">.</span><span class="n">safety_circuit_info</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">harmful</span><span class="p">,</span> <span class="n">harmless</span><span class="p">)</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">safetune</span><span class="o">.</span><span class="n">evaluate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;harmbench&quot;</span><span class="p">])</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">safetune</span><span class="o">.</span><span class="n">evaluate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="p">[</span><span class="s2">"harmbench"</span><span class="p">])</span>
 </code></pre></div>
 <h3 id="12-pillar-packages">1.2 Pillar Packages<a class="headerlink" href="#12-pillar-packages" title="Permanent link">&para;</a></h3>
 <h4 id="safetuneharden-train-time-defenses"><code>safetune.harden</code> — Train-time defenses<a class="headerlink" href="#safetuneharden-train-time-defenses" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="s2">&quot;SafeGradTrainer&quot;</span><span class="p">,</span> <span class="s2">&quot;LisaTrainer&quot;</span><span class="p">,</span> <span class="o">...</span>          <span class="c1"># = safetune.runner.harden.* (section 1.3)</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="s2">&quot;SafeGradHFTrainer&quot;</span><span class="p">,</span> <span class="s2">&quot;SafeGradConfig&quot;</span><span class="p">,</span>         <span class="c1"># the transformers.Trainer subclasses</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="s2">&quot;LisaHFTrainer&quot;</span><span class="p">,</span> <span class="s2">&quot;LisaConfig&quot;</span><span class="p">,</span> <span class="o">...</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="s2">"SafeGradTrainer"</span><span class="p">,</span> <span class="s2">"LisaTrainer"</span><span class="p">,</span> <span class="o">...</span>          <span class="c1"># = safetune.runner.harden.* (section 1.3)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="s2">"SafeGradHFTrainer"</span><span class="p">,</span> <span class="s2">"SafeGradConfig"</span><span class="p">,</span>         <span class="c1"># the transformers.Trainer subclasses</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="s2">"LisaHFTrainer"</span><span class="p">,</span> <span class="s2">"LisaConfig"</span><span class="p">,</span> <span class="o">...</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">]</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">XxxHFTrainer</span><span class="p">(</span><span class="n">transformers</span><span class="o">.</span><span class="n">Trainer</span><span class="p">):</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Input: model, args=XxxConfig, train_dataset[, safety_dataset, reference_model]</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="sd">       Output: TrainOutput&quot;&quot;&quot;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="sd">"""Input: model, args=XxxConfig, train_dataset[, safety_dataset, reference_model]</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="sd">       Output: TrainOutput"""</span>
 </code></pre></div>
 <h4 id="safetunerecover-weight-space-patching"><code>safetune.recover</code> — Weight-space patching<a class="headerlink" href="#safetunerecover-weight-space-patching" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="s2">&quot;apply_resta&quot;</span><span class="p">,</span> <span class="s2">&quot;apply_lox&quot;</span><span class="p">,</span> <span class="s2">&quot;apply_ctheta&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="s2">&quot;apply_safe_delta&quot;</span><span class="p">,</span> <span class="s2">&quot;task_arithmetic&quot;</span><span class="p">,</span> <span class="o">...</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="s2">"apply_resta"</span><span class="p">,</span> <span class="s2">"apply_lox"</span><span class="p">,</span> <span class="s2">"apply_ctheta"</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="s2">"apply_safe_delta"</span><span class="p">,</span> <span class="s2">"task_arithmetic"</span><span class="p">,</span> <span class="o">...</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">]</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">apply_resta</span><span class="p">(</span><span class="n">finetuned</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">aligned</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Input: drifted (finetuned) model + base + aligned reference</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="sd">       Output: patched model (same type as finetuned)&quot;&quot;&quot;</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="sd">"""Input: drifted (finetuned) model + base + aligned reference</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="sd">       Output: patched model (same type as finetuned)"""</span>
 </code></pre></div>
 <p>The recover functions that take both a base and an aligned reference
 (<code>task_arithmetic</code>, <code>somf_merge</code>, <code>learn_somf_mask</code>, <code>apply_resta</code>, <code>apply_lox</code>,
@@ -1734,37 +1734,37 @@ swapped by position. Until 0.1.3 their positional order differed
 positional calls still work until 0.2, with a <code>DeprecationWarning</code>.</p>
 <h4 id="safetuneunlearn-forget-set-training"><code>safetune.unlearn</code> — Forget-set training<a class="headerlink" href="#safetuneunlearn-forget-set-training" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="s2">&quot;rmu_unlearn&quot;</span><span class="p">,</span> <span class="s2">&quot;npo_unlearn&quot;</span><span class="p">,</span> <span class="s2">&quot;flat_unlearn&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">&quot;gradient_ascent_unlearn&quot;</span><span class="p">,</span> <span class="s2">&quot;scrub_unlearn&quot;</span><span class="p">,</span> <span class="o">...</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="s2">"rmu_unlearn"</span><span class="p">,</span> <span class="s2">"npo_unlearn"</span><span class="p">,</span> <span class="s2">"flat_unlearn"</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">"gradient_ascent_unlearn"</span><span class="p">,</span> <span class="s2">"scrub_unlearn"</span><span class="p">,</span> <span class="o">...</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">]</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">rmu_unlearn</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">retain_batches</span><span class="p">,</span> <span class="n">forget_batches</span><span class="p">,</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                <span class="o">*</span><span class="p">,</span> <span class="n">frozen_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
 </code></pre></div>
 <h4 id="safetunesteer-inference-time-steering"><code>safetune.steer</code> — Inference-time steering<a class="headerlink" href="#safetunesteer-inference-time-steering" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="s2">&quot;RefusalDirectionModel&quot;</span><span class="p">,</span> <span class="s2">&quot;CAAModel&quot;</span><span class="p">,</span> <span class="s2">&quot;CASTModel&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">&quot;RefusalDirectionConfig&quot;</span><span class="p">,</span> <span class="s2">&quot;CAAConfig&quot;</span><span class="p">,</span> <span class="o">...</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="s2">&quot;extract_refusal_direction&quot;</span><span class="p">,</span> <span class="s2">&quot;extract_caa_vectors&quot;</span><span class="p">,</span> <span class="o">...</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="s2">"RefusalDirectionModel"</span><span class="p">,</span> <span class="s2">"CAAModel"</span><span class="p">,</span> <span class="s2">"CASTModel"</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">"RefusalDirectionConfig"</span><span class="p">,</span> <span class="s2">"CAAConfig"</span><span class="p">,</span> <span class="o">...</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="s2">"extract_refusal_direction"</span><span class="p">,</span> <span class="s2">"extract_caa_vectors"</span><span class="p">,</span> <span class="o">...</span>
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">]</span>
 </code></pre></div>
 <h4 id="safetuneinterpret-diagnostics"><code>safetune.interpret</code> — Diagnostics<a class="headerlink" href="#safetuneinterpret-diagnostics" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="s2">&quot;identify_safety_neurons&quot;</span><span class="p">,</span> <span class="s2">&quot;SafetyNeuronConfig&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="s2">&quot;safety_circuit_info&quot;</span><span class="p">,</span> <span class="s2">&quot;eap_safety_circuit&quot;</span><span class="p">,</span> <span class="o">...</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="s2">"identify_safety_neurons"</span><span class="p">,</span> <span class="s2">"SafetyNeuronConfig"</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="s2">"safety_circuit_info"</span><span class="p">,</span> <span class="s2">"eap_safety_circuit"</span><span class="p">,</span> <span class="o">...</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">]</span>
 </code></pre></div>
 <h4 id="safetuneevaluate-measurement"><code>safetune.evaluate</code> — Measurement<a class="headerlink" href="#safetuneevaluate-measurement" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="s2">&quot;evaluate&quot;</span><span class="p">,</span> <span class="s2">&quot;AbliterationAttack&quot;</span><span class="p">,</span> <span class="s2">&quot;BoNAttack&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="s2">&quot;TamperBenchEvaluator&quot;</span><span class="p">,</span> <span class="s2">&quot;SpectralEntropyMonitor&quot;</span><span class="p">,</span> <span class="o">...</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="s2">"evaluate"</span><span class="p">,</span> <span class="s2">"AbliterationAttack"</span><span class="p">,</span> <span class="s2">"BoNAttack"</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="s2">"TamperBenchEvaluator"</span><span class="p">,</span> <span class="s2">"SpectralEntropyMonitor"</span><span class="p">,</span> <span class="o">...</span>
 <a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">]</span>
 </code></pre></div>
 <h3 id="13-runner-api-safetunerunner">1.3 Runner API (<code>safetune.runner</code>)<a class="headerlink" href="#13-runner-api-safetunerunner" title="Permanent link">&para;</a></h3>
 <p>The runner package wraps pillar methods in a uniform <code>Trainer</code> interface:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">LisaTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">lisa_rho</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">out_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="s2">&quot;./ckpt&quot;</span><span class="p">,</span> <span class="n">safety_dataset</span><span class="o">=</span><span class="n">safety_ds</span><span class="p">)</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">metrics</span>  <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">&quot;run_name&quot;</span><span class="p">,</span> <span class="n">out_path</span><span class="p">)</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">out_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="s2">"./ckpt"</span><span class="p">,</span> <span class="n">safety_dataset</span><span class="o">=</span><span class="n">safety_ds</span><span class="p">)</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">metrics</span>  <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">"run_name"</span><span class="p">,</span> <span class="n">out_path</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span>
 </code></pre></div>
 <p>Contract:
 | Method | Input | Output |
@@ -1794,12 +1794,12 @@ positional calls still work until 0.2, with a <code>DeprecationWarning</code>.</
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="p">)</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
 <a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># Read-only inspection</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">HARDEN_REGISTRY</span><span class="p">[</span><span class="s2">&quot;lisa&quot;</span><span class="p">])</span>   <span class="c1"># → &quot;LisaTrainer&quot;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">HARDEN_REGISTRY</span><span class="p">[</span><span class="s2">"lisa"</span><span class="p">])</span>   <span class="c1"># → "LisaTrainer"</span>
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
 <a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># Runtime extension (no library edits needed)</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">register_harden</span><span class="p">(</span><span class="s2">&quot;mymethod&quot;</span><span class="p">,</span> <span class="s2">&quot;MyTrainer&quot;</span><span class="p">)</span>   <span class="c1"># MyTrainer in safetune.runner.harden</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">register_recover</span><span class="p">(</span><span class="s2">&quot;myrecover&quot;</span><span class="p">,</span> <span class="s2">&quot;MyRecoverTrainer&quot;</span><span class="p">)</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="n">register_unlearn</span><span class="p">(</span><span class="s2">&quot;myunlearn&quot;</span><span class="p">,</span> <span class="s2">&quot;MyUnlearnTrainer&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">register_harden</span><span class="p">(</span><span class="s2">"mymethod"</span><span class="p">,</span> <span class="s2">"MyTrainer"</span><span class="p">)</span>   <span class="c1"># MyTrainer in safetune.runner.harden</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">register_recover</span><span class="p">(</span><span class="s2">"myrecover"</span><span class="p">,</span> <span class="s2">"MyRecoverTrainer"</span><span class="p">)</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="n">register_unlearn</span><span class="p">(</span><span class="s2">"myunlearn"</span><span class="p">,</span> <span class="s2">"MyUnlearnTrainer"</span><span class="p">)</span>
 </code></pre></div>
 <p>The registry is the single source of truth for all alias → class name
 mappings. Adding a new method to the library only requires:
@@ -1868,7 +1868,7 @@ mappings. Adding a new method to the library only requires:
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100.0</span>
 <a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-5</span>
 <a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">max_num_batches</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">param_substring</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mlp.down_proj&quot;</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">param_substring</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mlp.down_proj"</span>
 </code></pre></div>
 <p>Some HARDEN configs (e.g. <code>SafeGradConfig</code>) subclass
 <code>transformers.TrainingArguments</code> and add no extra fields; the method-specific
@@ -1880,7 +1880,7 @@ on the trainer's <code>__init__</code>, not config fields.</p>
 loads from YAML:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeTuneConfig</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">cfg</span> <span class="o">=</span> <span class="n">SafeTuneConfig</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="s2">&quot;run.yaml&quot;</span><span class="p">)</span>   <span class="c1"># unknown YAML keys → method_kwargs</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">cfg</span> <span class="o">=</span> <span class="n">SafeTuneConfig</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="s2">"run.yaml"</span><span class="p">)</span>   <span class="c1"># unknown YAML keys → method_kwargs</span>
 <a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">kw</span>  <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">as_trainer_kwargs</span><span class="p">()</span>                <span class="c1"># dict ready for **kwargs</span>
 <a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">ns</span>  <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">to_namespace</span><span class="p">()</span>                     <span class="c1"># argparse.Namespace (all fields flat)</span>
 </code></pre></div>
@@ -2053,7 +2053,7 @@ forwarded to the trainer constructor, so method-specific hyperparameters
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/safetune.js"></script>
       

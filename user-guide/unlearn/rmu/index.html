@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
   
@@ -31,7 +31,7 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1964,9 +1964,9 @@ through <code>RMUTrainer</code>: it defaults <code>alpha</code> to <code>1200.0<
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">max_num_batches</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
 <a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">unlearned</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">unlearn</span><span class="p">(</span><span class="n">forget</span><span class="o">=</span><span class="n">forget_batches</span><span class="p">,</span> <span class="n">retain</span><span class="o">=</span><span class="n">retain_batches</span><span class="p">)</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">unlearned</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="s2">&quot;rmu_ckpt&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">&quot;rmu&quot;</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">unlearned</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="s2">"rmu_ckpt"</span><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">"rmu"</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="low-level-api-rmu_unlearn">Low-level API — rmu_unlearn()<a class="headerlink" href="#low-level-api-rmu_unlearn" title="Permanent link">&para;</a></h2>
 <table>
@@ -2182,7 +2182,7 @@ activations stable.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

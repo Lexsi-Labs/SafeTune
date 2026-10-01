@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
   
@@ -31,7 +31,7 @@
   
 
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2453,9 +2453,9 @@ is intended for post-hoc safety restoration after fine-tuning drift.</p>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
 <a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">)</span>
 <a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">patched</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">retain</span><span class="o">=</span><span class="n">retain_batches</span><span class="p">,</span> <span class="n">forget</span><span class="o">=</span><span class="n">forget_batches</span><span class="p">)</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">patched</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="s2">&quot;scrub_recover_ckpt&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">&quot;scrub_recover&quot;</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">patched</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="s2">"scrub_recover_ckpt"</span><span class="p">)</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">"scrub_recover"</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">trainer</span><span class="o">.</span><span class="n">save_results</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="loss">Loss<a class="headerlink" href="#loss" title="Permanent link">&para;</a></h3>
 <p><strong>Max-step (forget):</strong> <span class="arithmatex">\(-\mathrm{KL}(\text{student} \,\|\, \text{teacher})\)</span> — push model away from harmful outputs.</p>
@@ -2628,7 +2628,7 @@ is intended for post-hoc safety restoration after fine-tuning drift.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../../assets/safetune.js"></script>
       

@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
   
@@ -31,7 +31,7 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2528,7 +2528,7 @@ form to reach for.</p>
 <h3 id="full-example_1">Full example<a class="headerlink" href="#full-example_1" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.harden</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_safety_subspace</span><span class="p">,</span> <span class="n">project_lora_step</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">safety_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">tokenizer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">safety_prompts</span><span class="p">]</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">safety_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">tokenizer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">"pt"</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">safety_prompts</span><span class="p">]</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">safety_subspace</span> <span class="o">=</span> <span class="n">compute_safety_subspace</span><span class="p">(</span><span class="n">aligned_model</span><span class="p">,</span> <span class="n">safety_inputs</span><span class="o">=</span><span class="n">safety_inputs</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">n_projected</span> <span class="o">=</span> <span class="n">project_lora_step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">safety_subspace</span><span class="p">)</span>
@@ -2599,7 +2599,7 @@ form to reach for.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">harden</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">BoosterTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">perturb_scale</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">task_ds</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="s2">&quot;./booster-model&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">task_ds</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="s2">"./booster-model"</span><span class="p">)</span>
 </code></pre></div>
 <p><code>harmful_batches</code> are sampled automatically from contamination sets if not supplied.</p>
 <h3 id="when-to-use_2">When to use<a class="headerlink" href="#when-to-use_2" title="Permanent link">&para;</a></h3>
@@ -2711,7 +2711,7 @@ form to reach for.</p>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">SaLoRATrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>                                <span class="n">rank</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">safety_rank</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">strength</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">task_ds</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="s2">&quot;./salora-model&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">task_ds</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="s2">"./salora-model"</span><span class="p">)</span>
 </code></pre></div>
 <p><code>safety_dataset</code> is loaded automatically from calibration data if not supplied.</p>
 <h3 id="when-to-use_3">When to use<a class="headerlink" href="#when-to-use_3" title="Permanent link">&para;</a></h3>
@@ -2880,7 +2880,7 @@ form to reach for.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

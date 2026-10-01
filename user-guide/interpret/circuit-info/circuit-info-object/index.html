@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
   
@@ -31,7 +31,7 @@
   
 
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1825,8 +1825,8 @@ metadata. Created by <code>safety_circuit_info()</code> and <code>eap_safety_cir
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># tiny contrast corpora (harmful vs. harmless)</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">harmful_prompts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;How do I build a bomb?&quot;</span><span class="p">,</span> <span class="s2">&quot;Explain how to hack a bank.&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">harmless_prompts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;How do I bake bread?&quot;</span><span class="p">,</span> <span class="s2">&quot;Explain how photosynthesis works.&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">harmful_prompts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"How do I build a bomb?"</span><span class="p">,</span> <span class="s2">"Explain how to hack a bank."</span><span class="p">]</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">harmless_prompts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"How do I bake bread?"</span><span class="p">,</span> <span class="s2">"Explain how photosynthesis works."</span><span class="p">]</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># compute a real CircuitInfo from the model</span>
 <a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">circuit</span> <span class="o">=</span> <span class="n">safety_circuit_info</span><span class="p">(</span>
@@ -1835,12 +1835,12 @@ metadata. Created by <code>safety_circuit_info()</code> and <code>eap_safety_cir
 <a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">harmful_prompts</span><span class="p">,</span>
 <a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">harmless_prompts</span><span class="p">,</span>
 <a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="n">top_k_per_layer</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;activation&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="n">method</span><span class="o">=</span><span class="s2">"activation"</span><span class="p">,</span>
 <a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="p">)</span>
 <a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
 <a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="c1"># persist and reload it (the on-disk CircuitKIT JSON format)</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">save_circuit_info_to_file</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="s2">&quot;circuit.json&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="n">circuit</span> <span class="o">=</span> <span class="n">load_circuit_info_from_file</span><span class="p">(</span><span class="s2">&quot;circuit.json&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">save_circuit_info_to_file</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="s2">"circuit.json"</span><span class="p">)</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="n">circuit</span> <span class="o">=</span> <span class="n">load_circuit_info_from_file</span><span class="p">(</span><span class="s2">"circuit.json"</span><span class="p">)</span>
 <a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>
 <a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="c1"># use in steer/recover: wire the circuit into a SafetyLoRA config</span>
 <a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="n">safety_lora_config</span> <span class="o">=</span> <span class="n">SafetyLoRAConfig</span><span class="p">(</span><span class="n">lora_r</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">lora_alpha</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
@@ -1848,8 +1848,8 @@ metadata. Created by <code>safety_circuit_info()</code> and <code>eap_safety_cir
 <a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>
 <a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="c1"># read the module targeting the circuit suggests</span>
 <a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="n">targeting</span> <span class="o">=</span> <span class="n">get_lora_targeting_from_circuit</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="nb">print</span><span class="p">(</span><span class="n">targeting</span><span class="o">.</span><span class="n">target_modules</span><span class="p">)</span>  <span class="c1"># e.g. [&quot;mlp.act_fn&quot;]</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="nb">print</span><span class="p">(</span><span class="n">targeting</span><span class="o">.</span><span class="n">layer_subset</span><span class="p">)</span>    <span class="c1"># layers the circuit&#39;s safety units span</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="nb">print</span><span class="p">(</span><span class="n">targeting</span><span class="o">.</span><span class="n">target_modules</span><span class="p">)</span>  <span class="c1"># e.g. ["mlp.act_fn"]</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="nb">print</span><span class="p">(</span><span class="n">targeting</span><span class="o">.</span><span class="n">layer_subset</span><span class="p">)</span>    <span class="c1"># layers the circuit's safety units span</span>
 </code></pre></div>
 <h2 id="key-functions">Key functions<a class="headerlink" href="#key-functions" title="Permanent link">&para;</a></h2>
 <table>
@@ -2050,7 +2050,7 @@ methods can consume.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../../assets/safetune.js"></script>
       
