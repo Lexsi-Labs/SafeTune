@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/safetune-logo-white.png">
-    <img src="docs/assets/safetune-logo-black.png" alt="SafeTune" width="420"/>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Lexsi-Labs/SafeTune/main/docs/assets/safetune-logo-white.png">
+    <img src="https://raw.githubusercontent.com/Lexsi-Labs/SafeTune/main/docs/assets/safetune-logo-black.png" alt="SafeTune" width="420"/>
   </picture>
 </p>
 
@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.6-5B3DD6.svg" alt="Version 0.1.6"/></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+"/></a>
-  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-LSAL%20v1.2%20(source--available)-blue.svg" alt="License: LSAL v1.2"/></a>
+  <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/License-LSAL%20v1.2%20(source--available)-blue.svg" alt="License: LSAL v1.2"/></a>
 </p>
 
 <br>
