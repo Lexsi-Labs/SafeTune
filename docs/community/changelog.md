@@ -5,6 +5,26 @@ All notable changes to SafeTune are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-10-02
+
+0.1.8, the version the release pipeline publishes next; the last PyPI
+release was 0.1.7.
+
+- The logo renders on the PyPI project page again. `README.md` pointed at it
+  with a repo-relative path, which GitHub resolves inside a README but PyPI
+  cannot — there is no repo checkout for a relative path to resolve against —
+  so the image 404s on the package page. It now points at
+  `raw.githubusercontent.com`, the same pattern AgentTune uses. The `LICENSE.md`
+  href had the same root cause and is fixed with it.
+- The declared version is reconciled with the index. `main` still said 0.1.6
+  while PyPI served 0.1.7, because the 0.1.7 bump the pipeline made at release
+  time never landed back on `main`. `scripts/check_version_consistency.py
+  --pypi` had been failing on this the whole time; CI runs it without
+  `--pypi`, so the drift was invisible.
+
+0.1.7 on the index is a re-publish of 0.1.6 — the two sdists are identical
+apart from their `dist-info` directory — so it gets no section of its own.
+
 ## [0.1.6] - 2026-10-01
 
 The PyPI 0.1.6 (the last PyPI release was 0.1.5). The `[0.2.0] - 2026-01-18`

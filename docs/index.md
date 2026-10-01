@@ -24,7 +24,7 @@ actually running.
 [View on GitHub](https://github.com/Lexsi-Labs/SafeTune){ .md-button }
 
 <p class="st-chips">
-<span>v0.1.6</span>
+<span>v0.1.8</span>
 <span>LSAL v1.2 · source-available</span>
 <span>Python 3.12+</span>
 <span>per-method audit verdicts</span>
