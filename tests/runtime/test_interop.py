@@ -328,7 +328,7 @@ def test_version_comes_from_metadata():
     # The authoritative version is read from the tree (CITATION.cff + pyproject.toml
     # agree, or current_version raises), not hardcoded here: the release pipeline
     # bumps the tree to the next patch version before this suite runs, so a
-    # hardcoded literal failed every release build ('0.2.1' != '0.2.0').
+    # hardcoded literal failed every release build (next patch != source version).
     expected = current_version(Path(__file__).parents[2])
     try:
         installed = importlib.metadata.version("safetune")

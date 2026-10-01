@@ -8,7 +8,7 @@
 <h3 align="center">A library of LLM-safety methods. Pick the one that fits your task — and know exactly what it implements.</h3>
 
 <p align="center">
-  <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.2.0-5B3DD6.svg" alt="Version 0.2.0"/></a>
+  <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.6-5B3DD6.svg" alt="Version 0.1.6"/></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+"/></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-LSAL%20v1.2%20(source--available)-blue.svg" alt="License: LSAL v1.2"/></a>
 </p>
@@ -330,4 +330,3 @@ Lexsi Labs Source Available License (LSAL) v1.2, see [LICENSE.md](LICENSE.md).
   license from Lexsi Labs (support@lexsi.ai).
 - **Unrepaired drifted checkpoints may not be deployed in production systems**
   (Responsible Use clause).
-

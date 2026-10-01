@@ -5,9 +5,9 @@ All notable changes to SafeTune are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-09-28
+## [0.1.6] - 2026-10-01
 
-0.2.0, the version the release pipeline publishes next; the last PyPI
+0.1.6, the version the release pipeline publishes next; the last PyPI
 release was 0.1.5. The `[Legacy numbering]` section further down holds the
 pre-June-2026 numbering that peaked at 0.6.0 — none of it is on the index.
 
@@ -34,7 +34,7 @@ SafeTune-Internal pull requests, in stack order.
 - ST-12 (#10) Aya Vision and North support, `--safety-dataset`,
   `transformers>=5.15`.
 - ST-13 Interop with the Lexsi stack: CuratorKIT dataset folders, CircuitKIT
-  scores, `lexsi_provenance.json`, `push_to_hub`, version 0.2.0.
+  scores, `lexsi_provenance.json`, `push_to_hub`, version 0.1.6.
 - Hackathon fixes (#18 and the PR stacked on it), below.
 
 ### Hackathon fixes (Cohere models)
@@ -90,7 +90,7 @@ SafeTune-Internal pull requests, in stack order.
 - **Hub.** `safetune.push_to_hub(path, repo_id)` uploads a checkpoint folder
   (model, tokenizer, processor, provenance) or a results JSON with its
   provenance, creating the repo if needed.
-- **Version.** 0.2.0. `safetune.__version__` comes from the installed package
+- **Version.** 0.1.6. `safetune.__version__` comes from the installed package
   metadata; the release script and workflow no longer edit `__init__.py`.
   Deprecation messages that said "stops working in 0.2" now say 0.3.
 
