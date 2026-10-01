@@ -37,7 +37,8 @@ def main() -> int:
 
     try:
         import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoTokenizer
+        from safetune.runner.utils.model_utils import load_model  # causal or vision-language
         from safetune.interpret import safety_circuit_info, identify_safety_neurons, SafetyNeuronConfig
     except Exception as exc:
         print(f"Could not import dependencies: {exc}")
@@ -51,8 +52,7 @@ def main() -> int:
         tok = AutoTokenizer.from_pretrained(args.model)
         if tok.pad_token is None:
             tok.pad_token = tok.eos_token
-        model = AutoModelForCausalLM.from_pretrained(
-            args.model, torch_dtype=torch.float32).to(device)
+        model = load_model(args.model, dtype=torch.float32, device=device)
     except Exception as exc:
         print(f"Could not load '{args.model}': {exc}")
         return 1
@@ -72,11 +72,9 @@ def main() -> int:
     )
     total = sum(len(v) for v in neurons.per_layer.values())
     print(f"      Found {total} safety-relevant neurons")
-    flat = [
-        (layer, idx, score)
-        for layer, units in sorted(neurons.per_layer.items())
-        for idx, score in units
-    ]
+    flat = sorted(
+        ((layer, idx, score) for layer, units in neurons.per_layer.items() for idx, score in units),
+        key=lambda t: abs(t[2]), reverse=True)
     for layer, idx, score in flat[:5]:
         print(f"        Layer {layer}, neuron {idx}, score {score:.4f}")
     print()
@@ -87,7 +85,7 @@ def main() -> int:
     print("      → get_lora_targeting_from_circuit(circuit)  for recover\n")
 
     print("✓ Interpret ran successfully.")
-    print("  See docs/guides/interpret/ for the full method catalog.")
+    print("  See docs/user-guide/interpret.md for the full method catalog.")
     return 0
 
 

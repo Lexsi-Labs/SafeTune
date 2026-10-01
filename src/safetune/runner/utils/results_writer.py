@@ -55,13 +55,29 @@ class ResultsWriter:
         return []
 
     def append(self, record: dict) -> None:
-        """Append a result record, de-duplicating on (method, variant)."""
+        """Append a result record, de-duplicating on (method, variant).
+
+        The effective runtime settings (device / dtype resolved) and dataset
+        specs are recorded with it, so every stored number carries its setup.
+        """
+        from dataclasses import asdict
+        from safetune.config import dtype_name, get_config, resolve_device
+        from safetune.data.dataset_ids import effective_specs
+        runtime = asdict(get_config())
+        runtime.pop("datasets")
+        runtime["device"] = resolve_device()
+        runtime["dtype"] = dtype_name()
+        record = {**record, "runtime": runtime, "datasets": effective_specs()}
         data = self.load()
         key = (record.get("method"), record.get("variant"))
         data = [d for d in data if (d.get("method"), d.get("variant")) != key]
         data.append(record)
         with open(self.path, "w") as f:
             json.dump(data, f, indent=2)
+        # ponytail: one record per summaries dir, describing the latest write.
+        from safetune.provenance import write_provenance
+        write_provenance(self._summaries_dir, f"{self.pillar}.{record.get('method')}",
+                         params={"variant": record.get("variant")})
 
     def write_summary_md(self, drift_task: Optional[str] = None) -> str:
         """Write a markdown summary table and return the path."""
@@ -70,10 +86,13 @@ class ResultsWriter:
             return ""
         from safetune.runner.utils.data_utils import SAFETY_BENCHES, UTILITY_TASKS_CORE
 
+        from safetune.runner.utils.eval_runner import bench_metric_key
+        from safetune.evaluate.suite.benchmarks import split_orbench
+
         lines = [f"# {self.pillar.capitalize()} Results\n"]
-        benches = [b.replace("_v1", "") for b in SAFETY_BENCHES]
+        bench_keys = [bench_metric_key(b) for b in split_orbench(SAFETY_BENCHES)]
         util_keys = list(UTILITY_TASKS_CORE)
-        headers = ["Method", "Variant"] + [f"{b}_refusal" for b in benches] + util_keys
+        headers = ["Method", "Variant"] + bench_keys + util_keys
         lines.append("| " + " | ".join(headers) + " |")
         lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
         def _fmt(v):
@@ -86,7 +105,7 @@ class ResultsWriter:
             row = [
                 rec.get("method", ""),
                 rec.get("variant", ""),
-                *[_fmt(m.get(f"{b}_refusal")) for b in benches],
+                *[_fmt(m.get(k)) for k in bench_keys],
                 *[_fmt(m.get(k)) for k in util_keys],
             ]
             lines.append("| " + " | ".join(row) + " |")

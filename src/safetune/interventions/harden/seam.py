@@ -83,11 +83,11 @@ Differences from the official repo (documented for honesty)
 
 Usage::
 
-    from safetune.harden.seam import SEAMTrainer, SEAMConfig
+    from safetune.harden.seam import SEAMHFTrainer, SEAMConfig
 
     config = SEAMConfig(output_dir="seam_out", num_train_epochs=3,
                         seam_alpha=1.0, seam_beta=0.001, seam_epsilon=1e-3)
-    trainer = SEAMTrainer(
+    trainer = SEAMHFTrainer(
         model=model, args=config,
         train_dataset=benign_dataset,        # D_bgn (also the SFT stream)
         harmful_dataset=adversarial_dataset, # D_adv
@@ -321,10 +321,10 @@ def _cosine(g1: Dict[str, Any], g2: Dict[str, Any]) -> Any:
 
 
 # ---------------------------------------------------------------------------
-# SEAMTrainer
+# SEAMHFTrainer
 # ---------------------------------------------------------------------------
 
-class SEAMTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class SEAMHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """HuggingFace Trainer implementing the faithful SEAM objective (Eq. 5).
 
     The total parameter gradient assembled each step is::
@@ -353,11 +353,11 @@ class SEAMTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
         **kwargs: Any,
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
-            raise ImportError("transformers is required for SEAMTrainer") from _TRAINER_IMPORT_ERROR
+            raise ImportError("transformers is required for SEAMHFTrainer") from _TRAINER_IMPORT_ERROR
         if _TORCH_IMPORT_ERROR is not None:
-            raise ImportError("torch is required for SEAMTrainer") from _TORCH_IMPORT_ERROR
+            raise ImportError("torch is required for SEAMHFTrainer") from _TORCH_IMPORT_ERROR
         if harmful_dataset is None:
-            raise ValueError("SEAMTrainer requires a 'harmful_dataset' argument (D_adv).")
+            raise ValueError("SEAMHFTrainer requires a 'harmful_dataset' argument (D_adv).")
 
         super().__init__(*args, **kwargs)
 
@@ -371,7 +371,7 @@ class SEAMTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
         _lam = float(getattr(self.args, "seam_lambda", 0.5))
         if abs(_lam - 0.5) > 1e-12:
             logger.warning(
-                "SEAMTrainer: 'seam_lambda' is deprecated; mapping it to "
+                "SEAMHFTrainer: 'seam_lambda' is deprecated; mapping it to "
                 "'seam_beta' (gradient-coupling weight)."
             )
             self._beta = _lam
@@ -626,4 +626,9 @@ class SEAMTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
         return _flat_grad(model)
 
 
-__all__ = ["SEAMConfig", "SEAMTrainer"]
+__all__ = ["SEAMConfig", "SEAMHFTrainer"]
+
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, SEAMTrainer="SEAMHFTrainer")  # old name, remove in 0.3

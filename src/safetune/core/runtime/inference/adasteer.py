@@ -11,6 +11,7 @@ cite this legacy variant as AdaSteer (MuyuenLP/AdaSteer, EMNLP 2025).
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from safetune._refusal_helpers import _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -90,14 +91,7 @@ class AdaSteerWrapper:
 
     def _get_layers(self) -> list:
         """Get the list of transformer layers from the model."""
-        if hasattr(self.model, "language_model") and hasattr(self.model.language_model, "layers"):
-            return list(self.model.language_model.layers)
-        elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return list(self.model.model.layers)
-        elif hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return list(self.model.transformer.h)
-        else:
-            return []
+        return _get_decoder_layers(self.model)
 
     def set_adaptive_multiplier(self, safety_score: float) -> None:
         """

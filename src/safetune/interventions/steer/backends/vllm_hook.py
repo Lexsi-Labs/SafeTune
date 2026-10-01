@@ -492,10 +492,12 @@ class VLLMHookSteer:
         *,
         gpu_memory_utilization: float = 0.85,
         max_model_len: int = 4096,
-        dtype: str = "bfloat16",
+        dtype: str = None,
         enforce_eager: bool = True,
         **vllm_kwargs: Any,
     ) -> None:
+        from safetune.config import dtype_name
+        dtype = dtype or dtype_name(device="cuda")  # bf16 on sm80+, else fp16
         self.model = model
         self.spec = spec
 
@@ -526,16 +528,18 @@ class VLLMHookSteer:
         worker_path = register_safetune_worker()
 
         from vllm import LLM  # noqa: WPS433
+        from safetune.utils.errors import hf_access_errors
 
-        self.llm = LLM(
-            model=model,
-            worker_cls=worker_path,
-            gpu_memory_utilization=gpu_memory_utilization,
-            max_model_len=max_model_len,
-            dtype=dtype,
-            enforce_eager=enforce_eager,
-            **vllm_kwargs,
-        )
+        with hf_access_errors(model, kind="model"):
+            self.llm = LLM(
+                model=model,
+                worker_cls=worker_path,
+                gpu_memory_utilization=gpu_memory_utilization,
+                max_model_len=max_model_len,
+                dtype=dtype,
+                enforce_eager=enforce_eager,
+                **vllm_kwargs,
+            )
         self.tokenizer = self.llm.get_tokenizer()
 
     def generate(
@@ -555,7 +559,8 @@ class VLLMHookSteer:
             prompts = [prompts]
         # Shared chat-template rendering: falls back to the raw prompt when the
         # tokenizer carries no chat_template (base models), instead of raising.
-        rendered = render_prompts(self.tokenizer, prompts, apply_chat_template)
+        rendered = render_prompts(self.tokenizer, prompts, apply_chat_template,
+                                  strip_bos=True)
         sp = SamplingParams(temperature=temperature, max_tokens=max_tokens,
                             **sp_kwargs)
         outs = self.llm.generate(rendered, sp)
@@ -664,17 +669,21 @@ def cast_vllm_generate(
     if benign_idx:
         from vllm import LLM, SamplingParams
         from .run import render_prompts
+        from safetune.config import dtype_name as _dtype_name
+        from safetune.utils.errors import hf_access_errors
 
-        llm = LLM(
-            model=model_path,
-            gpu_memory_utilization=gpu_memory_utilization,
-            max_model_len=max_model_len,
-            dtype="bfloat16",
-            enforce_eager=True,
-        )
+        with hf_access_errors(model_path, kind="model"):
+            llm = LLM(
+                model=model_path,
+                gpu_memory_utilization=gpu_memory_utilization,
+                max_model_len=max_model_len,
+                dtype=_dtype_name(device="cuda"),
+                enforce_eager=True,
+            )
         tokenizer = llm.get_tokenizer()
         benign_prompts = [prompts[i] for i in benign_idx]
-        rendered = render_prompts(tokenizer, benign_prompts, apply_chat_template)
+        rendered = render_prompts(tokenizer, benign_prompts, apply_chat_template,
+                                  strip_bos=True)
         sp = SamplingParams(temperature=temperature, max_tokens=max_tokens)
         outs = llm.generate(rendered, sp)
         del llm

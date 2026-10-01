@@ -6,12 +6,12 @@ discovers safety-relevant edges in the model's computational graph.
 ```python
 from safetune.interpret import eap_safety_circuit, EAPSafetyCircuitConfig
 
-# NOTE: eap_safety_circuit takes a HuggingFace model ID string, not a model object.
-# EAP requires repeated clean/corrupted forward passes with precise activation caching;
-# it loads and manages its own model copy internally to avoid interference with hooks
-# on an already-loaded model.
+# The first argument is an HF model id/path (a private copy is loaded with
+# config.dtype on config.device) or an already-loaded model, used in place on its
+# own device and dtype: eap_safety_circuit(model, ..., tokenizer=tok). Remove your
+# own hooks from a loaded model first; EAP adds and removes its own.
 circuit = eap_safety_circuit(
-    "meta-llama/Llama-3.2-3B-Instruct",  # HF model ID (string)
+    "meta-llama/Llama-3.2-3B-Instruct",  # HF model id, or a loaded model
     harmful_prompts=harmful,
     harmless_prompts=harmless,
     config=EAPSafetyCircuitConfig(

@@ -5,7 +5,7 @@ Interactive Colab notebooks demonstrating every SafeTune workflow.
 ## Demos — one per pillar
 
 One notebook per pillar. Each runs to completion with printed output.
-Start with **steer_demo** — no GPU needed, ~2 minutes.
+Start with **steer_demo** — no GPU needed, about 3 minutes on a laptop CPU.
 
 **No GPU?** Run 01, 02, 05, 09 (steer, recover, interpret, safety monitoring —
 all inference or light patching, no training). **Have a GPU?** Everything

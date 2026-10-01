@@ -24,7 +24,7 @@ actually running.
 [View on GitHub](https://github.com/Lexsi-Labs/SafeTune){ .md-button }
 
 <p class="st-chips">
-<span>v0.1.3</span>
+<span>v0.2.0</span>
 <span>LSAL v1.2 · source-available</span>
 <span>Python 3.12+</span>
 <span>per-method audit verdicts</span>
@@ -281,7 +281,7 @@ Four common situations and which method fits each. Code snippets use placeholder
     print(f"Refusal rate: {after['harmbench']['refusal_rate']:.0%}")   # e.g. 89%
     ```
 
-    26 recovery methods from whole-model arithmetic to neuron-level surgery.
+    24 recovery methods from whole-model arithmetic to neuron-level surgery.
     [:octicons-arrow-right-24: Recover guide](user-guide/recover.md)
 
 === "Compliance-critical deployment"
@@ -307,7 +307,7 @@ Four common situations and which method fits each. Code snippets use placeholder
     ```
 
     Safety-constrained training. The model learns your domain without forgetting
-    refusals. [:octicons-arrow-right-24: 27 harden methods](user-guide/harden.md)
+    refusals. [:octicons-arrow-right-24: 26 harden methods](user-guide/harden.md) (all 26 run from the CLI)
 
 === "Production steer — no retraining"
 
@@ -359,7 +359,7 @@ Four common situations and which method fits each. Code snippets use placeholder
 ## Run it in Colab — no install, no local GPU
 
 10 notebooks, one per demo/comparison/deep-dive, each opens straight into a
-Colab runtime. Start with **steer_demo** — no GPU needed, ~2 minutes.
+Colab runtime. Start with **steer_demo** — no GPU needed, about 3 minutes on a laptop CPU.
 
 <table class="st-nb-table">
   <thead>
@@ -403,13 +403,14 @@ Full breakdown (demos vs. comparisons vs. advanced, script equivalents) on the
 ## Cite
 
 ```bibtex
-@misc{seth2026safetune,
-  title  = {SafeTune: A Unified Library for Preserving and Restoring
-            Safety in Fine-Tuned {LLM}s},
-  author = {Seth, Pratinav and Kaushal, Anshul and Sadhu, Saisab and
-            Sankarapu, Vinay Kumar},
-  year   = {2026},
-  note   = {Pratinav Seth, Anshul Kaushal, and Saisab Sadhu contributed equally.},
+@misc{seth2026safetuneunifiedfaithfullibrary,
+      title={SafeTune: A Unified Faithful Library for Auditing and Repairing Safety Drift in Fine-Tuned LLMs},
+      author={Pratinav Seth and Saisab Sadhu and Anshul Kaushal and Vinay Kumar Sankarapu},
+      year={2026},
+      eprint={2609.22153},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2609.22153},
 }
 ```
 

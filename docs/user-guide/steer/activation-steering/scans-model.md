@@ -14,8 +14,13 @@ Safety-Conscious Activation Steering," AAAI 2025, arXiv:2408.11491.
 
 ```python
 SCANSTrainer(
-    model: PreTrainedModel,
+    model: PreTrainedModel | None = None,
     tokenizer: PreTrainedTokenizer | None = None,
+    *,
+    model_id: str | None = None,     # load the model from here when `model` is None
+    results_dir: str | None = None,  # default: the runner's results directory
+    drift_task: str | None = None,
+    **kwargs,                        # unknown keys are warned about, not used
 )
 ```
 
@@ -28,8 +33,11 @@ and `threshold` are set on `SCANSModel` if you construct it directly.
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `model` | `PreTrainedModel` | required | Model to steer |
+| `model` | `PreTrainedModel` | `None` | Model to steer |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
+| `model_id` | `str` | `None` | Hub id / path to load the model from when `model` is `None` |
+| `results_dir` | `str` | `None` | Output directory; `None` is the runner default |
+| `drift_task` | `str` | `None` | Optional drift-evaluation task |
 
 ## Full example
 

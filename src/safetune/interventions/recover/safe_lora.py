@@ -13,6 +13,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from ._contract import keyword_refs
+
 _F = TypeVar("_F", bound=Callable[..., nn.Module])
 
 def assert_mutates(fn_name: str) -> Callable[[_F], _F]:
@@ -191,8 +193,11 @@ def _project_state_dict_model(model, aligned_sd, base_sd, target_modules, thresh
             "select_layers_type": select_layers_type, "effective_threshold": effective_threshold}
 
 @assert_mutates("apply_safe_lora")
+@keyword_refs("aligned_state_dict_path", "aligned_state_dict", "base_state_dict",
+              "aligned_adapter_path", "base_adapter_path", "alpha", "max_delta_norm")
 def apply_safe_lora(
     model: nn.Module,
+    *,
     aligned_state_dict_path: Optional[str] = None,
     aligned_state_dict: Optional[Dict[str, Any]] = None,
     base_state_dict: Optional[Dict[str, Any]] = None,
@@ -200,7 +205,6 @@ def apply_safe_lora(
     base_adapter_path: Optional[str] = None,
     alpha: float = 0.5,
     max_delta_norm: Optional[float] = None,
-    *,
     base_state_dict_path: Optional[str] = None,
     threshold: Optional[float] = None,
     select_layers_type: str = "threshold",

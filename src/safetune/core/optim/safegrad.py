@@ -28,7 +28,7 @@ undermines safety. SafeGrad's fix is two-fold:
 This module provides the gradient-surgery primitive
 (:class:`SafeGradProjector`) and the KL-alignment loss helper
 (:func:`safegrad_kl_alignment_loss`). The HF Trainer subclass at
-``safetune.harden.safegrad.SafeGradTrainer`` composes them.
+``safetune.harden.safegrad.SafeGradHFTrainer`` composes them.
 """
 
 import logging

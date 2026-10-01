@@ -1,4 +1,6 @@
 """Recover runner — layer trainer set."""
+from typing import Optional
+
 from ._base import _RecoverBase
 import safetune.recover as R
 
@@ -9,32 +11,58 @@ class ReStaTrainer(_RecoverBase):
     Args:
         base_model (nn.Module): base model.
         aligned_model (nn.Module): aligned reference.
-        alpha: task vector scale. Default 1.0.
-        dare: apply DARE masking. Default True.
+        alpha: task vector scale. Default 1.0. On Tiny Aya, alpha=1 breaks the
+            model; use alpha~0.25 (sweep: 0.1/0.25 restore refusal with normal
+            answers, >=0.5 breaks it).
+        dare: apply DARE masking. Default True (part of the method).
+        dare_drop_rate: DARE drop probability p. Default None: 0.3, the RESTA
+            paper's value, or 0.9 (the old default) with
+            ``safetune.configure(legacy_resta_drop_rate=True)``.
         dare_seed: DARE random seed. Default 0.
+        device: where each safety-vector delta is computed. Default None: the
+            drifted model's weight device. ``"cpu"`` keeps the extra memory off
+            the GPU.
+
+    Small models: DARE drops a fraction p of the safety vector's entries and
+    scales the rest by 1/(1-p). On Qwen2.5-0.5B, with the full base-to-instruct
+    delta as the safety vector, p=0.9 broke the model (HarmBench refusals 2/16
+    and garbled benign answers) while p=0.3 restored 13/16 and ``dare=False``
+    14/16 (examples/notebooks/recover_comparison). The paper tunes on 7B
+    models; on small ones check the benign answers after repair.
+
+    Memory: the drifted, base and aligned models must be loaded, but the
+    safety vector is streamed one tensor at a time, so the extra memory is a
+    few fp32 copies of the largest tensor, not of the model. Keep ``base`` and
+    ``aligned`` on CPU and pass ``device="cpu"`` to hold only the drifted
+    model on the GPU.
     """
 
     METHOD = "ReStaTrainer"
 
     def __init__(self, model=None, *, base_model=None, aligned_model=None,
-                 alpha: float = 1.0, dare: bool = True, dare_seed: int = 0,
-                 **kwargs):
+                 alpha: float = 1.0, dare: bool = True, dare_drop_rate: float = None,
+                 dare_seed: int = 0, device: Optional[str] = None, **kwargs):
         super().__init__(model, **kwargs)
         self.base_model = base_model
         self.aligned_model = aligned_model
         self.alpha = alpha
         self.dare = dare
+        self.dare_drop_rate = dare_drop_rate
         self.dare_seed = dare_seed
+        self.device = device
 
     def apply(self, *, alpha: float = None, dare: bool = None,
-              dare_seed: int = None, **kwargs):
+              dare_drop_rate: float = None, dare_seed: int = None, device: Optional[str] = None,
+              **kwargs):
         return R.apply_resta(
             self.model,
             base=self.base_model,
             aligned=self.aligned_model,
             alpha=alpha if alpha is not None else self.alpha,
             dare=dare if dare is not None else self.dare,
+            dare_drop_rate=dare_drop_rate if dare_drop_rate is not None else self.dare_drop_rate,
             dare_seed=dare_seed if dare_seed is not None else self.dare_seed,
+            device=device if device is not None else self.device,
         )
 
 # ── SafeLoRATrainer ───────────────────────────────────────────────────────────

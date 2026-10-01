@@ -136,11 +136,11 @@ Inference-time wrappers and decoding processors that steer model behaviour witho
 
 | Method | Paper | Venue / Year | arXiv | Repo | Description | Requires | Outputs |
 |---|---|---|---|---|---|---|---|
-| `StringMatchJudge` | — (canonical GCG/AdvBench prefix list) | — | — | — | Detects refusals via string-matching against a standard list of refusal prefixes. | response string | bool |
+| `StringMatchJudge` | — (AdvBench refusal-prefix list; GCG list with mode="gcg") | — | — | — | Detects refusals via string-matching against a standard list of refusal prefixes. | response string | bool |
 | `HFJudge` | HarmBench (Mazeika et al.) | 2024 | [2402.04249](https://arxiv.org/abs/2402.04249) | — | Scores model responses with a HuggingFace classifier (default `cais/HarmBench-Mistral-7b-val-cls`) using the official HarmBench classifier template. | model response | 0/1 label |
 | `OpenAIJudge` | StrongREJECT (Souly et al.) | 2024 | [2402.10260](https://arxiv.org/abs/2402.10260) | — | Autogrades responses with a GPT-4 StrongREJECT rubric on a 1–5 harmlessness scale. | OpenAI API key + response | 1–5 score |
 | `JudgeAdapter` | — (SafeTune infra) | — | — | — | Unified adapter that wraps any judge and normalizes its output to a common score format. | judge instance | normalized score |
-| `SpectralEntropyMonitor` | — (SafeTune infra) | — | — | — | Monitors attention-entropy spectra across layers to detect distribution shift during inference. | model + inputs | entropy metrics |
+| `SpectralEntropyMonitor` | — (SafeTune infra) | — | — | — | Monitors the spectral entropy of each layer's hidden states and flags drops below a calibrated baseline. | model + inputs | entropy metrics |
 | `evaluate` | — (SafeTune infra) | — | — | — | End-to-end evaluation pipeline that runs a model against benchmarks and aggregates judge scores. | benchmarks + judge | metric dict |
 | `TamperBenchEvaluator` | TamperBench | — | [2602.06911](https://arxiv.org/abs/2602.06911) | — | Thin wrapper over the official `tamperbench` package; delegates the tamper-resistance metric to that harness. | `tamperbench` package + responses | ASR |
 | Pareto utilities | — (SafeTune infra) | — | — | — | Computes the safety/utility Pareto front across a set of (safety, utility) metric pairs. | metric pairs | Pareto front |

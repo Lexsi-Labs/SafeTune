@@ -21,9 +21,9 @@ from typing import Iterable, Sequence
 
 SEMVER_PATTERN = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
 
+# src/safetune/__init__.py reads __version__ from the installed metadata.
 VERSION_FILES = (
     Path("pyproject.toml"),
-    Path("src/safetune/__init__.py"),
     Path("CITATION.cff"),
 )
 
@@ -92,7 +92,6 @@ def _single_match(pattern: re.Pattern[str], text: str, location: Path) -> str:
 
 
 _PYPROJECT_VERSION = re.compile(r'(?m)^version\s*=\s*"([^"]+)"\s*$')
-_INIT_VERSION = re.compile(r'(?m)^__version__\s*=\s*"([^"]+)"\s*$')
 _CITATION_VERSION = re.compile(r'''(?m)^version:\s*["']?([^"'\s#]+)["']?\s*$''')
 
 
@@ -100,8 +99,7 @@ def read_versions(root: Path | str = Path(".")) -> dict[Path, str]:
     root = Path(root)
     patterns = {
         VERSION_FILES[0]: _PYPROJECT_VERSION,
-        VERSION_FILES[1]: _INIT_VERSION,
-        VERSION_FILES[2]: _CITATION_VERSION,
+        VERSION_FILES[1]: _CITATION_VERSION,
     }
     versions: dict[Path, str] = {}
     for relative, pattern in patterns.items():
@@ -139,21 +137,14 @@ def set_version(requested: str, root: Path | str = Path(".")) -> None:
     read_versions(root)  # Validate every source independently, while allowing normalization.
     patterns = {
         VERSION_FILES[0]: _PYPROJECT_VERSION,
-        VERSION_FILES[1]: _INIT_VERSION,
-        VERSION_FILES[2]: _CITATION_VERSION,
+        VERSION_FILES[1]: _CITATION_VERSION,
     }
     prepared: dict[Path, str] = {}
     for relative, pattern in patterns.items():
         path = root / relative
         text = path.read_text(encoding="utf-8")
         replacement = (
-            f'version = "{requested}"'
-            if relative == VERSION_FILES[0]
-            else (
-                f'__version__ = "{requested}"'
-                if relative == VERSION_FILES[1]
-                else f"version: {requested}"
-            )
+            f'version = "{requested}"' if relative == VERSION_FILES[0] else f"version: {requested}"
         )
         updated, count = pattern.subn(replacement, text)
         if count != 1:

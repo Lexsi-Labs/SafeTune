@@ -16,7 +16,7 @@ python examples/case_studies/single_direction_jailbreak.py
 ```
 
 Refusal is scored **judge-free** — a refusal-prefix string match ("I'm sorry, but I
-can't…"), the same cheap-proxy idea as `advbench`'s GCG matching. It's not a learned
+can't…"), the same cheap-proxy idea as `advbench`'s refusal-prefix matching. It's not a learned
 classifier, but the shift it reveals is large and unambiguous.
 
 ## What actually happens (`Qwen/Qwen2.5-0.5B-Instruct`)

@@ -55,7 +55,7 @@ Public API mapping (kept stable; field names unchanged):
 
 Usage::
 
-    from safetune.harden.repnoise import RepNoiseTrainer, RepNoiseConfig
+    from safetune.harden.repnoise import RepNoiseHFTrainer, RepNoiseConfig
 
     config = RepNoiseConfig(
         output_dir="./repnoise_output",
@@ -64,7 +64,7 @@ Usage::
         repnoise_beta3=0.001,   # beta  (MMD noise)
         repnoise_noise_seed=42,
     )
-    trainer = RepNoiseTrainer(
+    trainer = RepNoiseHFTrainer(
         model=model,
         args=config,
         train_dataset=benign_dataset,
@@ -240,7 +240,7 @@ else:  # pragma: no cover
         raise ImportError("torch is required for masked_token_ce_loss")
 
 
-class RepNoiseTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class RepNoiseHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """HuggingFace :class:`~transformers.Trainer` with the RepNoise compound loss.
 
     Faithful port of ``rep_noise_loss`` (Rosati et al. arXiv:2405.14577):
@@ -274,11 +274,11 @@ class RepNoiseTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for RepNoiseTrainer"
+                "transformers is required for RepNoiseHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _TORCH_IMPORT_ERROR is not None:
             raise ImportError(
-                "torch is required for RepNoiseTrainer"
+                "torch is required for RepNoiseHFTrainer"
             ) from _TORCH_IMPORT_ERROR
 
         super().__init__(*args, **kwargs)
@@ -554,4 +554,9 @@ class RepNoiseTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
         return loss
 
 
-__all__ = ["RepNoiseConfig", "RepNoiseTrainer", "MMD_loss", "masked_token_ce_loss"]
+__all__ = ["RepNoiseConfig", "RepNoiseHFTrainer", "MMD_loss", "masked_token_ce_loss"]
+
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, RepNoiseTrainer="RepNoiseHFTrainer")  # old name, remove in 0.3

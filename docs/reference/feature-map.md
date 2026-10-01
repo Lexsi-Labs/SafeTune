@@ -127,7 +127,7 @@ Two changes affect how you call the fixed methods:
 | NudgingProcessor | Faithful |
 | AdaSteerModel | Faithful |
 | RRFAEnsemble | Faithful |
-| CASTModel + fit_cast_probe | Faithful |
+| CASTModel + fit_cast_condition | Faithful |
 
 ## Evaluate — Redteam
 

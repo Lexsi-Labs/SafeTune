@@ -79,7 +79,7 @@ class SafeGradConfig(TrainingArguments if _TRAINER_IMPORT_ERROR is None else obj
     pass
 
 
-class SafeGradTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """Trainer subclass that performs SafeGrad gradient surgery per-step.
 
     Faithful to "Gradient Surgery for Safe LLM Fine-Tuning" (arXiv:2508.07172):
@@ -118,11 +118,11 @@ class SafeGradTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for SafeGradTrainer"
+                "transformers is required for SafeGradHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _TORCH_IMPORT_ERROR is not None:
             raise ImportError(
-                "torch is required for SafeGradTrainer"
+                "torch is required for SafeGradHFTrainer"
             ) from _TORCH_IMPORT_ERROR
         if _SAFEGRAD_IMPORT_ERROR is not None:
             raise ImportError(
@@ -151,7 +151,7 @@ class SafeGradTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
 
         if safety_dataset is None and reference_model is None:
             logger.warning(
-                "SafeGradTrainer: neither safety_dataset nor reference_model "
+                "SafeGradHFTrainer: neither safety_dataset nor reference_model "
                 "supplied; gradient surgery is disabled and training reduces "
                 "to vanilla fine-tuning."
             )
@@ -205,7 +205,7 @@ class SafeGradTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
             prepared = self._prepare_batch(safety_batch, model)
             if not isinstance(prepared, dict):
                 logger.warning(
-                    "SafeGradTrainer: safety batch is not a dict; cannot "
+                    "SafeGradHFTrainer: safety batch is not a dict; cannot "
                     "compute alignment gradient this step."
                 )
                 return None
@@ -232,7 +232,7 @@ class SafeGradTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
 
             if align_loss is None or not getattr(align_loss, "requires_grad", False):
                 logger.warning(
-                    "SafeGradTrainer: alignment loss does not require grad; "
+                    "SafeGradHFTrainer: alignment loss does not require grad; "
                     "skipping surgery this step."
                 )
                 return None
@@ -246,7 +246,7 @@ class SafeGradTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
             ]
         except Exception as exc:  # pragma: no cover - robustness guard
             logger.warning(
-                "SafeGradTrainer: failed to compute alignment gradient (%s); "
+                "SafeGradHFTrainer: failed to compute alignment gradient (%s); "
                 "skipping surgery this step.",
                 exc,
             )
@@ -323,7 +323,7 @@ class SafeGradTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
         if safety_batch is None:
             # Reference set but no alignment data to evaluate KL on.
             logger.warning(
-                "SafeGradTrainer: reference_model supplied without a "
+                "SafeGradHFTrainer: reference_model supplied without a "
                 "safety_dataset; no alignment data this step."
             )
             return loss
@@ -335,3 +335,8 @@ class SafeGradTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
         # 3. Global conflict test + projection + combined update (Eq. 3-4).
         self._apply_global_surgery(model, g_align)
         return loss
+
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, SafeGradTrainer="SafeGradHFTrainer")  # old name, remove in 0.3

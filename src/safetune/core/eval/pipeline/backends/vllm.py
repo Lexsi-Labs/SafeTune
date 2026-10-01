@@ -75,6 +75,7 @@ class VllmBackend(InferenceBackend):
             return
         from vllm import LLM, SamplingParams
         from transformers import AutoTokenizer
+        from safetune.utils.errors import hf_access_errors
 
         logger.info("VllmBackend: loading %s (tp=%d, dtype=%s)", self.model, self._tp, self._dtype)
         kwargs = dict(
@@ -94,10 +95,11 @@ class VllmBackend(InferenceBackend):
                 logger.warning("VllmBackend: %s unavailable (%s); using vLLM default.",
                                self._attn_backend, e)
 
-        self._loaded_llm = LLM(**kwargs)
-        self._loaded_tokenizer = AutoTokenizer.from_pretrained(
-            self.model, trust_remote_code=self._trust_remote
-        )
+        with hf_access_errors(self.model, kind="model"):
+            self._loaded_llm = LLM(**kwargs)
+            self._loaded_tokenizer = AutoTokenizer.from_pretrained(
+                self.model, trust_remote_code=self._trust_remote
+            )
         if self._loaded_tokenizer.pad_token is None:
             self._loaded_tokenizer.pad_token = self._loaded_tokenizer.eos_token
         cfg = self.config
@@ -114,7 +116,10 @@ class VllmBackend(InferenceBackend):
         self._ensure_loaded()
         if self.chat_template:
             try:
-                formatted = [self._apply_chat_template(self._loaded_tokenizer, p) for p in prompts]
+                from safetune._refusal_helpers import _strip_bos
+                # vLLM adds BOS to a text prompt; drop the one the template rendered.
+                formatted = _strip_bos(self._loaded_tokenizer, [
+                    self._apply_chat_template(self._loaded_tokenizer, p) for p in prompts])
             except Exception as e:
                 logger.warning("VllmBackend: chat template failed (%s); using raw prompts.", e)
                 formatted = list(prompts)

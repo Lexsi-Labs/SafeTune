@@ -33,8 +33,31 @@ model in `RefusalDirectionModel` in `"steer"` mode. You can override the coeffic
 per call with `calibrate(..., alpha=...)`.
 
 Direction extraction is configured separately through `RefusalDirectionConfig`
-(candidate layers, pooling, layer-selection sweep, KL threshold). See the
-weight-space example below for its fields.
+(candidate layers, pooling, layer-selection sweep, KL threshold).
+
+### RefusalDirectionConfig fields
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `target_layers` | `list[int] \| None` | `None` | Layers to extract candidates from; `None` is all decoder layers |
+| `pick_layer` | `int \| None` | `None` | Force this layer and skip the sweep |
+| `pool_method` | `str` | `"last_token"` | `"last_token"` (paper) or `"mean"` |
+| `strength` | `float` | `1.0` | Steering / ablation multiplier |
+| `normalize` | `bool` | `True` | L2-normalise the direction |
+| `select_directions` | `bool` | `True` | Run the Arditi et al. validation sweep; `False` uses the middle layer |
+| `kl_threshold` | `float` | `0.1` | Max KL (clean vs ablated, harmless prompts) for a candidate to survive |
+| `induce_refusal_threshold` | `float` | `0.0` | Min induce score, when `require_induce=True` |
+| `prune_layer_fraction` | `float` | `0.2` | Drop candidates in the last fraction of layers |
+| `min_layer_fraction` | `float` | `0.2` | If the sweep's winner is in the first fraction of layers (`layer < int(n_layers * min_layer_fraction)`), or no candidate lowers the clean refusal rate, warn and fall back to the middle layer. `0` disables the floor |
+| `n_val` | `int` | `16` | Harmful and harmless prompts held out for scoring |
+| `max_new_tokens` | `int` | `24` | Tokens generated when scoring bypass |
+| `require_induce` | `bool` | `False` | Also compute and enforce the induce score |
+
+The sweep breaks ties toward the middle layer and logs the chosen layer at INFO
+with its bypass score, KL and the clean refusal rate. Early layers carry
+token-level features: on Tiny Aya the sweep without the `min_layer_fraction`
+floor picked layer 1 of 36. If the sweep falls back or picks a poor layer, set
+`pick_layer` by hand (e.g. 24 of 36 on Tiny Aya).
 
 ## Modes
 

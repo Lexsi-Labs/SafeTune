@@ -149,20 +149,36 @@ def _select_device(requested: Optional[str]) -> str:
         return "cpu"
 
 
-def _load_model_and_tokenizer(model_name: str, cfg: EAPSafetyCircuitConfig):
+def _load_model_and_tokenizer(model_name: Any, cfg: EAPSafetyCircuitConfig, tokenizer: Any = None):
     """Load a causal LM + tokenizer. Imports torch/transformers lazily so this
-    module imports cleanly with no ML stack present."""
+    module imports cleanly with no ML stack present.
+
+    ``model_name`` may also be an already-loaded model: it is used in place (on
+    its own device, ``cfg.device``/``cfg.dtype`` ignored) and ``tokenizer``
+    defaults to the one saved with it.
+    """
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoTokenizer
+    from safetune._refusal_helpers import _load_pretrained_lm
+
+    if not isinstance(model_name, (str, Path)):
+        model = model_name
+        if tokenizer is None:
+            tokenizer = AutoTokenizer.from_pretrained(model.config._name_or_path)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        device = str(next(model.parameters()).device)
+        model.eval()
+        return model, tokenizer, device
 
     device = _select_device(cfg.device)
     dtype = getattr(torch, cfg.dtype, torch.float32)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = tokenizer or AutoTokenizer.from_pretrained(model_name)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype)
+    model = _load_pretrained_lm(model_name, torch_dtype=dtype)
     model.to(device)
     model.eval()
     return model, tokenizer, device
@@ -246,6 +262,8 @@ def _resolve_head_geometry(model: Any, attn_module: Any) -> Optional[Tuple[int, 
     per-block attention node).
     """
     cfg = getattr(model, "config", None)
+    if cfg is not None and hasattr(cfg, "get_text_config"):
+        cfg = cfg.get_text_config()  # vision-language configs keep the geometry here
     n_heads = getattr(attn_module, "num_heads", None)
     if n_heads is None and cfg is not None:
         n_heads = getattr(cfg, "num_attention_heads", None) or getattr(
@@ -794,10 +812,12 @@ def _scores_to_circuit_info(
 # Public entry point
 # --------------------------------------------------------------------------
 def eap_safety_circuit(
-    model_name: str,
+    model_name: Any,
     harmful_prompts: List[str],
     harmless_prompts: List[str],
     config: Optional[EAPSafetyCircuitConfig] = None,
+    *,
+    tokenizer: Any = None,
 ):
     """Discover the safety circuit with native EAP / EAP-IG attribution.
 
@@ -815,13 +835,18 @@ def eap_safety_circuit(
     node set (one ``blocks.<L>.attn`` node per block).
 
     Args:
-        model_name: HF model id or local path of the causal LM to analyze.
+        model_name: HF model id or local path of the causal LM to analyze, or
+            an already-loaded model (used in place, no second copy is loaded;
+            it stays on its own device and dtype; afterwards its training mode
+            is restored and its parameter ``.grad`` is cleared).
         harmful_prompts: prompts that trigger refusal (the "clean" inputs whose
             mechanism we attribute).
         harmless_prompts: paired benign prompts (the "corrupted" baseline).
             Must be the same length as ``harmful_prompts``.
         config: optional :class:`EAPSafetyCircuitConfig`; defaults are used if
             ``None``.
+        tokenizer: tokenizer for an already-loaded model; ``None`` loads the one
+            saved with the model (``model.config._name_or_path``) or the id.
 
     Returns:
         :class:`safetune.core.circuit_kit.CircuitInfo` holding the top-k scored
@@ -878,8 +903,10 @@ def eap_safety_circuit(
         )
     )
 
+    preloaded = not isinstance(model_name, (str, Path))
+    was_training = preloaded and model_name.training
     try:
-        model, tokenizer, device = _load_model_and_tokenizer(model_name, cfg)
+        model, tokenizer, device = _load_model_and_tokenizer(model_name, cfg, tokenizer)
     except ImportError as e:  # torch / transformers missing
         raise ImportError(
             "eap_safety_circuit requires `torch` and `transformers` to be "
@@ -892,14 +919,19 @@ def eap_safety_circuit(
         cfg.method,
         cfg.intervention,
         cfg.ig_steps if cfg.method == "eap-ig" else "-",
-        model_name,
+        model.config._name_or_path if preloaded else model_name,
         len(harmful_prompts),
         device,
     )
 
-    scores = _run_eap(
-        model, tokenizer, device, harmful_prompts, harmless_prompts, cfg
-    )
+    try:
+        scores = _run_eap(
+            model, tokenizer, device, harmful_prompts, harmless_prompts, cfg
+        )
+    finally:
+        if preloaded:  # leave the caller's model as we found it
+            model.zero_grad(set_to_none=True)
+            model.train(was_training)
     return _scores_to_circuit_info(scores, cfg, output_dir)
 
 

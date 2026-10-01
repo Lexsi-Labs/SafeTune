@@ -58,6 +58,7 @@ def render_prompts(
     tokenizer: Any,
     prompts: Sequence[str],
     apply_chat_template: bool,
+    strip_bos: bool = False,
 ) -> List[str]:
     """Render ``prompts`` for generation, applying the chat template if present.
 
@@ -68,7 +69,8 @@ def render_prompts(
     actually set, and otherwise fall back to the raw prompt (warning once).
 
     Shared by the ``hf``, ``vllm-hook`` and ``vllm-logits`` backends so the
-    chat-template behaviour is identical across all three.
+    chat-template behaviour is identical across all three. The vLLM backends
+    pass ``strip_bos=True``: vLLM adds BOS to a text prompt itself.
     """
     has_template = getattr(tokenizer, "chat_template", None) is not None
     if apply_chat_template and not has_template:
@@ -88,6 +90,9 @@ def render_prompts(
             ))
         else:
             rendered.append(prompt)
+    if strip_bos and use_template:
+        from safetune._refusal_helpers import _strip_bos
+        rendered = _strip_bos(tokenizer, rendered)
     return rendered
 
 
@@ -114,9 +119,12 @@ def _hf_generate(
         pad_id = getattr(tokenizer, "eos_token_id", None)
 
     rendered = render_prompts(tokenizer, prompts, apply_chat_template)
+    # Template-rendered text already carries BOS: don't add a second one.
+    templated = bool(apply_chat_template) and getattr(tokenizer, "chat_template", None) is not None
     outputs: List[str] = []
     for text in rendered:
-        enc = tokenizer(text, return_tensors="pt").to(device)
+        enc = tokenizer(text, return_tensors="pt",
+                        add_special_tokens=not templated).to(device)
         with torch.no_grad():
             gen = model.generate(
                 **enc,

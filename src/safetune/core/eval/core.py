@@ -18,6 +18,8 @@ import torch
 import numpy as np
 from datasets import Dataset
 
+from safetune._refusal_helpers import _left_padding
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -102,6 +104,9 @@ class EvalTask:
     max_length: int = 512
     few_shot_examples: int = 0
     custom_metrics: List[Callable] = field(default_factory=list)
+    # Dataset split to evaluate on; None keeps the old rule: "test" when
+    # dataset_config is set, else "validation".
+    split: Optional[str] = None
 
 
 @dataclass
@@ -307,10 +312,11 @@ class EvalRunner:
     
     def _load_dataset(self, task: EvalTask) -> Dataset:
         """Load dataset for evaluation."""
+        split = task.split or ("test" if task.dataset_config else "validation")
         if task.dataset_name in EvalRegistry._datasets:
             return EvalRegistry._datasets[task.dataset_name](
                 config=task.dataset_config,
-                split="test" if task.dataset_config else "validation"
+                split=split
             )
         else:
             # Use HuggingFace datasets as fallback
@@ -318,7 +324,7 @@ class EvalRunner:
             return load_dataset(
                 task.dataset_name,
                 task.dataset_config,
-                split="test" if task.dataset_config else "validation"
+                split=split
             )
     
     def _prepare_data(self, dataset: Dataset, task: EvalTask) -> List[Dict[str, Any]]:
@@ -358,14 +364,15 @@ class EvalRunner:
             for i in iterable:
                 batch = data[i:i + self.config.batch_size]
                 
-                # Tokenize inputs
-                inputs = tokenizer(
-                    [item["input"] for item in batch],
-                    return_tensors="pt",
-                    padding=True,
-                    truncation=True,
-                    max_length=task.max_length
-                ).to(self.device)
+                # Tokenize inputs (left-padded: generation and last-token reads)
+                with _left_padding(tokenizer):
+                    inputs = tokenizer(
+                        [item["input"] for item in batch],
+                        return_tensors="pt",
+                        padding=True,
+                        truncation=True,
+                        max_length=task.max_length
+                    ).to(self.device)
                 
                 # Generate predictions
                 if task.category in [TaskCategory.TEXT_GENERATION, TaskCategory.SUMMARIZATION, 

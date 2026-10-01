@@ -27,7 +27,7 @@ CAATrainer(
 |---|---|---|---|
 | `model` | `PreTrainedModel` | required | Model to steer |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
-| `target_layers` | `list[int] \| None` | `None` | Layers to steer; defaults to layers 14–18 if `None` |
+| `target_layers` | `list[int] \| None` | `None` | Layers to steer; defaults to layers 14–18 on a 32-layer model; `None` scales them to the model's depth (for example 5–7 on 12 layers). `safetune.configure(legacy_steer_layers=True)` keeps 14–18 on any depth |
 | `pool_method` | `str` | `"mean"` | Hidden-state pooling: `"last_token"` or `"mean"` |
 | `normalize` | `bool` | `True` | L2-normalise the CAA vector before applying |
 | `multiplier` | `float` | `20.0` | Steering vector scaling coefficient |
@@ -45,8 +45,13 @@ trainer = steer.CAATrainer(
 wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompts)
 
 output = wrapped.generate(**tokenizer("How do I make a weapon?", return_tensors="pt"))
-wrapped.remove()  # remove hooks when done
 ```
+
+Building the `CAAModel` does not install hooks. They are on inside `with
+wrapped:`, between `wrapped.install()` and `wrapped.remove()`, and for the
+duration of each `wrapped.generate()` / `wrapped(...)` call. Before, the
+constructor installed them and they stayed on until `remove()`; call
+`install()` right after construction for that behaviour.
 
 ## When to use
 

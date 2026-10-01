@@ -70,7 +70,7 @@ else:  # pragma: no cover
         pass
 
 
-class AsFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class AsFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """Trainer adding AsFT's safety-basin loss regularizer to the task loss.
 
     Faithful path (LoRA models): a per-matrix projection ``C = d d^T / ||d||``
@@ -94,7 +94,7 @@ class AsFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for AsFTTrainer"
+                "transformers is required for AsFTHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _ASFT_IMPORT_ERROR is not None:
             raise ImportError(
@@ -341,3 +341,7 @@ class AsFTTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
                 pass  # context-manager exit suppresses the orthogonal grad
 
         return loss
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, AsFTTrainer="AsFTHFTrainer")  # old name, remove in 0.3

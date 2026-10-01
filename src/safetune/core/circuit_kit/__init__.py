@@ -18,6 +18,7 @@ from .interface import (
     SafetyRelevantUnits,
 )
 from .adapter import (
+    circuit_info_from_node_scores,
     circuit_info_to_dict,
     get_circuit_info,
     load_circuit_info_from_file,
@@ -31,6 +32,7 @@ __all__ = [
     "SafetyRelevantUnits",
     "get_circuit_info",
     "load_circuit_info_from_file",
+    "circuit_info_from_node_scores",
     "circuit_info_to_dict",
     "save_circuit_info_to_file",
 ]

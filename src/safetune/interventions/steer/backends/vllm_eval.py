@@ -91,8 +91,12 @@ class _VLLMPlainBackend:
 
     def __init__(self, model_id: str, **vllm_kwargs: Any) -> None:
         from vllm import LLM
-        kw = dict(dtype="bfloat16", enforce_eager=True,
-                  gpu_memory_utilization=0.85, max_model_len=4096)
+        from safetune.config import dtype_name, get_config
+        rt = get_config()
+        kw = dict(dtype=dtype_name(device="cuda"), enforce_eager=True,
+                  gpu_memory_utilization=rt.gpu_memory_utilization or 0.85,
+                  max_model_len=rt.max_model_len,
+                  tensor_parallel_size=rt.tensor_parallel_size)
         kw.update(vllm_kwargs)
         self.llm = LLM(model=model_id, **kw)
         self.tokenizer = self.llm.get_tokenizer()
@@ -124,14 +128,16 @@ def _render_prompts(
     has_template = getattr(tokenizer, "chat_template", None) is not None
     if not has_template:
         return prompts
-    return [
+    from safetune._refusal_helpers import _strip_bos
+    # vLLM adds BOS to a text prompt; drop the one the template rendered.
+    return _strip_bos(tokenizer, [
         tokenizer.apply_chat_template(
             [{"role": "user", "content": p}],
             tokenize=False,
             add_generation_prompt=True,
         )
         for p in prompts
-    ]
+    ])
 
 
 def _guide_model_id(processor: Any, fallback: str) -> str:

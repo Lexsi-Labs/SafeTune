@@ -8,10 +8,12 @@ across transformer layers.
 """
 
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from tqdm.auto import tqdm
+from safetune._refusal_helpers import _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -51,17 +53,7 @@ class SteeringVectorExtractor:
         self._activations: Dict[int, List[Any]] = {}
 
     def _get_layers(self) -> list:
-        if (
-            hasattr(self.model, "model")
-            and hasattr(self.model.model, "language_model")
-            and hasattr(self.model.model.language_model, "layers")
-        ):
-            return list(self.model.model.language_model.layers)
-        if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return list(self.model.model.layers)
-        if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return list(self.model.transformer.h)
-        return []
+        return _get_decoder_layers(self.model)
 
     def _make_hook(self, layer_idx: int):
         def hook_fn(module, inp, out):
@@ -219,6 +211,12 @@ class SteeringVectorExtractor:
             raise ImportError("Saving requires PyTorch.")
 
         torch.save(vectors, path)
+        from safetune.provenance import input_entry, write_provenance
+        cfg = getattr(self.model, "config", None)
+        write_provenance(os.path.dirname(os.path.abspath(path)), "steer.extract_vectors",
+                         inputs=[input_entry("model", getattr(cfg, "_name_or_path", None))],
+                         params={"file": os.path.basename(path),
+                                 "target_layers": list(self.config.target_layers)})
         logger.info("Saved %d steering vectors to %s", len(vectors), path)
 
     @staticmethod

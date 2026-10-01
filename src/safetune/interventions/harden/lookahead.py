@@ -202,7 +202,7 @@ class AnswerPreviewCollator:
         return self.base_collator(previewed)
 
 
-class LookAheadTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class LookAheadHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """HF ``Trainer`` that applies LookAhead Tuning data augmentation.
 
     Public signature is unchanged: extra behaviour is driven entirely by optional
@@ -214,7 +214,7 @@ class LookAheadTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for LookAheadTrainer"
+                "transformers is required for LookAheadHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
 
         user_collator = kwargs.get("data_collator", None)
@@ -260,7 +260,12 @@ class LookAheadTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
 
 __all__ = [
     "LookAheadConfig",
-    "LookAheadTrainer",
+    "LookAheadHFTrainer",
     "AnswerPreviewCollator",
     "DEFAULT_VIRTUAL_PREFIX",
 ]
+
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, LookAheadTrainer="LookAheadHFTrainer")  # old name, remove in 0.3

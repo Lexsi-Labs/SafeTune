@@ -158,23 +158,25 @@ class VllmSteeredBackend(InferenceBackend):
             )
         from transformers import AutoTokenizer
         from vllm import LLM
+        from safetune.utils.errors import hf_access_errors
 
         logger.info(
             "VllmSteeredBackend: loading %s (tp=%d, dtype=%s, vectors=%d)",
             self.model, self._tp, self._dtype, len(self.steering_vectors),
         )
-        self._loaded_llm = LLM(
-            model=self.model,
-            dtype=self._dtype,
-            tensor_parallel_size=self._tp,
-            max_model_len=self._max_model_len,
-            gpu_memory_utilization=self._gpu_mem,
-            trust_remote_code=self._trust_remote,
-            enforce_eager=self._enforce_eager,
-        )
-        self._loaded_tokenizer = AutoTokenizer.from_pretrained(
-            self.model, trust_remote_code=self._trust_remote
-        )
+        with hf_access_errors(self.model, kind="model"):
+            self._loaded_llm = LLM(
+                model=self.model,
+                dtype=self._dtype,
+                tensor_parallel_size=self._tp,
+                max_model_len=self._max_model_len,
+                gpu_memory_utilization=self._gpu_mem,
+                trust_remote_code=self._trust_remote,
+                enforce_eager=self._enforce_eager,
+            )
+            self._loaded_tokenizer = AutoTokenizer.from_pretrained(
+                self.model, trust_remote_code=self._trust_remote
+            )
         if self._loaded_tokenizer.pad_token is None:
             self._loaded_tokenizer.pad_token = self._loaded_tokenizer.eos_token
 
@@ -202,9 +204,11 @@ class VllmSteeredBackend(InferenceBackend):
 
         if self.chat_template:
             try:
-                formatted = [
+                from safetune._refusal_helpers import _strip_bos
+                # vLLM adds BOS to a text prompt; drop the one the template rendered.
+                formatted = _strip_bos(self._loaded_tokenizer, [
                     self._apply_chat_template(self._loaded_tokenizer, p) for p in prompts
-                ]
+                ])
             except Exception as e:
                 logger.warning(
                     "VllmSteeredBackend: chat_template failed (%s); using raw prompts.", e

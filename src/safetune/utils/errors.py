@@ -7,6 +7,7 @@ and error recovery suggestions.
 """
 
 import logging
+from contextlib import contextmanager
 from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
@@ -196,6 +197,88 @@ class EnvironmentError(SafeTuneError):
             suggestions.append(f"Install missing dependency: pip install {dependency}")
 
         return suggestions
+
+
+class GatedResourceError(SafeTuneError):
+    """A Hugging Face Hub model or dataset this run needs is gated, private, or
+    otherwise inaccessible with the current credentials.
+
+    Carries ``repo_id`` and ``kind`` as attributes (not just message text) so a
+    caller -- a training service, a UI wizard -- can catch this one error code
+    and react (e.g. tell the user which access to request) instead of parsing
+    ``huggingface_hub`` error text or crashing on a raw ``OSError``.
+    """
+
+    def __init__(self, repo_id: str, kind: str = "model", cause: Optional[Exception] = None):
+        self.repo_id = repo_id
+        self.kind = kind
+        self.cause = cause
+        gated = _is_gated_repo_error(cause) if cause is not None else True
+        if gated:
+            message = (f"{kind} '{repo_id}' is gated on Hugging Face Hub; this "
+                       f"token/account has not been granted access.")
+            suggestions = [
+                f"Request access at https://huggingface.co/{repo_id}",
+                "Once approved, run 'huggingface-cli login' with a token for that "
+                "account, or pass token= / set the HF_TOKEN environment variable",
+            ]
+        else:
+            message = (f"{kind} '{repo_id}' could not be found or accessed on "
+                      f"Hugging Face Hub with the current credentials.")
+            suggestions = [
+                f"Check the {kind} id is correct: https://huggingface.co/{repo_id}",
+                "If it's private, run 'huggingface-cli login' with a token that has access",
+            ]
+        super().__init__(message, error_code="GATED_RESOURCE", suggestions=suggestions)
+
+
+def _find_in_cause_chain(exc: Exception, cls) -> Optional[Exception]:
+    """Walk ``__cause__``/``__context__`` for an instance of ``cls``. vLLM (and
+    sometimes transformers) wraps the original ``huggingface_hub`` error in its
+    own exception type rather than letting it propagate directly, so a plain
+    ``isinstance``/``except`` on the outer exception misses it."""
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        if isinstance(exc, cls):
+            return exc
+        seen.add(id(exc))
+        exc = exc.__cause__ or exc.__context__
+    return None
+
+
+def _is_gated_repo_error(exc: Exception) -> bool:
+    try:
+        from huggingface_hub.errors import GatedRepoError
+    except ImportError:  # older huggingface_hub layout
+        from huggingface_hub.utils import GatedRepoError
+    return _find_in_cause_chain(exc, GatedRepoError) is not None
+
+
+@contextmanager
+def hf_access_errors(repo_id: str, kind: str = "model"):
+    """Wrap a Hugging Face Hub load of ``repo_id``: translate a gated or
+    otherwise inaccessible repo failure into :class:`GatedResourceError`
+    (``error_code`` ``"GATED_RESOURCE"``) instead of letting the raw
+    ``huggingface_hub``/``OSError`` (or a vLLM/transformers wrapper around it)
+    propagate, so callers can catch one stable error instead of parsing Hub
+    error text.
+
+    Usage::
+
+        with hf_access_errors("meta-llama/Llama-3.1-8B-Instruct", kind="judge model"):
+            AutoTokenizer.from_pretrained(model_id)
+    """
+    try:
+        from huggingface_hub.errors import RepositoryNotFoundError
+    except ImportError:  # older huggingface_hub layout
+        from huggingface_hub.utils import RepositoryNotFoundError
+    try:
+        yield
+    except Exception as e:
+        found = _find_in_cause_chain(e, RepositoryNotFoundError)
+        if found is None:
+            raise
+        raise GatedResourceError(repo_id, kind, cause=found) from e
 
 
 class ValidationError(SafeTuneError):

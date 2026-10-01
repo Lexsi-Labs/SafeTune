@@ -14,7 +14,6 @@ import torch
 from .core import EvalConfig, EvalType, EvalRunner
 from .core import EvalRegistry as EvaluationRegistry
 from .lm_eval_integration import LMEvalConfig, LMEvalRunner, get_available_lm_eval_tasks
-from .safety_registry import SafetyEvalRegistry, run_safety_eval_from_hf
 
 app = typer.Typer(name="eval", help="Model evaluation commands")
 
@@ -119,9 +118,10 @@ def task(
         
         # Load model and tokenizer
         typer.echo("Loading model and tokenizer...")
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoTokenizer
+        from safetune._refusal_helpers import _load_pretrained_lm
         
-        model = AutoModelForCausalLM.from_pretrained(
+        model = _load_pretrained_lm(
             model_name,
             torch_dtype=getattr(torch, precision) if hasattr(torch, precision) else torch.float16,
             device_map=device if device != "auto" else None
@@ -188,88 +188,6 @@ def list_metrics():
         typer.echo(f"  {metric}")
     
     typer.echo(f"\nTotal: {len(metrics)} metrics available")
-
-
-@app.command()
-def safety_eval(
-    config_path: str = typer.Argument(..., help="Path to safety eval YAML config (configs/safety_eval/*.yaml)"),
-):
-    """
-    Run a safety-pack evaluation using a YAML config.
-
-    This is a lightweight wrapper around Safety Packs and pack runners; it does
-    not perform full model generation itself, but relies on ``load_pack_from_hf``
-    and the configured SafetyEvalTask.
-    """
-    import json
-    import yaml  # type: ignore[import]
-
-    path = Path(config_path)
-    if not path.exists():
-        typer.echo(f"❌ Config file not found: {config_path}")
-        raise typer.Exit(1)
-
-    cfg = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-
-    pack_cfg = cfg.get("pack", {}) or {}
-    runner_cfg = cfg.get("runner", {}) or {}
-    thresholds_cfg = cfg.get("thresholds", {}) or {}
-
-    task_name = runner_cfg.get("task_name", f"{pack_cfg.get('name', 'unknown')}_default")
-    output_dir = Path(runner_cfg.get("output_dir", "./output/safety_eval"))
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Ensure default tasks are registered and fetch the requested one.
-    try:
-        task = SafetyEvalRegistry.get_task(task_name)
-    except KeyError as exc:
-        typer.echo(f"❌ Unknown safety eval task '{task_name}': {exc}")
-        raise typer.Exit(1)
-
-    typer.echo(f"🔍 Running safety eval task '{task_name}' for pack '{task.pack_name}'")
-
-    max_samples = pack_cfg.get("max_samples")
-    split = pack_cfg.get("split")
-
-    result = run_safety_eval_from_hf(
-        task_name,
-        max_samples=max_samples,
-        split=split,
-        thresholds=thresholds_cfg or None,
-    )
-
-    # Standardized outputs
-    metrics_path = output_dir / "metrics.json"
-    preds_path = output_dir / "predictions.jsonl"
-    report_path = output_dir / "report.md"
-
-    metrics_payload = {
-        "pack_name": result.pack_name,
-        "pack_version": result.pack_version,
-        "sample_count": result.sample_count,
-        "metrics": result.metrics,
-        "gates": result.gates,
-    }
-    metrics_path.write_text(json.dumps(metrics_payload, indent=2), encoding="utf-8")
-
-    # For now, predictions.jsonl is a stub; real runs can populate this when
-    # integrating end-to-end generation + judging.
-    if not preds_path.exists():
-        preds_path.write_text("", encoding="utf-8")
-
-    # Minimal human-readable report
-    with report_path.open("w", encoding="utf-8") as f:
-        f.write(f"# SafetyEval Report: {task_name}\n\n")
-        f.write(f"- Pack: **{result.pack_name}** (version {result.pack_version})\n")
-        f.write(f"- Samples: **{result.sample_count}**\n\n")
-        f.write("## Metrics\n\n")
-        for k, v in sorted(result.metrics.items()):
-            f.write(f"- **{k}**: {v:.4f}\n")
-        f.write("\n## Gates\n\n")
-        for k, v in sorted(result.gates.items()):
-            f.write(f"- **{k}**: {v}\n")
-
-    typer.echo(f"\n✅ Safety eval completed. Artifacts written to: {output_dir}")
 
 
 @app.command()

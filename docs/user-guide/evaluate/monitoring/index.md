@@ -21,6 +21,12 @@ for prompt_idx, layer_idx, entropy, z_score in flags:
 | `z_threshold` | `float` | `2.0` | Flag when z-score < `-z_threshold` |
 | `eigenvalue_floor` | `float` | `1e-12` | Numerical floor |
 | `batch_size` | `int` | `8` | Forward-pass batch size |
+| `skip_first_token` | `Optional[bool]` | `None` | Leave each prompt's first token (the attention sink) out of the SVD. On Qwen2.5-0.5B its hidden state has about 100x the norm of the other tokens, which made the entropy about 0.01 for every prompt |
+| `chat_template` | `Optional[bool]` | `None` | Format each prompt as a chat user turn, as generation sees it |
+
+`None` for `skip_first_token` or `chat_template` means `True`, or `False` under
+`safetune.configure(legacy_spectral_monitor=True)` (the old monitor: first token
+kept, raw prompts).
 
 ## API
 
@@ -29,6 +35,22 @@ for prompt_idx, layer_idx, entropy, z_score in flags:
 | `.calibrate(benign_prompts)` | `Dict[int, Tuple[float, float]]` | Per-layer (mean, std) of entropy |
 | `.scan(prompts)` | `List[Tuple[int, int, float, float]]` | `(prompt_idx, layer_idx, entropy, z_score)` |
 | `.entropy_trajectory(prompt)` | `Dict[int, float]` | One prompt, no thresholding |
+
+## Monitoring a fine-tune for safety drift
+
+Calibrate on the same probe prompts you will scan, with the model before the
+fine-tune, then scan each checkpoint with those prompts:
+
+```python
+mon = SpectralEntropyMonitor(aligned_model, tokenizer)
+mon.calibrate(probe_prompts)          # baseline: these prompts, model before the fine-tune
+for ckpt in checkpoints:
+    mon.model = ckpt
+    flags = mon.scan(probe_prompts)
+```
+
+A flag means the hidden states moved; any fine-tune can cause that, so check
+refusal when a checkpoint is flagged.
 
 ## When to use
 

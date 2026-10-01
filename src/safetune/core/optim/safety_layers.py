@@ -10,6 +10,7 @@ constraining updates to parameters in those safety layers.
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
+from safetune._refusal_helpers import _layer_index
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +60,7 @@ class SafetyLayerLocator:
             if name not in base_state_dict:
                 continue
             # Detect layer index from param name (e.g., "model.layers.5.self_attn...")
-            parts = name.split(".")
-            layer_idx = None
-            for i, p in enumerate(parts):
-                if p == "layers" and i + 1 < len(parts) and parts[i + 1].isdigit():
-                    layer_idx = int(parts[i + 1])
-                    break
+            layer_idx = _layer_index(name)
             if layer_idx is None:
                 continue
 
@@ -131,11 +127,8 @@ class SPPFTWrapper:
         self._frozen_params: Dict[str, bool] = {}
 
     def _is_in_safety_layer(self, name: str) -> bool:
-        parts = name.split(".")
-        for i, p in enumerate(parts):
-            if p == "layers" and i + 1 < len(parts) and parts[i + 1].isdigit():
-                return int(parts[i + 1]) in self.safety_layers
-        return False
+        idx = _layer_index(name)
+        return idx is not None and idx in self.safety_layers
 
     def apply(self) -> None:
         """Apply SPPFT protection to safety layer parameters."""

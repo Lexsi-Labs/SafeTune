@@ -65,7 +65,7 @@ audit.
 ## Development setup
 
 - Python ≥ 3.12, PyTorch ≥ 2.7
-- `pip install -e ".[dev]"` installs test deps (pytest, black, ruff, mypy)
+- `pip install -e ".[dev]"` installs test and lint deps (pytest, black, isort, flake8, mypy, pre-commit). Ruff is configured in `pyproject.toml` but not in `[dev]`: `pip install ruff`
 - Install docs deps: `pip install -e ".[docs]"`
 - Run tests: `pytest tests/`
 - Build docs: `mkdocs build --strict`

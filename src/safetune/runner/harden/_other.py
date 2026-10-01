@@ -1,16 +1,19 @@
 """Harden runner — miscellaneous trainers (TAR, SaLoRA, SEAL, ConstrainedSFT, LoXHarden)."""
 import os
+from typing import Optional
 import torch
 import itertools
 import tqdm
 from torch.utils.data import DataLoader
-from transformers import AutoModelForCausalLM, Trainer
+from transformers import Trainer
+from safetune._refusal_helpers import _load_pretrained_lm
 
 from ._base import (
     _HardenBase, _keep_model_columns, default_data_collator, _BFLOAT16, _to_dev,
 )
 import safetune.harden as HARD
 from safetune.runner.utils.model_utils import free
+from safetune.config import get_config
 
 
 # ── TARTrainer ────────────────────────────────────────────────────────────────
@@ -41,7 +44,7 @@ class TARTrainer(_HardenBase):
         from tqdm import tqdm
         if harm_dataset is None:
             from safetune.runner.utils.data_utils import harden_contamination_sets
-            harm_dataset = harden_contamination_sets(self.tok, n=256)[1]
+            harm_dataset = harden_contamination_sets(self.tok)[1]
         if safety_dataset is None:
             from safetune.runner.utils.data_utils import build_safety_dataset
             safety_dataset = build_safety_dataset(self.tok)
@@ -128,6 +131,7 @@ class SaLoRATrainer(_HardenBase):
               safety_dataset=None, **kwargs) -> str:
         out_dir = self._resolve_out_dir(out_dir)
         from peft import LoraConfig, get_peft_model
+        from safetune._refusal_helpers import _lora_target_modules
         from safetune.runner.utils.model_utils import load_model
         # Use the caller's model. (Previously this reloaded base_name from the
         # hub whenever the tokenizer had a name_or_path — silently discarding a
@@ -139,7 +143,7 @@ class SaLoRATrainer(_HardenBase):
         model.config.use_cache = False
         lora_cfg = LoraConfig(
             r=self.rank, lora_alpha=self.lora_alpha, lora_dropout=self.lora_dropout,
-            target_modules=self.target_modules,
+            target_modules=_lora_target_modules(model, self.target_modules),
             task_type="CAUSAL_LM")
         model = get_peft_model(model, lora_cfg)
         if safety_dataset is None:
@@ -176,6 +180,8 @@ class SEALTrainer(_HardenBase):
     """SEAL: data-selection defense (safety-aware example weighting)."""
 
     METHOD = "SEAL"
+    HF_TRAINER = HARD.SEALHFTrainer
+    CONFIG = HARD.SEALConfig
 
     def train(self, train_dataset, out_dir: str = None, *,
               safety_dataset=None, **kwargs) -> str:
@@ -184,10 +190,10 @@ class SEALTrainer(_HardenBase):
             safety_dataset = build_safety_dataset(self.tok)
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.SEALConfig(), out_dir)
+        args = self._configure_args(self._method_config(), out_dir)
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
-        tr = HARD.SEALTrainer(
+        tr = HARD.SEALHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
@@ -198,21 +204,48 @@ class SEALTrainer(_HardenBase):
 # ── ConstrainedSFTTrainer ─────────────────────────────────────────────────────
 
 class ConstrainedSFTTrainer(_HardenBase):
-    """ConstrainedSFT: first-token safety constraint during fine-tuning."""
+    """ConstrainedSFT: first-token safety constraint during fine-tuning.
+
+    Args:
+        reference_model_path: HF path/ID of the frozen aligned reference the
+            per-position KL constraint is taken against. Default: the model
+            being fine-tuned (its tokenizer's ``name_or_path``).
+        use_reference: ``False`` trains without the reference, i.e. plain SFT
+            (the KL constraint is off). ``None``: True, or False with
+            ``safetune.configure(legacy_constrained_sft=True)``, which is how
+            the runner and CLI trained before.
+    """
 
     METHOD = "ConstrainedSFT"
+    HF_TRAINER = HARD.ConstrainedSFTHFTrainer
+    CONFIG = HARD.ConstrainedSFTConfig
+
+    def __init__(self, model=None, tokenizer=None, *,
+                 reference_model_path: str = None, use_reference: bool = None, **kwargs):
+        super().__init__(model, tokenizer, **kwargs)
+        self.reference_model_path = reference_model_path
+        self.use_reference = use_reference
 
     def train(self, train_dataset, out_dir: str = None, **kwargs) -> str:
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        args = self._configure_args(HARD.ConstrainedSFTConfig(), out_dir)
+        args = self._configure_args(self._method_config(), out_dir)
+        reference = None
+        if (self.use_reference if self.use_reference is not None
+                else not get_config().legacy_constrained_sft):
+            ref_path = self.reference_model_path or getattr(self.tok, "name_or_path", None)
+            reference = _load_pretrained_lm(
+                ref_path, torch_dtype=next(model.parameters()).dtype
+            ).to(next(model.parameters()).device).eval()
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
-        tr = HARD.ConstrainedSFTTrainer(
+        tr = HARD.ConstrainedSFTHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
-            data_collator=default_data_collator)
+            data_collator=default_data_collator,
+            reference_model=reference)
         tr.train()
+        del reference; free()
         return self._save_merged(model, out_dir)
 
 # ── LoXHardenTrainer ─────────────────────────────────────────────────────────
@@ -270,7 +303,7 @@ class LoXHardenTrainer(_HardenBase):
 
 # ── Dataset loader ────────────────────────────────────────────────────────────
 
-def load_harden_data(model_id, n: int = 256, max_len: int = 256):
+def load_harden_data(model_id, n: int = 256, max_len: Optional[int] = None):
     """Contaminated SFT train set + refusal safety set. No tokenizer required."""
     from safetune.runner.utils.dataset import load_harden_dataset
     from safetune.runner.utils.model_utils import load_tok

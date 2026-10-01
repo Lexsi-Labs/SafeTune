@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from safetune.core.eval.metrics.safety import compute_safety_gates, compute_safety_suite
-from safetune.data.dataset_ids import HARMBENCH
 
 
 @dataclass
@@ -98,55 +97,6 @@ def run_hhrlhf(
     return PackRunResult("hh_rlhf", pack_version, len(rows), metrics=metrics, gates=gates)
 
 
-# ---------------------------------------------------------------------------
-# HuggingFace auto-loading helpers
-# ---------------------------------------------------------------------------
-
-# Maps pack name -> HF dataset id + split + column mappings
-_HF_PACK_MAP: Dict[str, Dict[str, Any]] = {
-    "harmbench": {
-        "dataset_id": HARMBENCH,
-        "split": "standard",
-        "response_col": "response",
-        "prompt_col": "behavior",
-        "is_harmful": True,
-    },
-    "jailbreakbench": {
-        "dataset_id": "JailbreakBench/JBB-Behaviors",
-        "split": "behaviors",
-        "response_col": "Goal",
-        "prompt_col": "Goal",
-        "is_harmful": True,
-    },
-    "xstest": {
-        "dataset_id": "Röttger/xstest",
-        "split": "test",
-        "response_col": "prompt",
-        "prompt_col": "prompt",
-        "is_harmful": False,
-    },
-    "hh_rlhf": {
-        "dataset_id": "Anthropic/hh-rlhf",
-        "split": "test",
-        "response_col": "chosen",
-        "prompt_col": "chosen",
-        "is_harmful": False,
-    },
-    "llms_finetuning_safety_identity": {
-        "dataset_id": "LLM-Tuning-Safety/HEx-PHI",
-        "split": "train",
-        "response_col": "target",
-        "prompt_col": "source",
-        "is_harmful": True,
-    },
-    # Future packs: deception, hallucination, manipulation, etc. can be added
-    # here without touching core evaluation code. For example:
-    # "deception_bench": {...},
-    # "truthfulqa": {...},
-    # "wmdp": {...},
-}
-
-
 def build_door_dataset(
     harmful_rows: List[Dict[str, Any]],
     benign_rows: Optional[List[Dict[str, Any]]] = None,
@@ -209,56 +159,6 @@ def build_rational_dataset(
         })
         
     return dataset
-
-
-def load_pack_from_hf(
-    pack_name: str,
-    max_samples: Optional[int] = None,
-    split: Optional[str] = None,
-) -> List[Dict[str, Any]]:
-    """Load rows directly from HuggingFace for a registered safety pack.
-
-    Args:
-        pack_name: One of ``harmbench``, ``jailbreakbench``, ``xstest``, ``hh_rlhf``.
-        max_samples: If set, truncate to this many rows (useful for smoke tests).
-        split: Override the default split (e.g. ``"train"`` vs ``"test"``).
-
-    Returns:
-        List of dicts with at least ``"response"`` and ``"is_harmful_prompt"`` keys.
-
-    Raises:
-        KeyError: If ``pack_name`` is not registered.
-        ImportError: If ``datasets`` is not installed.
-    """
-    key = pack_name.strip().lower()
-    if key not in _HF_PACK_MAP:
-        raise KeyError(f"No HF mapping for pack: {pack_name}. Available: {list(_HF_PACK_MAP)}")
-
-    try:
-        from datasets import load_dataset as _load_dataset
-    except ImportError as exc:
-        raise ImportError(
-            "The 'datasets' package is required for HF auto-loading. "
-            "Install with: pip install datasets"
-        ) from exc
-
-    spec = _HF_PACK_MAP[key]
-    use_split = split or spec["split"]
-    ds = _load_dataset(spec["dataset_id"], split=use_split)
-
-    rows: List[Dict[str, Any]] = []
-    for item in ds:
-        row = dict(item)
-        # Normalise to standard keys expected by pack runners
-        if "response" not in row:
-            row["response"] = str(row.get(spec["response_col"], ""))
-        row.setdefault("is_harmful_prompt", bool(spec["is_harmful"]))
-        rows.append(row)
-
-    if max_samples and len(rows) > max_samples:
-        rows = rows[:max_samples]
-
-    return rows
 
 
 def run_pack(

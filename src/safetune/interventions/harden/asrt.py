@@ -126,8 +126,8 @@ class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # 
 
         attacker = TransformersBackend(model="meta-llama/Llama-3.2-1B-Instruct")
         callback = ASRTCallback(
-            attacker=attacker,
-            adversarial_prompts=load_prompts("harmbench")[:64],
+            attacker=attacker,  # adversarial_prompts default: the first 64 HarmBench prompts
+            n_adversarial_prompts=64,
             config=ASRTConfig(eval_steps=100, probes_per_eval=4),
         )
         trainer = SFTTrainer(..., callbacks=[callback])
@@ -144,11 +144,12 @@ class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # 
     def __init__(
         self,
         attacker: Any,
-        adversarial_prompts: Sequence[str],
+        adversarial_prompts: Optional[Sequence[str]] = None,
         judge: Optional[Any] = None,
         config: Optional[ASRTConfig] = None,
         contrastive_builder: Optional[Callable[[str], Dict[str, Any]]] = None,
         trainer: Optional[Any] = None,
+        n_adversarial_prompts: int = 64,
     ) -> None:
         """Create the callback.
 
@@ -157,7 +158,8 @@ class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # 
                 (or ``.backend.generate``); used to produce model
                 completions of the adversarial prompts.
             adversarial_prompts: non-empty pool of attack prompts; cycled
-                round-robin across red-team rounds.
+                round-robin across red-team rounds. ``None`` loads the first
+                ``n_adversarial_prompts`` HarmBench prompts.
             judge: scorer with ``.score(rows) -> rows`` adding a
                 ``judgement.asr`` field. Defaults to ``StringMatchJudge``.
             config: :class:`ASRTConfig`; defaults are used if omitted.
@@ -169,9 +171,14 @@ class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # 
                 given here it can be supplied later via
                 :meth:`bind_trainer`. HuggingFace does not pass the
                 trainer into callback hooks, so one of the two is needed.
+            n_adversarial_prompts: how many HarmBench prompts to load when
+                ``adversarial_prompts`` is ``None``.
         """
         if _TC_IMPORT_ERROR is not None:
             raise ImportError("transformers is required for ASRTCallback") from _TC_IMPORT_ERROR
+        if adversarial_prompts is None:
+            from safetune.runner.utils.data_utils import load_bench_prompts
+            adversarial_prompts = load_bench_prompts(["harmbench"])["harmbench"][:n_adversarial_prompts]
         if not adversarial_prompts:
             raise ValueError("ASRTCallback: ``adversarial_prompts`` cannot be empty.")
 

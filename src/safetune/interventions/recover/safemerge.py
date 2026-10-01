@@ -51,6 +51,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ._invariant import assert_mutates
+from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +103,10 @@ def _dare_drop(delta: torch.Tensor, density: float) -> torch.Tensor:
 
 
 @assert_mutates("apply_safemerge")
+@keyword_refs("base", "aligned", "threshold", "alpha", "merge_type", "density", "only_2d")
 def apply_safemerge(
     finetuned: nn.Module,
+    *,
     base: nn.Module,
     aligned: nn.Module,
     threshold: float = _PAPER_THRESHOLD,

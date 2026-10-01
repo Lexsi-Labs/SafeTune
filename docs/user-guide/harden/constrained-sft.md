@@ -10,10 +10,14 @@ harden.ConstrainedSFTTrainer(
     tokenizer=None,
     *,
     model_id: str = None,
+    reference_model_path: str = None,
+    use_reference: bool = None,
     epochs: int = 1,
     batch_size: int = 4,
     lr: float = 1e-4,
-    bf16: bool = True,
+    bf16: bool | None = None,
+    fp16: bool | None = None,
+    wandb: bool = False,
     optimizer: str = "adamw_torch",
     logging_steps: int = 10,
     results_dir: str = None,
@@ -28,10 +32,14 @@ harden.ConstrainedSFTTrainer(
 | `model` | `PreTrainedModel` | `None` | Base model to harden |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
 | `model_id` | `str` | `None` | HF path/ID to load the model from when `model` is not passed |
+| `reference_model_path` | `str` | `None` | HF path/ID of the frozen aligned reference for the KL constraint; `None` loads the model being fine-tuned (the tokenizer's `name_or_path`) |
+| `use_reference` | `bool` | `None` | `None` is `True` (KL constraint on) unless `safetune.configure(legacy_constrained_sft=True)`; `False` trains plain SFT |
 | `epochs` | `int` | `1` | Number of training epochs |
 | `batch_size` | `int` | `4` | Per-device train batch size |
 | `lr` | `float` | `1e-4` | Learning rate |
-| `bf16` | `bool` | `True` | Train in bfloat16 |
+| `bf16` | `bool \| None` | `None` | Train in bfloat16. `None`: from the runtime dtype (`safetune.configure(dtype=...)`; bf16 where supported) |
+| `fp16` | `bool \| None` | `None` | Train in float16. `None`: from the runtime dtype |
+| `wandb` | `bool` | `False` | Log to Weights & Biases |
 | `optimizer` | `str` | `"adamw_torch"` | Optimizer name |
 | `logging_steps` | `int` | `10` | Steps between log entries |
 | `results_dir` | `str` | `None` | Directory for run outputs |
@@ -47,10 +55,10 @@ harden.ConstrainedSFTTrainer(
 ### Full example
 
 ```python
-from safetune.harden import ConstrainedSFTTrainer, ConstrainedSFTConfig
+from safetune.harden import ConstrainedSFTHFTrainer, ConstrainedSFTConfig
 
 config = ConstrainedSFTConfig(output_dir="csft_out", csft_beta=0.5, csft_decay_rate=0.1)
-trainer = ConstrainedSFTTrainer(
+trainer = ConstrainedSFTHFTrainer(
     model=model,
     args=config,
     train_dataset=task_ds,
@@ -59,10 +67,13 @@ trainer = ConstrainedSFTTrainer(
 trainer.train()
 ```
 
-The runner wrapper `safetune.runner.harden.ConstrainedSFTTrainer` runs this with
-`csft_beta` / `csft_decay_rate` at their config defaults and no reference model,
-so it degrades to plain SFT. Use the `safetune.harden` API above to supply
-`reference_model` and enable the KL constraint.
+`ConstrainedSFTHFTrainer` is the `transformers.Trainer` subclass behind
+`harden.ConstrainedSFTTrainer`. The high-level trainer (also used by the CLI)
+accepts `csft_beta` / `csft_decay_rate` as keyword arguments, loads the frozen
+reference from `reference_model_path` and passes it to
+`ConstrainedSFTHFTrainer`, so the KL constraint is on. Before, it passed no
+reference and trained plain SFT; `use_reference=False` or
+`safetune.configure(legacy_constrained_sft=True)` gives that behaviour.
 
 ### When to use
 

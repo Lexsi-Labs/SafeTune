@@ -198,7 +198,7 @@ class _SAPProbe:
         }
 
 
-class SAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class SAPHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """Trainer implementing the SAP bilevel optimization (arXiv:2505.16737).
 
     Args:
@@ -230,11 +230,11 @@ class SAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type:
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for SAPTrainer"
+                "transformers is required for SAPHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _TORCH_IMPORT_ERROR is not None:
             raise ImportError(
-                "torch is required for SAPTrainer"
+                "torch is required for SAPHFTrainer"
             ) from _TORCH_IMPORT_ERROR
         if _SAP_IMPORT_ERROR is not None:
             raise ImportError(
@@ -473,3 +473,8 @@ class SAPTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type:
 
         # No safety signal: plain training.
         return self._fallback_training_step(model, inputs)
+
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, SAPTrainer="SAPHFTrainer")  # old name, remove in 0.3

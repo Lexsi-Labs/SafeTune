@@ -68,7 +68,7 @@ else:  # pragma: no cover
         pass
 
 
-class SurgeryTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """Trainer that penalises harmful-vs-refusal attention-sink divergence.
 
     Args:
@@ -96,7 +96,7 @@ class SurgeryTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for SurgeryTrainer"
+                "transformers is required for SurgeryHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _SURGERY_IMPORT_ERROR is not None:
             raise ImportError(
@@ -230,3 +230,7 @@ class SurgeryTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
             loss = base_loss
             
         return (loss, outputs) if return_outputs else loss
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, SurgeryTrainer="SurgeryHFTrainer")  # old name, remove in 0.3

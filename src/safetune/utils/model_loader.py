@@ -234,7 +234,8 @@ class ModelLoader:
         logger.info("Loading model with transformers")
         
         # Lazy imports
-        from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig, BitsAndBytesConfig
+        from transformers import AutoTokenizer, AutoConfig, BitsAndBytesConfig
+        from safetune._refusal_helpers import _load_pretrained_lm
         import torch
         
         # Set torch dtype default if None
@@ -321,13 +322,13 @@ class ModelLoader:
             logger.warning("4-bit quantization requested but BitsAndBytesConfig not available")
         
         # Load model
-        model = AutoModelForCausalLM.from_pretrained(
+        model = _load_pretrained_lm(
             model_path,
             **model_kwargs
         )
         
         # Resize token embeddings if needed
-        if tokenizer.pad_token_id >= model.config.vocab_size:
+        if tokenizer.pad_token_id >= model.config.get_text_config().vocab_size:
             model.resize_token_embeddings(len(tokenizer))
         
         return model, tokenizer

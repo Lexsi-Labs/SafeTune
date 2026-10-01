@@ -64,7 +64,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Tuple
 
-from safetune.data.dataset_ids import COMPETITION_MATH, GSM8K
+from safetune.data.dataset_ids import load, spec
+
+
+def _table_dataset(name, split):
+    """Dataset ``name`` from safetune.data.dataset_ids (overridable via
+    safetune.configure(datasets=...)), with its raw columns."""
+    s = spec(name)
+    return load(s["source"], config=s.get("config"), split=split)
 
 import numpy as np
 from tqdm import tqdm
@@ -837,9 +844,9 @@ def main():
     else:
         from datasets import load_dataset
         if args.dataset == "gsm8k":
-            dataset = load_dataset(GSM8K, "main", split=args.dataset_split)
+            dataset = _table_dataset("gsm8k", args.dataset_split)
         elif args.dataset == "math":
-            dataset = load_dataset(COMPETITION_MATH, split=args.dataset_split)
+            dataset = _table_dataset("competition_math", args.dataset_split)
         elif args.dataset == "mbpp":
             if EVALPLUS_AVAILABLE:
                 logger.info("Using evalplus MBPP+ dataset (better test coverage)")
@@ -861,7 +868,7 @@ def main():
                 logger.info(f"Loaded {len(dataset)} problems from evalplus MBPP+")
             else:
                 logger.info("evalplus not available, using HuggingFace MBPP dataset")
-                dataset = load_dataset("mbpp", split=args.dataset_split)
+                dataset = _table_dataset("mbpp", args.dataset_split)
 
     # Limit prompts if specified
     if args.max_prompts and len(dataset) > args.max_prompts:
@@ -1801,9 +1808,9 @@ def main():
     else:
         from datasets import load_dataset
         if args.dataset == "gsm8k":
-            dataset = load_dataset(GSM8K, "main", split=args.dataset_split)
+            dataset = _table_dataset("gsm8k", args.dataset_split)
         elif args.dataset == "math":
-            dataset = load_dataset(COMPETITION_MATH, split=args.dataset_split)
+            dataset = _table_dataset("competition_math", args.dataset_split)
         elif args.dataset == "mbpp":
             if EVALPLUS_AVAILABLE:
                 logger.info("Using evalplus MBPP+ dataset (better test coverage)")
@@ -1825,7 +1832,7 @@ def main():
                 logger.info(f"Loaded {len(dataset)} problems from evalplus MBPP+")
             else:
                 logger.info("evalplus not available, using HuggingFace MBPP dataset")
-                dataset = load_dataset("mbpp", split=args.dataset_split)
+                dataset = _table_dataset("mbpp", args.dataset_split)
 
     # Limit prompts if specified
     if args.max_prompts and len(dataset) > args.max_prompts:

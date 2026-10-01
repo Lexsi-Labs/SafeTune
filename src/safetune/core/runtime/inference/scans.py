@@ -13,6 +13,7 @@ as SCANS.
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from safetune._refusal_helpers import _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +87,7 @@ class SCANSWrapper:
         return hook
 
     def _get_layers(self) -> list:
-        if hasattr(self.model, "language_model") and hasattr(self.model.language_model, "layers"):
-            return list(self.model.language_model.layers)
-        elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return list(self.model.model.layers)
-        elif hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return list(self.model.transformer.h)
-        return []
+        return _get_decoder_layers(self.model)
 
     def register_hooks(self) -> None:
         self.remove_hooks()

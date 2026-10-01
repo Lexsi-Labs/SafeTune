@@ -110,8 +110,17 @@ class CAAModel:
     Example::
 
         vecs = extract_caa_vectors(model, tok, positive, negative, cfg)
-        with CAAModel(model, vecs, strength=1.5) as steered:
+        steered = CAAModel(model, vecs, strength=1.5)
+        outputs = steered.generate(**inputs)   # steered for this call only
+        with steered:                          # or: hooks on ``model`` inside the block
             outputs = model.generate(**inputs)
+
+    Building the wrapper does not touch ``model``: hooks are on only inside
+    ``with`` / between ``install()`` and ``remove()``, and for the duration of
+    each ``generate()`` / ``__call__``. (Before, the constructor installed them,
+    so ``model`` stayed steered until ``remove()``, and a ``with`` block's exit
+    left later ``generate()`` calls unsteered; call ``install()`` right after
+    construction for the old always-on hooks.)
     """
 
     def __init__(
@@ -124,7 +133,6 @@ class CAAModel:
         self.vectors = {int(k): v.detach().clone() for k, v in vectors.items()}
         self.strength = float(strength)
         self._handles: List[Any] = []
-        self.install()
 
     def _make_hook(self, vec: torch.Tensor):
         def hook(_module: nn.Module, _inputs: Any, output: Any) -> Any:
@@ -154,11 +162,20 @@ class CAAModel:
                 pass
         self._handles.clear()
 
+    def _steered(self, fn: Any, *args: Any, **kwargs: Any) -> Any:
+        if self._handles:  # already on: install() / with
+            return fn(*args, **kwargs)
+        self.install()
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            self.remove()
+
     def generate(self, *args: Any, **kwargs: Any) -> Any:
-        return self.model.generate(*args, **kwargs)
+        return self._steered(self.model.generate, *args, **kwargs)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return self.model(*args, **kwargs)
+        return self._steered(self.model, *args, **kwargs)
 
     def __getattr__(self, name: str) -> Any:
         if name == "model":

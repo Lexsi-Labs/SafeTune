@@ -60,7 +60,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from safetune._refusal_helpers import _get_decoder_layers
+from safetune._refusal_helpers import _encode_prompts, _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -136,12 +136,14 @@ def _collect_pooled_hidden(
     layer_indices: List[int],
     pool: str = "mean",
     batch_size: int = 8,
+    chat_template: bool = True,
 ) -> Dict[int, torch.Tensor]:
     """Collect pooled hidden states at several layers for a list of prompts.
 
     Returns ``{layer_idx: (N, hidden) float32 CPU tensor}``. Prompts are run one
     at a time (batch_size=1) so per-prompt pooling matches inference (where the
-    gate sees a single sequence at prefill).
+    gate sees a single sequence at prefill). ``chat_template``: format each
+    prompt as a user turn, as generation does (``_encode_prompts``).
     """
     layers = _get_decoder_layers(model)
     for li in layer_indices:
@@ -167,7 +169,8 @@ def _collect_pooled_hidden(
         device = next(model.parameters()).device
         for p in prompts:
             captured.clear()
-            enc = tokenizer([p], return_tensors="pt", padding=True, truncation=True)
+            enc = _encode_prompts(tokenizer, [p], chat_template, return_tensors="pt",
+                                  padding=True, truncation=True)
             if hasattr(enc, "to"):
                 enc = enc.to(device)
             else:
@@ -201,6 +204,7 @@ def fit_cast_condition(
     threshold_step: float = 0.01,
     val_frac: float = 0.5,
     device: str = "cpu",
+    chat_template: Optional[bool] = None,
 ) -> CASTCondition:
     """Fit a faithful CAST condition (cosine-similarity gate) via grid search.
 
@@ -232,11 +236,20 @@ def fit_cast_condition(
         pool: ``"mean"`` (paper default) or ``"last"`` token pooling.
         threshold_range / threshold_step: cosine-similarity threshold grid.
         val_frac: fraction of each class held out for threshold selection.
+        chat_template: format the prompts as chat user turns before reading
+            hidden states, the way ``CASTModel.generate`` sees them under
+            ``evaluate()`` / ``TransformersBackend`` (IBM's ``SteeringDataset``
+            also defaults to the chat template). ``None``: True, or False with
+            ``safetune.configure(legacy_cast_gate=True)`` (raw prompts, the old
+            fit, whose gate never fires on chat-formatted prompts).
 
     Returns:
         :class:`CASTCondition` with the chosen ``(condition_vector,
         condition_layer, threshold, comparator, f1, pool)``.
     """
+    if chat_template is None:
+        from safetune.config import get_config
+        chat_template = not get_config().legacy_cast_gate
     layers = _get_decoder_layers(model)
     if candidate_layers is None:
         # CAST checks the condition at a mid-to-late layer (the paper grid-
@@ -245,8 +258,10 @@ def fit_cast_condition(
         lo, hi = max(1, n // 4), max(2, (3 * n) // 4 + 1)
         candidate_layers = list(range(lo, min(hi, n)))
 
-    H = _collect_pooled_hidden(model, tokenizer, harmful_prompts, candidate_layers, pool)
-    B = _collect_pooled_hidden(model, tokenizer, benign_prompts, candidate_layers, pool)
+    H = _collect_pooled_hidden(model, tokenizer, harmful_prompts, candidate_layers, pool,
+                               chat_template=chat_template)
+    B = _collect_pooled_hidden(model, tokenizer, benign_prompts, candidate_layers, pool,
+                               chat_template=chat_template)
 
     def _split(n: int) -> Tuple[List[int], List[int]]:
         n_val = max(1, int(round(n * val_frac))) if n > 1 else 0
@@ -409,8 +424,10 @@ class CASTModel:
         cond = fit_cast_condition(model, harmful, benign, tok)
         vecs = extract_caa_vectors(model, tok, harmful, benign, cfg)
         cast = CASTModel(model, vecs, condition=cond, alpha=1.0)
-        with cast:
-            out = model.generate(**inputs)
+        out = cast.generate(**inputs)   # gates each prompt of the batch
+
+    ``with cast: model.generate(...)`` installs the vectors unconditionally,
+    without the gate.
 
     Back-compat construction (legacy logistic probe) is still accepted via the
     ``probe_layer`` / ``probe_weights`` / ``probe_bias`` arguments; in that mode
@@ -429,7 +446,16 @@ class CASTModel:
         probe_weights: Optional[torch.Tensor] = None,
         probe_bias: float = 0.0,
         threshold: Optional[float] = None,
+        per_prompt_gate: Optional[bool] = None,
     ) -> None:
+        # per_prompt_gate: gate and steer each prompt of a batch on its own.
+        # False: the first prompt decides for the whole batch (the old gate).
+        # None: True, or False with safetune.configure(legacy_cast_gate=True).
+        if per_prompt_gate is None:
+            from safetune.config import get_config
+            per_prompt_gate = not get_config().legacy_cast_gate
+        self.per_prompt_gate = bool(per_prompt_gate)
+        self._row_mask: Optional[torch.Tensor] = None  # rows to steer; None = all
         self.model = model
         self.steering_vectors = {int(k): v.detach().clone() for k, v in steering_vectors.items()}
         self.alpha = float(alpha)
@@ -461,10 +487,11 @@ class CASTModel:
     # Condition evaluation (prefill pass)
     # ------------------------------------------------------------------
 
-    def _gate_fires(self, input_ids: torch.Tensor, **kwargs: Any) -> Tuple[bool, float]:
+    def _gate_fires(self, input_ids: torch.Tensor, **kwargs: Any) -> Tuple[Any, Any]:
         """Run a condition-only prefill pass and decide whether the gate fires.
 
-        Returns ``(fires, similarity_or_score)``.
+        Returns ``(fires, similarity_or_score)``: one bool and score per prompt
+        (lists), or, with ``per_prompt_gate=False``, the first prompt's.
         """
         layers = _get_decoder_layers(self.model)
         if not (0 <= self.condition_layer < len(layers)):
@@ -477,7 +504,7 @@ class CASTModel:
 
         def _hook(_m: nn.Module, _i: Any, out: Any) -> None:
             h = out[0] if isinstance(out, tuple) else out
-            captured.append(h[0].detach().float().cpu())  # (seq, hidden) for seq 0
+            captured.append(h.detach().float().cpu())  # (batch, seq, hidden)
 
         handle = layers[self.condition_layer].register_forward_hook(_hook)
         try:
@@ -490,18 +517,22 @@ class CASTModel:
             logger.warning("CASTModel: condition hook did not fire; gate defaults to OFF.")
             return False, 0.0
 
-        h_seq = captured[-1]
-
-        if self._legacy_probe:
+        mask = kwargs.get("attention_mask")
+        rows = []
+        for b, h_seq in enumerate(captured[-1] if self.per_prompt_gate else captured[-1][:1]):
+            if self.per_prompt_gate and mask is not None:
+                h_seq = h_seq[mask[b].cpu().bool()]  # drop padding before pooling
             h = _pool_hidden(h_seq, self.pool)
-            w = self.probe_weights.to(h.device)
-            logit = float((h * w).sum()) + self.probe_bias
-            score = float(torch.sigmoid(torch.tensor(logit)))
-            return (score > self.threshold), score
-
-        h = _pool_hidden(h_seq, self.pool)
-        sim = _cast_similarity(h, self.condition_vector)
-        return _condition_met(sim, self.threshold, self.comparator), sim
+            if self._legacy_probe:
+                w = self.probe_weights.to(h.device)
+                score = float(torch.sigmoid(torch.tensor(float((h * w).sum()) + self.probe_bias)))
+                rows.append((score > self.threshold, score))
+            else:
+                sim = _cast_similarity(h, self.condition_vector)
+                rows.append((_condition_met(sim, self.threshold, self.comparator), sim))
+        if not self.per_prompt_gate:
+            return rows[0]
+        return [f for f, _ in rows], [x for _, x in rows]
 
     # ------------------------------------------------------------------
     # Steering hooks (behavior vector)
@@ -511,8 +542,10 @@ class CASTModel:
         def hook(_m: nn.Module, _i: Any, out: Any) -> Any:
             is_tuple = isinstance(out, tuple)
             h = out[0] if is_tuple else out
-            v = vec.to(dtype=h.dtype, device=h.device)
-            h = h + self.alpha * v
+            v = self.alpha * vec.to(dtype=h.dtype, device=h.device)
+            if self._row_mask is not None:  # steer only the prompts whose gate fired
+                v = self._row_mask.to(dtype=h.dtype, device=h.device).view(-1, 1, 1) * v
+            h = h + v
             return (h,) + out[1:] if is_tuple else h
         return hook
 
@@ -551,14 +584,23 @@ class CASTModel:
         3. Otherwise: return the unmodified forward pass.
         """
         fires, score = self._gate_fires(input_ids, **kwargs)
-        logger.debug("CASTModel: gate=%s (score/sim=%.4f thr=%.4f).", fires, score, self.threshold)
-        if fires:
-            self._install_steering()
-            try:
-                return self.model(input_ids=input_ids, **kwargs)
-            finally:
-                self._remove_steering()
-        return self.model(input_ids=input_ids, **kwargs)
+        logger.debug("CASTModel: gate=%s (score/sim=%s thr=%.4f).", fires, score, self.threshold)
+        return self._steered(fires, self.model, input_ids=input_ids, **kwargs)
+
+    def _steered(self, fires: Any, fn: Any, *args: Any, **kwargs: Any) -> Any:
+        """Call ``fn`` with the behavior hooks on the prompts whose gate fired."""
+        if isinstance(fires, bool):  # one decision for the whole batch
+            fires = [fires]
+        if not any(fires):
+            return fn(*args, **kwargs)
+        if len(fires) > 1:
+            self._row_mask = torch.tensor([float(f) for f in fires])
+        self._install_steering()
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            self._remove_steering()
+            self._row_mask = None
 
     def install(self) -> "CASTModel":
         """Install permanent behavior hooks (use when calling model.generate directly).
@@ -587,14 +629,8 @@ class CASTModel:
         if input_ids is not None:
             gate_kwargs = {"attention_mask": attn} if attn is not None else {}
             fires, score = self._gate_fires(input_ids, **gate_kwargs)
-        logger.debug("CASTModel.generate: gate=%s (sim=%.4f thr=%.4f).", fires, score, self.threshold)
-        if fires:
-            self._install_steering()
-            try:
-                return self.model.generate(*args, **kwargs)
-            finally:
-                self._remove_steering()
-        return self.model.generate(*args, **kwargs)
+        logger.debug("CASTModel.generate: gate=%s (sim=%s thr=%.4f).", fires, score, self.threshold)
+        return self._steered(fires, self.model.generate, *args, **kwargs)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self.model(*args, **kwargs)

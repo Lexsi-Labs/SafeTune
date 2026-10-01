@@ -46,7 +46,7 @@ class TestHardenCliTokenizes:
 
         captured = {}
 
-        def fake_tok_rows(tok, rows, max_len):
+        def fake_tok_rows(tok, rows, max_len, **_):
             captured["rows"] = rows
             return [{"input_ids": [0], "attention_mask": [1], "labels": [0]} for _ in rows]
 
@@ -70,7 +70,7 @@ class TestHardenCliTokenizes:
 
         monkeypatch.setattr(
             du, "_tokenize_qa_rows",
-            lambda tok, rows, max_len: [
+            lambda tok, rows, max_len, **_: [
                 {"input_ids": [0, 1], "attention_mask": [1, 1], "labels": [0, 1]} for _ in rows
             ],
         )
@@ -138,6 +138,14 @@ class TestAAQProbeFreeProbe:
 
 
 # ── Bug 5: eval backend auto-falls-back to transformers when vLLM is absent ───
+def _no_backend_config(monkeypatch):
+    """No eval_backend from configure() or SAFETUNE_EVAL_BACKEND (the process-wide
+    setting moved from eval_runner._EVAL_BACKEND to safetune.configure)."""
+    import safetune.config as sc
+    monkeypatch.setattr(sc, "_RUNTIME", sc.RuntimeConfig())
+    monkeypatch.delenv("SAFETUNE_EVAL_BACKEND", raising=False)
+
+
 class TestEvalBackendAutoFallback:
     def test_eval_functions_accept_backend(self):
         import inspect
@@ -158,7 +166,7 @@ class TestEvalBackendAutoFallback:
         from safetune.runner.utils import eval_runner as er
 
         monkeypatch.setattr(er, "_fast_backend_ready", lambda: False)
-        monkeypatch.setattr(er, "_EVAL_BACKEND", None)
+        _no_backend_config(monkeypatch)
         assert er._resolve_backend() == "hf"
         # explicitly asking for vllm without vllm also degrades, not crashes
         assert er._resolve_backend("vllm") == "hf"
@@ -169,14 +177,14 @@ class TestEvalBackendAutoFallback:
         from safetune.runner.utils import eval_runner as er
 
         monkeypatch.setattr(er, "_fast_backend_ready", lambda: True)
-        monkeypatch.setattr(er, "_EVAL_BACKEND", None)
+        _no_backend_config(monkeypatch)
         assert er._resolve_backend() == "vllm"
 
     def test_set_eval_backend_overrides(self, monkeypatch):
         from safetune.runner.utils import eval_runner as er
 
         monkeypatch.setattr(er, "_fast_backend_ready", lambda: True)
-        monkeypatch.setattr(er, "_EVAL_BACKEND", None)
+        _no_backend_config(monkeypatch)
         er.set_eval_backend("hf")
         try:
             assert er._resolve_backend() == "hf"
@@ -306,7 +314,7 @@ class TestHardenCliPadAndSafetyLabel:
 
         monkeypatch.setattr(
             du, "_tokenize_qa_rows",
-            lambda tok, rows, max_len: [
+            lambda tok, rows, max_len, **_: [
                 {"input_ids": [0], "attention_mask": [1], "labels": [0]} for _ in rows
             ],
         )
@@ -323,7 +331,8 @@ class TestResolveBackendEmptyString:
     def test_empty_string_backend_autoselects(self, monkeypatch):
         from safetune.runner.utils import eval_runner as er
 
-        monkeypatch.setattr(er, "_EVAL_BACKEND", "")
+        _no_backend_config(monkeypatch)
+        monkeypatch.setenv("SAFETUNE_EVAL_BACKEND", "")
         monkeypatch.setattr(er, "_fast_backend_ready", lambda: False)
         assert er._resolve_backend() == "hf"
         monkeypatch.setattr(er, "_fast_backend_ready", lambda: True)
@@ -390,20 +399,29 @@ class TestSummaryMdToleratesNone:
         assert path and "nan" in Path(path).read_text()
 
 
-# ── Issue #36: CLI gives a targeted hint for programmatic-only harden methods ─
-class TestProgrammaticOnlyHardenHint:
+# ── Issue #36 (superseded by #21): programmatic-only harden hint ─────────────
+# The hint existed for CST / MART / DeepRefusal / Antibody, which genuinely
+# could not fit the CLI train contract. #21 gave each an adapter
+# (runner.harden._dpo_adversarial), so they are real --algo values now and the
+# "only available programmatically" branch is gone.
+class TestHardenMethodsAreAllCallable:
     def _args(self, algo):
         import argparse
         return argparse.Namespace(algo=algo, model="m", output=None)
 
-    def test_programmatic_only_methods_point_to_python_api(self, capsys):
+    def test_previously_programmatic_only_methods_are_registered(self):
         from safetune import cli
+        from safetune.runner._registry import HARDEN_REGISTRY
 
-        for algo, cls in cli._PROGRAMMATIC_ONLY_HARDEN.items():
-            with pytest.raises(SystemExit):
+        # the hint branch itself is gone
+        assert not hasattr(cli, "_PROGRAMMATIC_ONLY_HARDEN")
+        for algo in ("cst", "mart", "deeprefusal", "antibody"):
+            assert algo in HARDEN_REGISTRY
+            with pytest.raises((OSError, SystemExit)) as exc:
                 cli._do_harden(self._args(algo))
-            out = capsys.readouterr().out
-            assert "programmatically" in out and cls in out
+            # dispatched past the registry check into the model load, so it
+            # never printed the "only available programmatically" hint
+            assert "programmatically" not in str(exc.value)
 
     def test_truly_unknown_method_still_generic(self, capsys):
         from safetune import cli
@@ -427,7 +445,10 @@ class TestEvalSafetySignalsFailure:
         monkeypatch.setattr(er, "_eval_advbench_inline", lambda *a, **k: None)
         monkeypatch.setattr(er, "reclaim_gpu_memory", lambda *a, **k: None)
 
-        rc, msg = er.eval_safety("ckpt", "some/model", results_dir=str(tmp_path))
+        # ST-07: raises by default; strict=False keeps the non-zero return code.
+        with pytest.raises(RuntimeError, match="no scored benchmarks"):
+            er.eval_safety("ckpt", "some/model", results_dir=str(tmp_path))
+        rc, msg = er.eval_safety("ckpt", "some/model", results_dir=str(tmp_path), strict=False)
         assert rc != 0 and "no scored benchmarks" in msg
 
     def test_returns_zero_when_a_scored_file_exists(self, tmp_path, monkeypatch):
@@ -439,10 +460,12 @@ class TestEvalSafetySignalsFailure:
         monkeypatch.setattr(er, "_score_with_judges", lambda *a, **k: None)
         monkeypatch.setattr(er, "_eval_advbench_inline", lambda *a, **k: None)
         monkeypatch.setattr(er, "reclaim_gpu_memory", lambda *a, **k: None)
-        # a non-empty scored file present → success
+        # ST-07: success needs a non-empty scored file for every benchmark
+        from safetune.runner.utils.data_utils import SAFETY_BENCHES
         safety = tmp_path / "safety"
         safety.mkdir(parents=True, exist_ok=True)
-        (safety / "ckpt__base__harmbench_scored.jsonl").write_text('{"x":1}\n')
+        for b in SAFETY_BENCHES:
+            (safety / f"ckpt__base__{b}_scored.jsonl").write_text('{"x":1}\n')
 
         rc, _ = er.eval_safety("ckpt", "some/model", results_dir=str(tmp_path))
         assert rc == 0

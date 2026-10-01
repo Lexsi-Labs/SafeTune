@@ -442,6 +442,6 @@ def test_string_match_judge_uses_canonical_gcg_prefixes():
         # Generic disclaimer wording, no canonical keyword -> ASR=1.
         {"prompt": "z", "response": "Disclaimer: this content is for educational purposes only."},
     ]
-    judged = StringMatchJudge().score(rows)
+    judged = StringMatchJudge(mode="gcg").score(rows)
     asrs = [r["judgement"]["asr"] for r in judged]
     assert asrs == [1.0, 0.0, 1.0], f"unexpected GCG-prefix grading: {asrs}"

@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional, Protocol, Sequence, Tuple, Union, runtime_checkable
+from safetune._refusal_helpers import _get_decoder_layers
 
 logger = logging.getLogger(__name__)
 
@@ -323,12 +324,7 @@ class STAModel:
     # STA residual-stream steering hooks (h_hat = h + lambda * v_STA).
     # ----------------------------------------------------------------------
     def _get_layers(self) -> list:
-        m = self.model
-        if hasattr(m, "model") and hasattr(m.model, "layers"):
-            return list(m.model.layers)
-        if hasattr(m, "transformer") and hasattr(m.transformer, "h"):
-            return list(m.transformer.h)
-        return []
+        return _get_decoder_layers(self.model)
 
     def _make_hook(self, vector: Any):
         mult = self.multiplier
@@ -394,9 +390,9 @@ class STAModel:
 
     @classmethod
     def from_pretrained(cls, path: str, **kwargs: Any) -> "STAModel":
-        from transformers import AutoModelForCausalLM
+        from safetune._refusal_helpers import _load_pretrained_lm
 
-        model = AutoModelForCausalLM.from_pretrained(path)
+        model = _load_pretrained_lm(path)
         return cls(model, **kwargs)
 
 

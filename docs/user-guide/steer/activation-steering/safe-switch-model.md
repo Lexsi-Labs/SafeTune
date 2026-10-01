@@ -6,11 +6,17 @@ SafeSwitch's full design has two trained components: a two-stage prober
 for the LM head when `p_unsafe > threshold`.
 
 !!! note "The trainer builds the single-stage fallback"
-    `SafeSwitchTrainer.calibrate` constructs `SafeSwitchModel(model, probe_layer=...,
-    unsafe_threshold=...)` without a prober, compliance prober, or refusal head. In
-    that configuration the wrapper falls back to the legacy single-stage probe and
-    applies a fixed logit bias to refusal tokens. To use the two-stage prober and the
-    trained refusal head, pass them to `SafeSwitchModel` directly (or load them with
+    `SafeSwitchTrainer.calibrate` fits a single-stage prober (logistic regression on
+    the mean-pooled hidden state of `gate_layer`) on the harmful / harmless calibration
+    prompts, formatted with the chat template as generation sees them
+    (`chat_template=True`), and builds `SafeSwitchModel(model, prober=..., probe_layer=...,
+    unsafe_threshold=...)` without a compliance prober or refusal head. In that
+    configuration `generate` scores every prompt of a batch; the prompts the prober
+    flags get no new tokens (no refusal token ids are set, so there is no logit bias
+    to apply) and the others generate normally. In
+    0.1.3 and earlier the prober was never fitted, so the wrapper never fired and
+    generated exactly like the unwrapped model. To use the two-stage prober and the trained refusal head,
+    pass them to `SafeSwitchModel` directly (or load them with
     `SafeSwitchModel.from_pretrained`).
 
 Ref: Han et al., "SafeSwitch," Findings of EMNLP 2025, arXiv:2502.01042.
@@ -22,8 +28,9 @@ SafeSwitchTrainer(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer | None = None,
     *,
-    gate_layer: int = 16,
+    gate_layer: int | None = None,
     threshold: float = 0.5,
+    chat_template: bool = True,
 )
 ```
 
@@ -33,8 +40,15 @@ SafeSwitchTrainer(
 |---|---|---|---|
 | `model` | `PreTrainedModel` | required | Model to guard |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
-| `gate_layer` | `int` | `16` | Decoder layer whose last-token hidden state feeds the probe (`probe_layer` on the wrapper) |
+| `gate_layer` | `int \| None` | `None` | Hidden-state layer that feeds the probe (`probe_layer` on the wrapper); `None` is layer 16 on a 32-layer model; `None` scales them to the model's depth (for example 6 on 12 layers). `safetune.configure(legacy_steer_layers=True)` keeps 16 on any depth |
 | `threshold` | `float` | `0.5` | `p_unsafe` threshold above which the gate fires (`unsafe_threshold` on the wrapper) |
+| `chat_template` | `bool` | `True` | Format the calibration prompts with the tokenizer's chat template before fitting the prober |
+
+The refusal handling (logit bias or refusal head) is applied per prompt: only
+the prompts of a batch scored above `threshold` get it.
+`wrapped.predict_unsafe_probabilities(input_ids, attention_mask)` returns one
+probability per prompt; `predict_unsafe_probability` takes a single prompt and
+raises for a batch.
 
 ## Full example
 
@@ -49,7 +63,10 @@ trainer = steer.SafeSwitchTrainer(
 wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompts)
 
 # If the gate flags the prompt, a logit bias steers generation toward refusal
-output = wrapped.generate(**tokenizer("How do I make a weapon?", return_tensors="pt"))
+prompt = tokenizer.apply_chat_template(
+    [{"role": "user", "content": "How do I make a weapon?"}],
+    tokenize=False, add_generation_prompt=True)
+output = wrapped.generate(**tokenizer(prompt, return_tensors="pt"))
 ```
 
 ## When to use

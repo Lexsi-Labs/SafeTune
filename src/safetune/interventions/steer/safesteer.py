@@ -46,6 +46,7 @@ unaffected.
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional, Sequence
+from safetune._refusal_helpers import _get_decoder_layers
 
 try:  # torch is the only hard dependency for the steering math
     import torch
@@ -221,14 +222,10 @@ class SafeSteerModel:
     # Layer access
     # ------------------------------------------------------------------
     def _decoder_layers(self) -> Any:
-        m = self.model
-        if hasattr(m, "model") and hasattr(m.model, "layers"):
-            return m.model.layers
-        if hasattr(m, "transformer") and hasattr(m.transformer, "h"):
-            return m.transformer.h
-        if hasattr(m, "layers"):
-            return m.layers
-        raise AttributeError("SafeSteerModel: could not locate transformer layers")
+        layers = _get_decoder_layers(self.model)
+        if not layers:
+            raise AttributeError("Could not locate transformer layers on model")
+        return layers
 
     # ------------------------------------------------------------------
     # Steering-vector selection: per-layer (paper) or shared
@@ -336,7 +333,7 @@ class SafeSteerModel:
 
     @classmethod
     def from_pretrained(cls, path: str, **kwargs: Any) -> "SafeSteerModel":
-        from transformers import AutoModelForCausalLM
+        from safetune._refusal_helpers import _load_pretrained_lm
 
-        model = AutoModelForCausalLM.from_pretrained(path)
+        model = _load_pretrained_lm(path)
         return cls(model, **kwargs)

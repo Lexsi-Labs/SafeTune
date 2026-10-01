@@ -37,7 +37,9 @@ run_text_bon.py``):
   characters.
 * We expose the per-variant trace (variant string, response, judge output)
   so you can audit which perturbations the defense missed.
-* The default judge is :class:`StringMatchJudge` (GCG 49-prefix). Swap to
+* The default judge is :class:`StringMatchJudge` in the runtime
+  ``advbench_scorer`` mode: the 12 refusal prefixes by default (before: the GCG
+  29-entry list, now ``StringMatchJudge(mode="gcg")``). Swap to
   any object with a ``score(rows)`` method (e.g. ``HFJudge`` for HarmBench).
 
 Success criterion (faithful to the authors' grader)

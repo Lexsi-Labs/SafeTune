@@ -47,6 +47,8 @@ try:
         SafeSwitchConfig as _CoreSafeSwitchConfig,
         SafeSwitchRunner,
         SafetyProber,
+        _single,
+        prober_probs,
     )
     _IMPORT_ERROR: Optional[Exception] = None
 except Exception as _e:  # pragma: no cover
@@ -103,10 +105,10 @@ class MLPProber:
             pooled = hs[:, -1, :]
         return pooled.float()
 
-    def predict_unsafe_probability(
+    def predict_unsafe_probabilities(
         self, hidden_states: Any, attention_mask: Any = None
-    ) -> float:
-        """Return ``P(unsafe)`` for the current hidden-state batch."""
+    ) -> List[float]:
+        """Return ``P(unsafe)`` for each prompt of the batch."""
         import torch
 
         if self._net is None:
@@ -118,8 +120,11 @@ class MLPProber:
         self._net.eval()
         with torch.no_grad():
             logits = self._net(feats)
-            prob = torch.softmax(logits, dim=-1)[0, 1]
-        return float(prob)
+            return torch.softmax(logits, dim=-1)[:, 1].tolist()
+
+    def predict_unsafe_probability(self, hidden_states: Any, attention_mask: Any = None) -> float:
+        """``P(unsafe)`` for a single prompt."""
+        return _single(self.predict_unsafe_probabilities(hidden_states, attention_mask))
 
     def load_state_dict(self, state_dict: Any) -> None:
         self.build()
@@ -145,27 +150,17 @@ class TwoStageProber:
         self.instr_prober = instr_prober
         self.compliance_prober = compliance_prober
 
-    def predict_unsafe_probability(
+    def predict_unsafe_probabilities(
         self, hidden_states: Any, attention_mask: Any = None
-    ) -> float:
-        p_instr = _prober_prob(self.instr_prober, hidden_states, attention_mask)
+    ) -> List[float]:
+        p_instr = prober_probs(self.instr_prober, hidden_states, attention_mask)
         if self.compliance_prober is None:
             return p_instr
-        p_comp = _prober_prob(
-            self.compliance_prober, hidden_states, attention_mask
-        )
-        return p_instr * p_comp
+        p_comp = prober_probs(self.compliance_prober, hidden_states, attention_mask)
+        return [a * b for a, b in zip(p_instr, p_comp)]
 
-
-def _prober_prob(prober: Any, hidden_states: Any, attention_mask: Any) -> float:
-    """Call a prober's probability method, tolerant of signature variants."""
-    try:
-        return float(
-            prober.predict_unsafe_probability(hidden_states, attention_mask)
-        )
-    except TypeError:
-        # core SafetyProber takes hidden_states only
-        return float(prober.predict_unsafe_probability(hidden_states))
+    def predict_unsafe_probability(self, hidden_states: Any, attention_mask: Any = None) -> float:
+        return _single(self.predict_unsafe_probabilities(hidden_states, attention_mask))
 
 
 class SafeSwitchModel:
@@ -315,15 +310,15 @@ class SafeSwitchModel:
             )
         return out.hidden_states, pilot_mask
 
-    def _compute_p_unsafe(self, input_ids: Any, attention_mask: Any = None) -> float:
-        """Two-stage unsafe probability (paper Eq. 2)."""
+    def _compute_p_unsafe(self, input_ids: Any, attention_mask: Any = None) -> List[float]:
+        """Two-stage unsafe probability (paper Eq. 2), one per prompt."""
 
         # stage 1 -- instruction prober on prefill
         try:
             hs_prefill = self._prefill_hidden_states(input_ids, attention_mask)
-            p_instr = _prober_prob(self.instr_prober, hs_prefill, attention_mask)
+            p_instr = prober_probs(self.instr_prober, hs_prefill, attention_mask)
         except Exception:
-            return 0.0
+            return [0.0] * len(input_ids)
 
         if self.compliance_prober is None:
             return p_instr
@@ -335,21 +330,35 @@ class SafeSwitchModel:
                 hs_pilot, pilot_mask = res
             else:
                 hs_pilot, pilot_mask = res, None
-            p_comp = _prober_prob(self.compliance_prober, hs_pilot, pilot_mask)
+            p_comp = prober_probs(self.compliance_prober, hs_pilot, pilot_mask)
         except Exception:
             # if stage 2 fails, fall back to stage-1 estimate only
             return p_instr
-        return p_instr * p_comp
+        return [a * b for a, b in zip(p_instr, p_comp)]
 
-    def _generate_with_refusal_head(self, input_ids: Any, **kwargs: Any) -> Any:
+    def _generate_with_refusal_head(self, input_ids: Any, rows: Any = None, **kwargs: Any) -> Any:
         """Swap in the refusal head, generate, restore the base head.
 
         Faithful to the repo: the trained refusal head is a full LM-head
-        weight tensor substituted for `model.lm_head.weight`.
+        weight tensor substituted for `model.lm_head.weight`. ``rows`` (bool per
+        prompt): only those prompts get the refusal head; None = all.
         """
         import torch
 
         head = self._lm_head()
+        if rows is not None and not rows.all():
+            new_weight = getattr(self.refusal_head, "weight", self.refusal_head)
+
+            def _per_row(_m: Any, inp: Any, out: Any) -> Any:
+                r = rows.to(out.device)
+                out[r] = inp[0][r] @ new_weight.to(out.dtype).to(out.device).T
+                return out
+
+            handle = head.register_forward_hook(_per_row)
+            try:
+                return self.model.generate(input_ids=input_ids, **kwargs)
+            finally:
+                handle.remove()
         self._base_head_weight = head.weight.data
         try:
             new_weight = self.refusal_head
@@ -386,18 +395,24 @@ class SafeSwitchModel:
         if not self._faithful_path_available():
             return self._impl.generate(input_ids, **kwargs)
 
-        attention_mask = kwargs.get("attention_mask")
-        p_unsafe = self._compute_p_unsafe(input_ids, attention_mask)
+        import torch
 
-        if p_unsafe > self.unsafe_threshold:
-            return self._generate_with_refusal_head(input_ids, **kwargs)
+        attention_mask = kwargs.get("attention_mask")
+        unsafe = torch.tensor([p > self.unsafe_threshold
+                               for p in self._compute_p_unsafe(input_ids, attention_mask)])
+        if unsafe.any():
+            return self._generate_with_refusal_head(input_ids, rows=unsafe, **kwargs)
         return self.model.generate(input_ids=input_ids, **kwargs)
+
+    def predict_unsafe_probabilities(self, input_ids: Any, attention_mask: Any = None) -> List[float]:
+        """The two-stage ``p_unsafe`` score for each prompt of a batch."""
+        return self._compute_p_unsafe(input_ids, attention_mask)
 
     def predict_unsafe_probability(
         self, input_ids: Any, attention_mask: Any = None
     ) -> float:
         """Expose the two-stage ``p_unsafe`` score for a given prompt."""
-        return self._compute_p_unsafe(input_ids, attention_mask)
+        return _single(self._compute_p_unsafe(input_ids, attention_mask))
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self.model(*args, **kwargs)
@@ -431,7 +446,7 @@ class SafeSwitchModel:
 
     @classmethod
     def from_pretrained(cls, path: str, **kwargs: Any) -> "SafeSwitchModel":
-        from transformers import AutoModelForCausalLM
+        from safetune._refusal_helpers import _load_pretrained_lm
 
-        model = AutoModelForCausalLM.from_pretrained(path)
+        model = _load_pretrained_lm(path)
         return cls(model, **kwargs)

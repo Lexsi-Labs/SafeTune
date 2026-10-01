@@ -27,8 +27,8 @@ method.  It has two decoupled components:
       ordinary ``labels``, a binary ``safe`` flag.  For examples flagged
       ``safe=true`` a second label stream ``safe_labels`` is built by
       replacing **every** non-ignored response token with the single
-      transition-to-refusal token id (``19701`` for LLaMA-3, the first token
-      of the refusal).  A cross-entropy loss is then taken against
+      transition-to-refusal token id (``19701`` for LLaMA-3, which is
+      "Sorry").  A cross-entropy loss is then taken against
       ``safe_labels``.  This trains the model, at *every* position of the
       harmful continuation, to predict the transition-to-refusal token --
       reinforcing the harmful->safe transition continuously.
@@ -49,9 +49,9 @@ subclass that only applied component (1).  DeRTa emits SFT-style
 is a mismatch; and the per-token RTO objective -- the defining mechanism of
 the paper -- was absent.  This rewrite:
 
-  * bases :class:`DeRTaTrainer` on :class:`trl.SFTTrainer` (the correct
+  * bases :class:`DeRTaHFTrainer` on :class:`trl.SFTTrainer` (the correct
     SFT base, matching the authors' causal-LM training script);
-  * implements RTO faithfully inside :meth:`DeRTaTrainer.compute_loss` as a
+  * implements RTO faithfully inside :meth:`DeRTaHFTrainer.compute_loss` as a
     real per-token transition cross-entropy against the refusal token id,
     mixed with the standard MLE loss.
 
@@ -77,19 +77,21 @@ try:
     from safetune.core.data_compiler.derta import (
         DeRTaConfig as _CoreDeRTaConfig,
         DeRTaFormatter,
+        RTO_REFUSAL_TEXT,
+        refusal_token_id,
     )
     _DERTA_IMPORT_ERROR: Optional[Exception] = None
 except Exception as _e:  # pragma: no cover
     _CoreDeRTaConfig = None  # type: ignore[assignment]
     DeRTaFormatter = None  # type: ignore[assignment]
+    RTO_REFUSAL_TEXT, refusal_token_id = "Sorry", None  # type: ignore[assignment]
     _DERTA_IMPORT_ERROR = _e
 
 
-# Transition-to-refusal token id used by the authors for LLaMA-3 (the id of
-# the first token of the refusal, "I").  Exposed as a config field so callers
-# on other tokenizers can override it; ``None`` means "resolve it from the
-# trainer's tokenizer at run time" (see ``DeRTaTrainer._resolve_refusal_token``).
-_LLAMA3_REFUSAL_TOKEN_ID = 19701
+# The authors hardcode 19701, which is "Sorry" in the Llama-3 tokenizer. The
+# default ``rto_refusal_token_id=None`` derives the id from ``rto_refusal_text``
+# with the trainer's tokenizer (19701 on Llama-3); pass
+# ``rto_refusal_token_id=19701`` to force the old id on any tokenizer.
 
 
 if _TRL_IMPORT_ERROR is None:
@@ -116,10 +118,33 @@ if _TRL_IMPORT_ERROR is None:
         # Token id the model must predict at every harmful-continuation position
         # (the transition-to-refusal token).  ``None`` -> resolve from the
         # tokenizer at run time using ``rto_refusal_text``.
-        rto_refusal_token_id: Optional[int] = _LLAMA3_REFUSAL_TOKEN_ID
+        rto_refusal_token_id: Optional[int] = None
         # Text whose first token id is used as the transition token when
-        # ``rto_refusal_token_id`` is None.
-        rto_refusal_text: str = "I"
+        # ``rto_refusal_token_id`` is None ("Sorry" -> 19701 on Llama-3).
+        rto_refusal_text: str = RTO_REFUSAL_TEXT
+        # True: the old objective, MLE over every response token (harmful
+        # prefix included) plus rto_weight x a separate RTO loss on the
+        # prefix + refusal rows. None: the authors' single cross-entropy (MLE
+        # rows: safe response only; RTO rows: every token -> refusal token),
+        # or the old one with safetune.configure(legacy_derta=True).
+        legacy_derta: Optional[bool] = None
+        # The legacy RTO term reads the logits. trl >= 1's default
+        # "chunked_nll" returns none, which silently dropped that term; "nll"
+        # (trl 0.x's default, same loss) keeps them.
+        loss_type: str = "nll"
+
+        def __post_init__(self):
+            # TRL turns bf16=None into True whatever the hardware, so a bare
+            # DeRTaConfig() raises on CPU. None follows the runtime dtype
+            # instead (safetune.configure(device=..., dtype=...)); pass bf16
+            # explicitly to override.
+            if self.bf16 is None and not self.fp16:
+                import torch
+                from safetune.config import resolve_device, resolve_dtype
+                device = resolve_device()
+                self.bf16 = (resolve_dtype(device=device) == torch.bfloat16
+                             and resolve_dtype("auto", device) == torch.bfloat16)
+            super().__post_init__()
 else:  # pragma: no cover
     class DeRTaConfig(object):  # type: ignore[assignment]
         pass
@@ -131,6 +156,7 @@ def prepare_derta_dataset(
     max_prefix_ratio: float = 0.8,
     enable_rto: bool = True,
     seed: int = 42,
+    legacy: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
     """Apply DeRTa data augmentation (component 1, MLE-with-harmful-prefix)
     to ``examples`` before training.
@@ -138,35 +164,41 @@ def prepare_derta_dataset(
     Each example must have keys ``prompt``, ``harmful_response``,
     ``safe_response``.
 
-    The returned rows carry a ``safe`` flag (``1`` for the prefix-augmented
-    / RTO rows, ``0`` for plain rows) which :class:`DeRTaTrainer` reads to
-    decide where to apply the per-token RTO transition loss.  This mirrors the
-    ``"safe"`` field in the authors' ``generate_training_data.py``.
+    The returned rows carry a ``safe`` flag (``1`` for the RTO rows, ``0``
+    otherwise) which :class:`DeRTaHFTrainer` reads to decide which rows get the
+    refusal-token targets.  This mirrors the ``"safe"`` field in the authors'
+    ``generate_training_data.py`` (``"true"`` only for ``Sorry_data``).
+    ``legacy`` (default: ``safetune.configure(legacy_derta=...)``, False) gives
+    the old rows, with ``safe=1`` on the prefix-augmented rows too.
     """
     if _DERTA_IMPORT_ERROR is not None:
         raise ImportError(
             "safetune.core.data_compiler.derta is unavailable"
         ) from _DERTA_IMPORT_ERROR
+    if legacy is None:
+        from safetune.config import get_config
+        legacy = get_config().legacy_derta
     cfg = _CoreDeRTaConfig(
         num_prefix_variants=num_prefix_variants,
         max_prefix_ratio=max_prefix_ratio,
         enable_rto=enable_rto,
         seed=seed,
+        legacy=legacy,
     )
     rows = DeRTaFormatter(cfg).augment_dataset(examples)
-    
+
     # Tag each row with the binary ``safe`` flag the RTO loss keys on.
     # CRITICAL FIX: Cast to integer (1 or 0) rather than boolean (True/False).
     # Standard HF data collators often crash when trying to batch lists of booleans.
+    rto_rows = ("mle_prefix", "rto") if legacy else ("rto",)
     for row in rows:
         if "safe" not in row:
-            is_safe = row.get("augmentation") in ("mle_prefix", "rto")
-            row["safe"] = int(is_safe)
-            
+            row["safe"] = int(row.get("augmentation") in rto_rows)
+
     return rows
 
 
-class DeRTaTrainer(SFTTrainer if _TRL_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class DeRTaHFTrainer(SFTTrainer if _TRL_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """:class:`trl.SFTTrainer` implementing the full DeRTa objective.
 
     Component (1), MLE with Harmful Response Prefix, is the data-level
@@ -192,7 +224,7 @@ class DeRTaTrainer(SFTTrainer if _TRL_IMPORT_ERROR is None else object):  # type
     ) -> None:
         if _TRL_IMPORT_ERROR is not None:
             raise ImportError(
-                "trl is required for DeRTaTrainer"
+                "trl is required for DeRTaHFTrainer"
             ) from _TRL_IMPORT_ERROR
         if _DERTA_IMPORT_ERROR is not None:
             raise ImportError(
@@ -214,12 +246,19 @@ class DeRTaTrainer(SFTTrainer if _TRL_IMPORT_ERROR is None else object):  # type
 
         self._derta_enable_rto = bool(getattr(self.args, "enable_rto", True))
         self._derta_rto_weight = float(getattr(self.args, "rto_weight", 1.0))
-        self._derta_refusal_token_id = getattr(
-            self.args, "rto_refusal_token_id", _LLAMA3_REFUSAL_TOKEN_ID
-        )
-        self._derta_refusal_text = str(getattr(self.args, "rto_refusal_text", "I"))
+        self._derta_refusal_token_id = getattr(self.args, "rto_refusal_token_id", None)
+        self._derta_refusal_text = str(getattr(self.args, "rto_refusal_text", RTO_REFUSAL_TEXT))
         # Resolved lazily on first use (needs the tokenizer / model).
         self._derta_resolved_token_id: Optional[int] = None
+        self._derta_legacy = getattr(self.args, "legacy_derta", None)
+        if self._derta_legacy is None:
+            from safetune.config import get_config
+            self._derta_legacy = get_config().legacy_derta
+        if not self._derta_legacy and self._derta_rto_weight != 1.0:
+            import warnings
+            warnings.warn("DeRTa: rto_weight only applies to the legacy two-term loss "
+                          "(legacy_derta=True); the authors' objective is one "
+                          "cross-entropy over both row types", stacklevel=2)
 
     # ------------------------------------------------------------------
     # RTO helpers
@@ -227,10 +266,11 @@ class DeRTaTrainer(SFTTrainer if _TRL_IMPORT_ERROR is None else object):  # type
     def _resolve_refusal_token(self, model: Any) -> int:
         """Return the transition-to-refusal token id.
 
-        Uses the explicit ``rto_refusal_token_id`` config field when set
-        (paper default: ``19701`` for LLaMA-3).  Otherwise encodes
-        ``rto_refusal_text`` with the trainer's tokenizer and takes its first
-        token -- the authors' "first token of the refusal" definition.
+        Uses the explicit ``rto_refusal_token_id`` config field when set.
+        Otherwise takes the first token of ``rto_refusal_text`` ("Sorry") under
+        the trainer's tokenizer, which is the authors' 19701 on Llama-3.
+        Raises when there is no tokenizer to derive it from, or when the id is
+        outside the model's vocabulary.
         """
         if self._derta_resolved_token_id is not None:
             return self._derta_resolved_token_id
@@ -240,22 +280,16 @@ class DeRTaTrainer(SFTTrainer if _TRL_IMPORT_ERROR is None else object):  # type
             self, "tokenizer", None
         )
 
-        if token_id is None and tokenizer is not None:
-            ids = tokenizer.encode(
-                self._derta_refusal_text, add_special_tokens=False
-            )
-            if ids:
-                token_id = int(ids[0])
-
         if token_id is None:
-            # Last-resort fallback so the term still computes; will be a
-            # no-op-quality signal but never crashes.
-            token_id = 0
+            if tokenizer is None:
+                raise ValueError("DeRTa RTO needs a tokenizer (processing_class) "
+                                 "or an explicit rto_refusal_token_id")
+            token_id = refusal_token_id(tokenizer, self._derta_refusal_text)
 
-        # Clamp into the model's vocabulary to stay valid across tokenizers.
         vocab_size = getattr(getattr(model, "config", None), "vocab_size", None)
         if vocab_size is not None and not (0 <= token_id < int(vocab_size)):
-            token_id = int(vocab_size) - 1
+            raise ValueError(f"DeRTa refusal token id {token_id} is outside the "
+                             f"model vocabulary ({vocab_size})")
 
         self._derta_resolved_token_id = int(token_id)
         return self._derta_resolved_token_id
@@ -330,13 +364,36 @@ class DeRTaTrainer(SFTTrainer if _TRL_IMPORT_ERROR is None else object):  # type
     # ------------------------------------------------------------------
     # Loss
     # ------------------------------------------------------------------
-    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):  # type: ignore[override]
-        """Standard MLE loss + RTO per-token transition loss.
+    def _relabel_rto_rows(self, model: Any, inputs: dict) -> dict:
+        """The authors' ``safe_labels``: on rows flagged ``safe`` every response
+        token's label becomes the refusal token; other rows keep their labels."""
+        import torch
 
-        The MLE term (component 1, including the harmful-prefix augmentation
-        applied to the data) is produced by the base :class:`trl.SFTTrainer`.
-        The RTO term (component 2) is added here.
+        safe = self._get_safe_mask(inputs)
+        labels = inputs.get("labels")
+        if safe is None or labels is None:
+            return inputs
+        rows = torch.as_tensor(safe, device=labels.device).reshape(-1).bool().view(-1, 1)
+        labels = labels.clone()
+        labels[rows & (labels != -100)] = self._resolve_refusal_token(model)
+        return {**inputs, "labels": labels}
+
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):  # type: ignore[override]
+        """DeRTa loss.
+
+        Default: the authors' single cross-entropy (``MyLlamaForCausalLM``):
+        MLE rows train on the safe response only (their harmful prefix is
+        masked by the data), RTO rows on the refusal token at every position.
+        ``legacy_derta=True``: the base MLE loss over every labelled token plus
+        ``rto_weight`` x a separate RTO loss.
         """
+        if self._derta_enable_rto and not self._derta_legacy:
+            inputs = self._relabel_rto_rows(model, inputs)
+            try:
+                return super().compute_loss(model, inputs, return_outputs=return_outputs,
+                                            num_items_in_batch=num_items_in_batch)
+            except TypeError:
+                return super().compute_loss(model, inputs, return_outputs=return_outputs)
         try:
             result = super().compute_loss(
                 model, inputs, return_outputs=True, num_items_in_batch=num_items_in_batch
@@ -359,3 +416,7 @@ class DeRTaTrainer(SFTTrainer if _TRL_IMPORT_ERROR is None else object):  # type
                 loss = loss + (self._derta_rto_weight * rto_loss).to(loss.dtype)
 
         return (loss, outputs) if return_outputs else loss
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, DeRTaTrainer="DeRTaHFTrainer")  # old name, remove in 0.3

@@ -16,6 +16,11 @@ class LoaderResolver:
         path = Path(source)
 
         if path.exists():
+            if path.is_dir() and (path / "README.md").is_file():
+                # An HF dataset folder (e.g. a CuratorKIT export): its README
+                # `configs:` names the data files, so manifest/provenance files
+                # are never read as data. load_dataset(dir, config, split=...).
+                return HFLoader(source, **kwargs)
             if path.is_dir():
                 # Directory loader usually doesn't need config_name, but might need others
                 return DirectoryLoader(source) 

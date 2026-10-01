@@ -23,8 +23,13 @@ ACL 2025, arXiv:2504.01550.
 
 ```python
 RepBendTrainer(
-    model: PreTrainedModel,
+    model: PreTrainedModel | None = None,
     tokenizer: PreTrainedTokenizer | None = None,
+    *,
+    model_id: str | None = None,     # load the model from here when `model` is None
+    results_dir: str | None = None,  # default: the runner's results directory
+    drift_task: str | None = None,
+    **kwargs,                        # unknown keys are warned about, not used
 )
 ```
 
@@ -34,7 +39,9 @@ are configured on the wrapper, `RepBendModel`:
 ```python
 RepBendModel(
     model,
+    safe_directions: dict[int, Tensor] | None = None,  # diagnostics only; the loss does not use them
     target_layers: list[int] | None = None,   # layers the loss is measured on (paper: ~20+)
+    bending_strength: float = 0.3,            # back-compat alias, kept in the signature
     *,
     loss_alpha: float = 1.0,     # safe term
     loss_beta: float = 1.0,      # unsafe term
@@ -42,6 +49,7 @@ RepBendModel(
     loss_epsilon: float = 1.0,   # KL retain term
     loss_eta: float = 0.0,       # safe-unsafe term (needs paired data)
     kl_temperature: float = 2.0,
+    capture_hook: bool = False,  # legacy diagnostic activation capture; applies nothing
 )
 ```
 
@@ -49,8 +57,11 @@ RepBendModel(
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `model` | `PreTrainedModel` | required | Model to wrap |
+| `model` | `PreTrainedModel` | `None` | Model to wrap |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
+| `model_id` | `str` | `None` | Hub id / path to load the model from when `model` is `None` |
+| `results_dir` | `str` | `None` | Output directory; `None` is the runner default |
+| `drift_task` | `str` | `None` | Optional drift-evaluation task |
 
 ## Full example
 

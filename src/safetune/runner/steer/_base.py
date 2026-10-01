@@ -7,9 +7,11 @@ import torch
 
 from safetune.runner.utils.eval_runner import (
     eval_safety, eval_utility, all_metrics, safety_mean, utility_mean, utility_metrics,
+    bench_metric_key,
 )
 from safetune.runner.utils.results_writer import ResultsWriter, DEFAULT_RESULTS_DIR
 from safetune.runner.utils.model_utils import free
+from safetune.config import get_config, warn_unknown_kwargs
 
 
 S = None
@@ -53,6 +55,7 @@ class _SteerBase:
         self.results_dir = results_dir or DEFAULT_RESULTS_DIR
         self.drift_task = drift_task
         self._extra = kwargs
+        warn_unknown_kwargs(self, kwargs)
 
     @property
     def model(self):
@@ -76,9 +79,10 @@ class _SteerBase:
     def tok(self, v):
         self._tok = v
 
-    def calibrate(self, harmful=None, harmless=None, *, calib_n: int = 256,
+    def calibrate(self, harmful=None, harmless=None, *, calib_n: int = None,
                   out_dir: str = None, **kwargs):
         _ensure_steer_imports()
+        calib_n = calib_n or get_config().calib_n
         wrapped = self._do_calibrate(harmful, harmless, calib_n=calib_n, **kwargs)
         return wrapped, (out_dir or self.model_id)
 
@@ -97,21 +101,21 @@ class _SteerBase:
         from safetune.evaluate.suite.evaluate import evaluate
         dt = drift_task or self.drift_task
         from safetune.runner.utils.data_utils import SAFETY_BENCHES
+        from safetune.evaluate.suite.benchmarks import split_orbench
         result = evaluate(
             model=wrapped_model,
             tokenizer=self.tok,
-            benchmarks=SAFETY_BENCHES,
+            benchmarks=split_orbench(SAFETY_BENCHES),
             judge="wildguard",
-            batch_size=kwargs.get("batch_size", 4),
-            max_new_tokens=kwargs.get("max_new_tokens", 256),
+            batch_size=kwargs.get("batch_size", get_config().steer_batch_size),
+            max_new_tokens=kwargs.get("max_new_tokens", get_config().steer_max_new_tokens),
             drift_task=dt,
         )
         m: dict = {}
         for bench, bench_result in result.items():
             rr = bench_result.get("refusal_rate")
             if rr is not None:
-                key = bench.replace("_v1", "")
-                m[f"{key}_refusal"] = rr
+                m[bench_metric_key(bench)] = rr
         # Runtime steering doesn't change weights, so capability is that of the
         # base model — run the utility eval on model_id (mirrors eval_vllm).
         # Without this call utility_metrics reads nothing and utility_mean is
@@ -147,6 +151,7 @@ class _SteerBase:
             build_vllm_eval_backend, VLLM_UNSUPPORTED,
         )
         from safetune.evaluate.suite.evaluate import evaluate_with_vllm_backend
+        from safetune.evaluate.suite.benchmarks import split_orbench
         from safetune.runner.utils.data_utils import SAFETY_BENCHES
 
         cls = type(wrapped_model).__name__
@@ -160,12 +165,12 @@ class _SteerBase:
             name = self.METHOD.lower().replace(" ", "_") or "steer"
             return self.eval_live(name, wrapped_model, drift_task=domain)
 
-        max_new_tokens = vllm_kwargs.pop("max_new_tokens", 256)
+        max_new_tokens = vllm_kwargs.pop("max_new_tokens", get_config().steer_max_new_tokens)
         backend = build_vllm_eval_backend(self.model_id, wrapped_model, **vllm_kwargs)
 
         result = evaluate_with_vllm_backend(
             backend,
-            benchmarks=SAFETY_BENCHES,
+            benchmarks=split_orbench(SAFETY_BENCHES),
             judge="wildguard",
             max_new_tokens=max_new_tokens,
             drift_task=domain or self.drift_task,
@@ -175,8 +180,7 @@ class _SteerBase:
         for bench, bench_result in result.items():
             rr = bench_result.get("refusal_rate")
             if rr is not None:
-                key = bench.replace("_v1", "")
-                m[f"{key}_refusal"] = rr
+                m[bench_metric_key(bench)] = rr
 
         del backend
         import gc as _gc
@@ -211,6 +215,6 @@ class _SteerBase:
         print(f"[eval] safety={s_str}  utility={u_str}")
         return m
 
-    def _default_calib(self, n=256):
+    def _default_calib(self, n=None):
         from safetune.runner.utils.data_utils import refusal_prompt_pairs_large
         return refusal_prompt_pairs_large(n)

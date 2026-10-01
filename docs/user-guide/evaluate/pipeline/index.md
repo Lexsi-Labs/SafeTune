@@ -45,6 +45,10 @@ with these keys:
 
 So read a metric as `results["harmbench"]["asr"]`, not `results["asr"]`.
 
+Evaluation is strict by default: a benchmark that fails to load or score
+raises. With `strict=False` or `safetune.configure(eval_strict=False)` its
+entry is `{"error": "<type>: <message>"}` and the other benchmarks still run.
+
 ## evaluate_with_vllm_backend()
 
 ```python

@@ -9,6 +9,7 @@ import torch
 from safetune.runner.utils.eval_runner import eval_safety, eval_utility, all_metrics
 from safetune.runner.utils.results_writer import ResultsWriter, DEFAULT_RESULTS_DIR
 from safetune.runner.utils.model_utils import free, derive_model_id
+from safetune.config import get_config, warn_unknown_kwargs
 
 
 
@@ -31,6 +32,7 @@ class _RecoverBase:
         self.results_dir = results_dir or DEFAULT_RESULTS_DIR
         self.drift_task = drift_task
         self._extra = kwargs
+        warn_unknown_kwargs(self, kwargs)
 
     @property
     def model(self):
@@ -69,10 +71,8 @@ class _RecoverBase:
             torch.cuda.synchronize()
 
         dt = drift_task or self.drift_task
-        gpu_mem = kwargs.pop(
-            "gpu_memory_utilization",
-            float(os.environ.get("SAFETUNE_GPU_MEM", "0.75")),
-        )
+        gpu_mem = (kwargs.pop("gpu_memory_utilization", None)
+                   or get_config().gpu_memory_utilization or 0.75)
         eval_safety(folder_name, model_path, results_dir=self.results_dir,
                     gpu_memory_utilization=gpu_mem,
                     **{k: v for k, v in kwargs.items()
@@ -88,7 +88,8 @@ class _RecoverBase:
         from safetune.runner.utils.model_utils import save_checkpoint, load_tok
         tok = tokenizer or load_tok(self.model_id)
         ckpt_dir = os.path.join(self.results_dir, "checkpoints")
-        return save_checkpoint(patched_model, tok, name, out_dir=ckpt_dir)
+        return save_checkpoint(patched_model, tok, name, out_dir=ckpt_dir,
+                               method=f"{self.PILLAR}.{self.METHOD}")
 
     def save_results(
         self,
@@ -112,11 +113,10 @@ class _RecoverBase:
         if not isinstance(model_or_path, str):
             tok = load_tok(self.model_id)
             name = self.METHOD.lower().replace(" ", "_") or "recover"
-            path = os.path.join(self.results_dir, "checkpoints", name)
-            os.makedirs(path, exist_ok=True)
-            model_or_path.save_pretrained(path)
-            tok.save_pretrained(path)
-            model_or_path = path
+            from safetune.runner.utils.model_utils import save_checkpoint
+            model_or_path = save_checkpoint(model_or_path, tok, name,
+                                            out_dir=os.path.join(self.results_dir, "checkpoints"),
+                                            method=f"{self.PILLAR}.{self.METHOD}")
         m = self.eval(os.path.basename(model_or_path), model_or_path, drift_task=domain)
         print(m)
         from safetune.runner.utils.eval_runner import fmt_metric

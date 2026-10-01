@@ -11,6 +11,7 @@ Requires drifted, base, and aligned model checkpoints. Set env vars:
 For a quick runnable demo instead:
     python examples/quickstart/recover_quickstart.py
 """
+import copy
 import os
 from safetune.runner import recover
 from safetune.runner.utils.model_utils import load_tok, load_model_cpu
@@ -34,12 +35,15 @@ def main():
     base_model = load_model_cpu(_BASE_ID)
     aligned_model = load_model_cpu(_ALIGNED_ID)
 
+    # apply() mutates its model in-place (see RecoverBase.apply's docstring), so each
+    # method needs its own copy of drifted_model -- sharing one would have SOMF patch
+    # SafeMerge's already-patched output, and WiseFT patch that again.
     strategies = {
-        "SafeMerge": recover.SafeMergeTrainer(model_id=_MODEL_ID, model=drifted_model,
+        "SafeMerge": recover.SafeMergeTrainer(model_id=_MODEL_ID, model=copy.deepcopy(drifted_model),
                                               base_model=base_model, aligned_model=aligned_model),
-        "SOMF":      recover.SOMFTrainer(model_id=_MODEL_ID, model=drifted_model,
+        "SOMF":      recover.SOMFTrainer(model_id=_MODEL_ID, model=copy.deepcopy(drifted_model),
                                          base_model=base_model, aligned_model=aligned_model),
-        "WiseFT":    recover.WiseFTTrainer(model_id=_MODEL_ID, model=drifted_model,
+        "WiseFT":    recover.WiseFTTrainer(model_id=_MODEL_ID, model=copy.deepcopy(drifted_model),
                                            aligned_model=aligned_model, alpha=0.5),
     }
 

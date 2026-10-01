@@ -7,6 +7,7 @@ the adapter returns None and SafeTune works without circuits.
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -19,13 +20,18 @@ from .interface import (
 logger = logging.getLogger(__name__)
 
 
-def load_circuit_info_from_file(filepath: str) -> Optional[CircuitInfo]:
+def load_circuit_info_from_file(filepath: str, *, top_fraction: float = 0.2) -> Optional[CircuitInfo]:
     """
     Load circuit info from a JSON or YAML file (CircuitKIT output format).
 
     Expected structure (flexible):
     - "safety_units": { "layer_indices": [], "module_names": [], ... }
     - "layer_suggestions": { "target_modules": [], "layer_subset": [] }
+    - or only CircuitKIT's "node_scores" ({node name: score}, e.g. a
+      ``*_scores.json`` from CircuitKIT < 0.2): both are then derived from the
+      top ``top_fraction`` of nodes by score (see ``circuit_info_from_node_scores``).
+
+    Raises ``ValueError`` when the file has none of these keys.
     """
     path = Path(filepath)
     if not path.exists():
@@ -46,10 +52,71 @@ def load_circuit_info_from_file(filepath: str) -> Optional[CircuitInfo]:
         logger.warning(f"Failed to parse circuit file {filepath}: {e}")
         return None
 
-    return _dict_to_circuit_info(data, raw_output_path=filepath)
+    return _dict_to_circuit_info(data, raw_output_path=filepath, top_fraction=top_fraction)
 
 
-def _dict_to_circuit_info(data: Dict[str, Any], raw_output_path: Optional[str] = None) -> CircuitInfo:
+# CircuitKIT node names: "A3.5" (layer 3, head 5), "MLP 3" (node) or "L3.42" (neuron).
+_HEAD = re.compile(r"A(\d+)\.(\d+)$")
+_MLP = re.compile(r"(?:MLP |L)(\d+)(?:\.\d+)?$")
+# Hugging Face module names of Llama-layout decoders (also Cohere, Qwen2, Mistral).
+_ATTN_PROJ = ("q_proj", "k_proj", "v_proj", "o_proj")
+_MLP_PROJ = ("gate_proj", "up_proj", "down_proj")
+
+
+def circuit_info_from_node_scores(
+    node_scores: Dict[str, float],
+    *,
+    top_fraction: float = 0.2,
+    layers_path: str = "model.layers",
+    attn_module: str = "self_attn",
+    mlp_module: str = "mlp",
+    attn_proj: tuple = _ATTN_PROJ,
+    mlp_proj: tuple = _MLP_PROJ,
+    raw_output_path: Optional[str] = None,
+) -> CircuitInfo:
+    """CircuitInfo from CircuitKIT ``node_scores``: the top ``top_fraction`` of nodes
+    by score become ``safety_units`` (``activation_correlation`` = score / top score)
+    and ``layer_suggestions`` (their layers, and the projections of the node kinds
+    selected). Mirrors CircuitKIT 0.2's ``interop_fields``. Raises ``ValueError``
+    when no top node has a recognisable name."""
+    ranked = sorted(node_scores.items(), key=lambda kv: kv[1], reverse=True)
+    top = ranked[: max(1, round(len(ranked) * top_fraction))] if ranked else []
+    peak = max((v for _, v in top), default=0.0) or 1.0
+    units, layers, kinds = [], set(), {}
+    for name, score in top:
+        m = _HEAD.match(name) or _MLP.match(name)
+        if not m:
+            continue
+        kind = "attn" if m.re is _HEAD else "mlp"
+        layer = int(m.group(1))
+        module = attn_module if kind == "attn" else mlp_module
+        units.append((name, f"{layers_path}.{layer}.{module}", score / peak))
+        layers.add(layer)
+        kinds[kind] = max(kinds.get(kind, 0.0), score / peak)
+    if not units:
+        raise ValueError(
+            f"CircuitKIT node_scores{f' in {raw_output_path}' if raw_output_path else ''}: "
+            f"none of the top {len(top)} of {len(ranked)} nodes has a recognised name "
+            f"(A<layer>.<head>, 'MLP <layer>' or L<layer>.<neuron>); got {[n for n, _ in top][:5]}")
+    priority = {p: w for kind, w in kinds.items()
+                for p in (attn_proj if kind == "attn" else mlp_proj)}
+    meta = {"source": "circuitkit node_scores", "top_fraction": top_fraction}
+    return CircuitInfo(
+        safety_units=SafetyRelevantUnits(
+            layer_indices=sorted(layers),
+            module_names=sorted({u[1] for u in units}),
+            unit_ids=[u[0] for u in units],
+            activation_correlation={u[0]: u[2] for u in units},
+            metadata=dict(meta)),
+        layer_suggestions=LayerModuleSuggestions(
+            target_modules=list(priority), layer_subset=sorted(layers),
+            priority=priority, metadata=dict(meta)),
+        raw_output_path=raw_output_path,
+    )
+
+
+def _dict_to_circuit_info(data: Dict[str, Any], raw_output_path: Optional[str] = None,
+                          top_fraction: float = 0.2) -> CircuitInfo:
     """Convert dict (e.g. from JSON/YAML) to CircuitInfo."""
     safety_units = None
     su = data.get("safety_units") or data.get("safety_relevant_units")
@@ -71,6 +138,17 @@ def _dict_to_circuit_info(data: Dict[str, Any], raw_output_path: Optional[str] =
             priority=ls.get("priority"),
             metadata=ls.get("metadata", {}),
         )
+
+    if safety_units is None and layer_suggestions is None:
+        if data.get("node_scores"):
+            info = circuit_info_from_node_scores(
+                data["node_scores"], top_fraction=top_fraction, raw_output_path=raw_output_path)
+            info.metadata = data.get("metadata", {})
+            return info
+        raise ValueError(
+            f"No circuit information in {raw_output_path or 'the circuit data'}: expected "
+            "'safety_units', 'layer_suggestions' or CircuitKIT 'node_scores'; "
+            f"found keys {sorted(data) if isinstance(data, dict) else type(data).__name__}")
 
     return CircuitInfo(
         safety_units=safety_units,
@@ -98,9 +176,8 @@ def get_circuit_info(
     """
     if not source:
         return None
-    if Path(source).exists() or source.endswith(".json") or source.endswith(".yaml"):
-        return load_circuit_info_from_file(source)
-    return None
+    # Warns and returns None when the file is missing; raises when it has no circuit keys.
+    return load_circuit_info_from_file(source, top_fraction=kwargs.get("top_fraction", 0.2))
 
 
 # ── Writer ──────────────────────────────────────────────────────────────────

@@ -235,8 +235,8 @@ def _try_load_hf_model(path: str, device: Any) -> Optional[Any]:
         # and a Hugging Face hub id. (Do NOT gate on Path(path).exists() — that
         # rejects hub ids like "Qwen/Qwen2.5-0.5B-Instruct" and silently drops
         # AAQ into meaningless probe-free mode against random targets.)
-        from transformers import AutoModelForCausalLM
-        m = AutoModelForCausalLM.from_pretrained(path)
+        from safetune._refusal_helpers import _load_pretrained_lm
+        m = _load_pretrained_lm(path)
         m = m.to(device).eval()
         return m
     except Exception as exc:
@@ -268,7 +268,9 @@ def _make_probe_ids(probe_texts: Optional[List[str]], model: Any, device: Any) -
     # advertised "probe-free mode" on any transformer. Emit random token ids when
     # the model exposes a vocab; only fall back to a float feature vector for a
     # vocab-less probe (e.g. a bare nn.Linear) that genuinely wants floats.
-    vocab_size = getattr(getattr(model, "config", None), "vocab_size", None)
+    cfg = getattr(model, "config", None)
+    vocab_size = getattr(cfg.get_text_config() if hasattr(cfg, "get_text_config") else cfg,
+                         "vocab_size", None)
     if vocab_size:
         return torch.randint(0, int(vocab_size), (1, 8), device=device)
     try:

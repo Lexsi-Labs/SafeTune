@@ -54,15 +54,18 @@ class SafetyProber:
         self.layer_idx = layer_idx
         self._clf = None  # populated by train()
 
-    def _extract_features(self, hidden_states: Any) -> Any:
+    def _extract_features(self, hidden_states: Any, attention_mask: Any = None) -> Any:
         """
-        Pool hidden states to a feature vector.
+        Pool hidden states to one feature vector per prompt.
         hidden_states: tuple of tensors, one per layer, each (batch, seq, hidden).
+        attention_mask: (batch, seq); padding positions are left out of the mean.
         """
-        layer = self.layer_idx
-        hs = hidden_states[layer]      # (batch, seq, hidden)
-        # Mean-pool over sequence dimension
-        pooled = hs.float().mean(dim=1)  # (batch, hidden)
+        hs = hidden_states[self.layer_idx].float()  # (batch, seq, hidden)
+        if attention_mask is None:
+            pooled = hs.mean(dim=1)
+        else:
+            m = attention_mask.to(hs.device, hs.dtype).unsqueeze(-1)
+            pooled = (hs * m).sum(dim=1) / m.sum(dim=1).clamp_min(1)
         return pooled.detach().cpu().numpy()
 
     def train(
@@ -103,13 +106,16 @@ class SafetyProber:
         self._clf.fit(X, y)
         logger.info("SafetyProber trained on %d examples.", len(labels))
 
-    def predict_unsafe_probability(self, hidden_states: Any) -> float:
-        """Return P(unsafe) for the current hidden state batch."""
+    def predict_unsafe_probabilities(self, hidden_states: Any, attention_mask: Any = None) -> List[float]:
+        """P(unsafe) for each prompt of the batch."""
         if self._clf is None:
             raise RuntimeError("SafetyProber must be trained before use. Call train() first.")
-        feats = self._extract_features(hidden_states)
-        prob = self._clf.predict_proba(feats)[0][1]
-        return float(prob)
+        feats = self._extract_features(hidden_states, attention_mask)
+        return [float(p) for p in self._clf.predict_proba(feats)[:, 1]]
+
+    def predict_unsafe_probability(self, hidden_states: Any, attention_mask: Any = None) -> float:
+        """P(unsafe) for a single prompt; see ``predict_unsafe_probabilities`` for a batch."""
+        return _single(self.predict_unsafe_probabilities(hidden_states, attention_mask))
 
     def save(self, path: str) -> None:
         import pickle
@@ -124,6 +130,23 @@ class SafetyProber:
         prober = cls(hidden_size=data["hidden_size"], layer_idx=data["layer"])
         prober._clf = data["clf"]
         return prober
+
+
+def _single(probs: List[float]) -> float:
+    if len(probs) != 1:
+        raise ValueError(f"predict_unsafe_probability takes one prompt, got {len(probs)}; "
+                         "use predict_unsafe_probabilities for a batch")
+    return probs[0]
+
+
+def prober_probs(prober: Any, hidden_states: Any, attention_mask: Any = None) -> List[float]:
+    """P(unsafe) per prompt from any prober. One that only scores a single prompt
+    (``predict_unsafe_probability``) is called once per row."""
+    if hasattr(prober, "predict_unsafe_probabilities"):
+        return list(prober.predict_unsafe_probabilities(hidden_states, attention_mask))
+    rows = range(hidden_states[0].shape[0])
+    return [float(prober.predict_unsafe_probability(tuple(h[i:i + 1] for h in hidden_states)))
+            for i in rows]
 
 
 class SafeSwitchRunner:
@@ -144,43 +167,46 @@ class SafeSwitchRunner:
         self.prober = prober
         self.config = config or SafeSwitchConfig()
 
-    def _check_prompt_safety(self, input_ids: Any) -> float:
-        """Run a prefill forward pass and get P(unsafe)."""
+    def _check_prompt_safety(self, input_ids: Any, attention_mask: Any = None) -> List[float]:
+        """Run a prefill forward pass and get P(unsafe) for each prompt."""
         try:
             import torch
             with torch.no_grad():
-                out = self.model(input_ids=input_ids, output_hidden_states=True)
-            return self.prober.predict_unsafe_probability(out.hidden_states)
+                out = self.model(input_ids=input_ids, attention_mask=attention_mask,
+                                 output_hidden_states=True)
+            return prober_probs(self.prober, out.hidden_states, attention_mask)
         except Exception as e:
             logger.error("SafeSwitch: prober failed: %s", e)
-            return 0.0
+            return [0.0] * len(input_ids)
 
     def generate(self, input_ids: Any, **kwargs: Any) -> Any:
         """
-        Safe generation: probe the prompt, then either generate normally or
-        apply logit biases to the refusal head.
+        Safe generation: probe each prompt, then generate normally for the safe
+        ones and apply the refusal logit bias to the unsafe ones.
         """
         try:
             import torch
         except ImportError:
             return self.model.generate(input_ids=input_ids, **kwargs)
 
-        p_unsafe = self._check_prompt_safety(input_ids)
-        logger.debug("SafeSwitch: P(unsafe) = %.4f (threshold = %.4f)", p_unsafe, self.config.unsafe_threshold)
+        p_unsafe = self._check_prompt_safety(input_ids, kwargs.get("attention_mask"))
+        unsafe = torch.tensor([p >= self.config.unsafe_threshold for p in p_unsafe])
+        logger.debug("SafeSwitch: P(unsafe) = %s (threshold = %.4f)", p_unsafe, self.config.unsafe_threshold)
 
-        if p_unsafe < self.config.unsafe_threshold:
+        if not unsafe.any():
             # Safe: generate as normal
             return self.model.generate(input_ids=input_ids, **kwargs)
 
         logger.warning(
-            "SafeSwitch: unsafe intent detected (P=%.2f). Activating refusal head.", p_unsafe
-        )
+            "SafeSwitch: unsafe intent detected in %d of %d prompts. Activating refusal head.",
+            int(unsafe.sum()), len(p_unsafe))
 
         if self.config.refusal_token_ids:
-            # Build logit_processor that boosts refusal token IDs
+            # Build logit_processor that boosts refusal token IDs on the unsafe prompts
             def _refusal_processor(input_ids_gen: Any, scores: Any) -> Any:
+                rows = unsafe.to(scores.device)
                 for tok_id in self.config.refusal_token_ids:
-                    scores[:, tok_id] += self.config.refusal_logit_bonus
+                    scores[rows, tok_id] += self.config.refusal_logit_bonus
                 return scores
 
             existing = list(kwargs.pop("logits_processor", []))
@@ -188,6 +214,13 @@ class SafeSwitchRunner:
             return self.model.generate(
                 input_ids=input_ids, logits_processor=existing, **kwargs
             )
-        else:
+        if unsafe.all():
             # No specific refusal tokens configured: return input (abort generation)
             return input_ids
+        # Mixed batch: the unsafe prompts get no new tokens (padding after the prompt).
+        out = self.model.generate(input_ids=input_ids, **kwargs)
+        gc = getattr(self.model, "generation_config", None)
+        pad = next((t for t in (kwargs.get("pad_token_id"), getattr(gc, "pad_token_id", None),
+                                getattr(gc, "eos_token_id", None)) if t is not None), 0)
+        out[unsafe.to(out.device), input_ids.shape[1]:] = pad[0] if isinstance(pad, list) else pad
+        return out

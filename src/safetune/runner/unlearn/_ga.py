@@ -1,5 +1,18 @@
 from ._base import _UnlearnBase
 import safetune.unlearn as U
+from safetune.config import get_config
+
+
+def _forget_clip(value):
+    """``forget_clip`` caps the forget CE, so ascent stops once the loss passes
+    it. ``None``: no cap, TOFU's pure ascent (the paper setting). The old default
+    0.5 sat below where real forget sets start (BeaverTails completions: ~2.4),
+    so the clamp zeroed the forget gradient from step one and GA did nothing;
+    ``safetune.configure(legacy_ga_forget_clip=True)`` restores it. Under that
+    switch, ``forget_clip=float("inf")`` turns the cap off."""
+    if value is None and get_config().legacy_ga_forget_clip:
+        return 0.5
+    return value
 
 
 class GradientAscentTrainer(_UnlearnBase):
@@ -10,7 +23,7 @@ class GradientAscentTrainer(_UnlearnBase):
                  epochs: int = 5,
                  max_steps: int = 200,
                  lr: float = 1e-5,
-                 forget_clip: float = 0.5,
+                 forget_clip: float = None,
                  **kwargs):
         super().__init__(model, **kwargs)
         self.forget_loss = forget_loss
@@ -25,7 +38,7 @@ class GradientAscentTrainer(_UnlearnBase):
             epochs=self.epochs,
             max_steps=self.max_steps,
             lr=self.lr,
-            forget_clip=self.forget_clip,
+            forget_clip=_forget_clip(self.forget_clip),
         )
         return U.gradient_ascent_unlearn(self.model,
                                          forget_batches=self._to_device(forget),
@@ -43,7 +56,7 @@ class GradDiffTrainer(_UnlearnBase):
                  epochs: int = 5,
                  max_steps: int = 200,
                  lr: float = 1e-5,
-                 forget_clip: float = 0.5,
+                 forget_clip: float = None,
                  **kwargs):
         super().__init__(model, **kwargs)
         self.epochs = epochs
@@ -60,7 +73,7 @@ class GradDiffTrainer(_UnlearnBase):
             epochs=self.epochs,
             max_steps=self.max_steps,
             lr=self.lr,
-            forget_clip=self.forget_clip,
+            forget_clip=_forget_clip(self.forget_clip),
         )
         return U.gradient_ascent_unlearn(self.model,
                                          forget_batches=self._to_device(forget),

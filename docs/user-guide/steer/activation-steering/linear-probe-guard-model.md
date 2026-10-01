@@ -12,7 +12,7 @@ LinearProbeGuardTrainer(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer | None = None,
     *,
-    layer: int = 15,
+    layer: int | None = None,
     threshold: float = 0.5,
 )
 ```
@@ -23,7 +23,7 @@ LinearProbeGuardTrainer(
 |---|---|---|---|
 | `model` | `PreTrainedModel` | required | Model to guard |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
-| `layer` | `int` | `15` | Decoder layer whose pooled hidden state feeds the probe |
+| `layer` | `int \| None` | `None` | Decoder layer whose pooled hidden state feeds the probe; `None` is layer 15 on a 32-layer model; `None` scales them to the model's depth (for example 6 on 12 layers). `safetune.configure(legacy_steer_layers=True)` keeps 15 on any depth |
 | `threshold` | `float` | `0.5` | Score above which the prompt is flagged and the canned refusal fires |
 
 ## Full example

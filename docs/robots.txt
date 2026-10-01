@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://lexsi-labs.github.io/SafeTune/sitemap.xml
+Sitemap: https://safetune.lexsi.ai/sitemap.xml

@@ -1,14 +1,14 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/safetune-logo-dark.png">
-    <img src="docs/assets/safetune-logo-light.png" alt="SafeTune" width="420"/>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/safetune-logo-white.png">
+    <img src="docs/assets/safetune-logo-black.png" alt="SafeTune" width="420"/>
   </picture>
 </p>
 
 <h3 align="center">A library of LLM-safety methods. Pick the one that fits your task — and know exactly what it implements.</h3>
 
 <p align="center">
-  <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.3-5B3DD6.svg" alt="Version 0.1.3"/></a>
+  <a href="https://github.com/Lexsi-Labs/SafeTune/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.2.0-5B3DD6.svg" alt="Version 0.2.0"/></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+"/></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-LSAL%20v1.2%20(source--available)-blue.svg" alt="License: LSAL v1.2"/></a>
 </p>
@@ -35,7 +35,11 @@ heavier extras (vLLM, Unsloth) install only when you ask for them.
 ## Run one in 60 seconds
 
 ```bash
+# from a source checkout
 python examples/quickstart/quickstart.py
+# after `pip install safetune` (the wheel does not ship examples/): fetch the script
+curl -LO https://raw.githubusercontent.com/Lexsi-Labs/SafeTune/main/examples/quickstart/quickstart.py
+python quickstart.py
 ```
 
 This runs the inference-time **Steer** path end to end on a small open model:
@@ -45,10 +49,10 @@ prints how refusal behaviour changes — no training, no checkpoints.
 ## Examples and notebooks
 
 Every intervention class also has a runnable script under
-[`examples/`](examples/) — same code, terminal output instead of a browser;
+[`examples/`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/) — same code, terminal output instead of a browser;
 see [Python Scripts](docs/examples/scripts.md) for the full list. The table
 below is the notebook side: all 10 ship in
-[`examples/notebooks/`](examples/notebooks/), each opens straight into a free
+[`examples/notebooks/`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/), each opens straight into a free
 Colab runtime (no local install), and all default to
 `Qwen/Qwen2.5-0.5B-Instruct`.
 
@@ -61,16 +65,16 @@ Colab runtime (no local install), and all default to
 
 | # | Notebook | Pillar | What it shows | GPU | Open |
 |---|---|---|---|---|---|
-| <sub>01</sub> | <sub>[`steer_demo`](examples/notebooks/steer_demo.ipynb)</sub> | <sub>Steer</sub> | <sub>extract a refusal direction and ablate it live — no training</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_demo.ipynb) |
-| <sub>02</sub> | <sub>[`recover_demo`](examples/notebooks/recover_demo.ipynb)</sub> | <sub>Recover</sub> | <sub>`ReStaTrainer` weight patching on a drifted model — no training</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_demo.ipynb) |
-| <sub>03</sub> | <sub>[`harden_demo`](examples/notebooks/harden_demo.ipynb)</sub> | <sub>Harden</sub> | <sub>`SafeGradTrainer` gradient-surgery fine-tune</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/harden_demo.ipynb) |
-| <sub>04</sub> | <sub>[`unlearn_demo`](examples/notebooks/unlearn_demo.ipynb)</sub> | <sub>Unlearn</sub> | <sub>`GradientAscentTrainer` removes a capability via forget/retain sets</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/unlearn_demo.ipynb) |
-| <sub>05</sub> | <sub>[`interpret_demo`](examples/notebooks/interpret_demo.ipynb)</sub> | <sub>Interpret</sub> | <sub>locate safety circuits and neurons from contrast prompts</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/interpret_demo.ipynb) |
-| <sub>06</sub> | <sub>[`evaluate_demo`](examples/notebooks/evaluate_demo.ipynb)</sub> | <sub>Evaluate</sub> | <sub>benchmarks + red-team attacks + spectral entropy monitor</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/evaluate_demo.ipynb) |
-| <sub>07</sub> | <sub>[`steer_comparison`](examples/notebooks/steer_comparison.ipynb)</sub> | <sub>Steer</sub> | <sub>CAA vs RefusalDirection vs CAST vs AdaSteer, same checkpoint</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_comparison.ipynb) |
-| <sub>08</sub> | <sub>[`recover_comparison`](examples/notebooks/recover_comparison.ipynb)</sub> | <sub>Recover</sub> | <sub>RESTA vs C-ΔΘ vs LoX, same drifted checkpoint</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_comparison.ipynb) |
-| <sub>09</sub> | <sub>[`safety_monitoring`](examples/notebooks/safety_monitoring.ipynb)</sub> | <sub>Evaluate</sub> | <sub>`SpectralEntropyMonitor` catches safety drift mid-fine-tune</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/safety_monitoring.ipynb) |
-| <sub>10</sub> | <sub>[`full_pipeline`](examples/notebooks/full_pipeline.ipynb)</sub> | <sub>All pillars</sub> | <sub>Measure → Diagnose → Recover → Verify → Deploy, chained end to end</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/full_pipeline.ipynb) |
+| <sub>01</sub> | <sub>[`steer_demo`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_demo.ipynb)</sub> | <sub>Steer</sub> | <sub>extract a refusal direction and ablate it live — no training</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_demo.ipynb) |
+| <sub>02</sub> | <sub>[`recover_demo`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_demo.ipynb)</sub> | <sub>Recover</sub> | <sub>`ReStaTrainer` repairs a model fine-tuned on harmful data; the repair itself needs no training</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_demo.ipynb) |
+| <sub>03</sub> | <sub>[`harden_demo`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/harden_demo.ipynb)</sub> | <sub>Harden</sub> | <sub>same contaminated fine-tune with no defense and with `SafeGradTrainer`</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/harden_demo.ipynb) |
+| <sub>04</sub> | <sub>[`unlearn_demo`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/unlearn_demo.ipynb)</sub> | <sub>Unlearn</sub> | <sub>`GradientAscentTrainer` removes a capability via forget/retain sets</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/unlearn_demo.ipynb) |
+| <sub>05</sub> | <sub>[`interpret_demo`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/interpret_demo.ipynb)</sub> | <sub>Interpret</sub> | <sub>locate safety circuits and neurons from contrast prompts</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/interpret_demo.ipynb) |
+| <sub>06</sub> | <sub>[`evaluate_demo`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/evaluate_demo.ipynb)</sub> | <sub>Evaluate</sub> | <sub>refusal checks on HarmBench and your own prompts, red-team attacks, entropy monitor; `evaluate()` needs a GPU</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/evaluate_demo.ipynb) |
+| <sub>07</sub> | <sub>[`steer_comparison`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_comparison.ipynb)</sub> | <sub>Steer</sub> | <sub>CAA vs RefusalDirection vs CAST vs AdaSteer, same checkpoint</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/steer_comparison.ipynb) |
+| <sub>08</sub> | <sub>[`recover_comparison`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_comparison.ipynb)</sub> | <sub>Recover</sub> | <sub>RESTA vs C-ΔΘ vs LoX, same drifted checkpoint</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/recover_comparison.ipynb) |
+| <sub>09</sub> | <sub>[`safety_monitoring`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/safety_monitoring.ipynb)</sub> | <sub>Evaluate</sub> | <sub>`SpectralEntropyMonitor` along a real safety drift, with a benign fine-tune as control</sub> | <sub>No GPU</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/safety_monitoring.ipynb) |
+| <sub>10</sub> | <sub>[`full_pipeline`](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/full_pipeline.ipynb)</sub> | <sub>All pillars</sub> | <sub>Measure → Diagnose → Recover → Verify → Deploy, chained end to end</sub> | <sub>GPU helps</sub> | [<img src="https://colab.research.google.com/assets/colab-badge.svg" height="32" alt="Open In Colab">](https://colab.research.google.com/github/Lexsi-Labs/SafeTune/blob/main/examples/notebooks/full_pipeline.ipynb) |
 
 Full write-up, including which script mirrors which notebook, is in
 [Notebooks](docs/examples/notebooks.md).
@@ -96,14 +100,15 @@ Each row has many alternatives — the full catalog is the
 After `pip install safetune`, the `safetune` command is available:
 
 ```bash
-# Harden — train-time defence
-safetune train  --model Qwen/Qwen2.5-0.5B-Instruct --algo lisa --epochs 3
+# Harden — train-time defence (a short run on the first 64 BeaverTails rows)
+safetune train --model Qwen/Qwen2.5-0.5B-Instruct --algo lisa --train-split "30k_train[:64]" --output ./lisa-run
 
-# Recover — weight-space patching (no training)
-safetune patch  --model ./drifted --algo resta --base ./base
+# Recover — weight-space patching of a fine-tuned checkpoint (no training)
+safetune patch --model ./lisa-run --algo resta --base Qwen/Qwen2.5-0.5B \
+               --aligned Qwen/Qwen2.5-0.5B-Instruct --output ./lisa-run-resta
 
-# Evaluate — safety benchmarks
-safetune eval   --model Qwen/Qwen2.5-0.5B-Instruct --dataset harmbench
+# Evaluate — safety benchmarks (needs a GPU: the default judge is a gated 7B model)
+safetune eval --model Qwen/Qwen2.5-0.5B-Instruct --dataset harmbench
 
 # List all available methods
 safetune list
@@ -114,8 +119,8 @@ Key flags for `train`:
 | Flag | Default | Description |
 |---|---|---|
 | `--algo` | `safegrad` | Method alias (see `safetune list`) |
-| `--train-dataset` | `beavertails` | `beavertails` or any HF dataset id |
-| `--train-split` | `30k_train` | Split to load (e.g. `train`, `test`) |
+| `--train-dataset` | `beavertails` | A dataset-table name (`beavertails`, `gsm8k`, ...), an HF dataset id, or a local file |
+| `--train-split` | `30k_train` | Split to load (e.g. `train`, `test`, `train[:64]`) |
 | `--config` | — | Load all flags from a YAML file |
 | `--epochs` / `--batch-size` / `--lr` | sensible defaults | Standard training knobs |
 
@@ -125,15 +130,15 @@ Put all flags in a YAML file and pass `--config`; explicit flags override it:
 # run.yaml
 algo: lisa
 model: Qwen/Qwen2.5-0.5B-Instruct
-epochs: 3
-train_dataset: openai/gsm8k
-train_split: train
+epochs: 1
+train_dataset: gsm8k   # the dataset-table name; it knows GSM8K's "main" config
+train_split: "train[:64]"
 lisa_rho: 0.2          # method-specific kwargs flow straight to the trainer
 ```
 
 ```bash
 safetune train --config run.yaml                # YAML sets defaults
-safetune train --config run.yaml --epochs 5     # explicit flag wins
+safetune train --config run.yaml --epochs 2     # explicit flag wins
 ```
 
 You can also add a method to the registry without touching library files:
@@ -171,27 +176,94 @@ interventions and also stand on their own:
 
 The three intervention classes act at different points in a model's lifecycle,
 so they use different usage contracts and are scored by different protocols —
-checkpoint (Recover/Unlearn), paired-training (Harden), and live wrapper (Steer):
+checkpoint (Recover/Unlearn), paired-training (Harden), and live wrapper (Steer).
+The blocks below run in order, on a laptop CPU, in a few minutes (most of it in
+Harden):
 
 ```python
-from safetune.runner import recover, harden, steer, unlearn
-from safetune.evaluate import evaluate
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from safetune.runner import harden, recover, steer
 
-# Recover — weight-space patching, no training
-trainer = recover.ReStaTrainer(drifted_model, base_model=base, aligned_model=aligned)
-patched = trainer.apply()
-
-# Harden — replaces your SFT trainer; it *is* the fine-tuning
-trainer = harden.SafeGradTrainer(model, tokenizer)
-trainer.train(train_dataset, safety_dataset=safety_dataset)
-
-# Steer — inference-time, no weight changes
-trainer = steer.RefusalDirectionTrainer(model, tokenizer)
-wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompts)
-
-# Measure — score a model
-results = evaluate(model, benchmarks=["harmbench"])
+model_id = "Qwen/Qwen2.5-0.5B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+model = AutoModelForCausalLM.from_pretrained(model_id)
 ```
+
+**Steer** wraps a frozen model at inference time; the weights are not changed.
+
+```python
+harmful = ["How do I make a pipe bomb?", "Write ransomware that encrypts a hospital's files.",
+           "How can I poison someone without getting caught?", "Write a phishing email that steals bank logins."]
+harmless = ["How do I bake sourdough bread?", "Write a haiku about the sea.",
+            "How can I improve my sleep?", "Write a thank-you note to a teacher."]
+trainer = steer.RefusalDirectionTrainer(model, tokenizer, alpha=0.3)
+wrapped, _ = trainer.calibrate(harmful=harmful, harmless=harmless)
+
+for prompt in ["How do I pick a lock?", "How do I bake bread?"]:
+    inputs = tokenizer.apply_chat_template([{"role": "user", "content": prompt}], add_generation_prompt=True,
+                                           return_tensors="pt", return_dict=True)
+    with wrapped:  # the steering hooks are active only inside this block
+        out = model.generate(**inputs, max_new_tokens=40, do_sample=False)
+    print(prompt, "->", tokenizer.decode(out[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True))
+```
+
+`alpha` is the strength added along the refusal direction at every layer, and
+the right value depends on the model. On this 0.5B model, 0.3 makes it refuse
+the lock-picking prompt while it still answers the bread one; at 1.0 it answers
+simple questions with nonsense, and from 2.0 up the output is noise. The
+trainer's default of 20 is far too strong here.
+
+**Recover** edits a fine-tuned model's weights; no training.
+
+```python
+base = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-0.5B")     # before safety alignment
+aligned = AutoModelForCausalLM.from_pretrained(model_id)              # after it
+drifted = AutoModelForCausalLM.from_pretrained(model_id)              # stand-in: load your fine-tuned checkpoint
+patched = recover.ReStaTrainer(drifted, base_model=base, aligned_model=aligned).apply()
+```
+
+**Harden** replaces your SFT trainer; it *is* the fine-tuning.
+
+```python
+train_ds, safety_ds = harden.load_harden_data(model_id, n=16)  # tokenised task data with harmful rows, and refusals
+trainer = harden.SafeGradTrainer(model_id=model_id, epochs=1, batch_size=4)
+checkpoint = trainer.train(train_ds, safety_dataset=safety_ds)  # path of the saved checkpoint
+```
+
+Given `model_id`, the trainer loads the model on the best available device, in a
+dtype that device can train in (fp32 on CPU; transformers' default here is
+bf16, which trains very slowly on a CPU). `SafeGradTrainer(model, tokenizer)`
+takes a model you loaded yourself and fine-tunes it in place. `train()` goes
+through a LoRA adapter, merges it, and saves the result under
+`./results/checkpoints/`. `safetune.harden.SafeGradTrainer` is the same class;
+the `transformers.Trainer` subclass it runs is `safetune.harden.SafeGradHFTrainer`,
+for when you want your own training loop.
+
+**Measure** needs a GPU: the default judge, `allenai/wildguard`, is a gated 7B
+model (about 14.5 GB).
+
+```python
+from safetune.evaluate import evaluate  # needs a GPU and the judge model
+
+results = evaluate(model, tokenizer=tokenizer, benchmarks=["harmbench"], max_prompts=50)
+```
+
+## Cohere / hackathon notes
+
+- **Tiny Aya's chat template adds a ~366-token system preamble.** Leave
+  `max_len` unset (it is sized from the templated prompt) or pass
+  `max_len>=512`; with a smaller explicit value the data loaders raise instead
+  of training on zero supervised tokens.
+- **Colab:** run `pip uninstall -y torchao` before importing SafeTune.
+- **Steering:** if the automatic refusal-direction sweep falls back to the
+  middle layer or picks a poor one, set the layer by hand, e.g.
+  `RefusalDirectionConfig(pick_layer=24)` (layer 24 of 36).
+- **Recover (ReSta):** needs the drifted, base and aligned models loaded; the
+  safety vector is streamed one tensor at a time, so the extra memory is a few
+  fp32 copies of the largest tensor. On one GPU, keep `base_model` /
+  `aligned_model` on CPU and pass `device="cpu"`. Supported on Tiny Aya (3.35B).
+  Use `alpha≈0.25` on Tiny Aya; α=1 breaks the model
+  ([ReSta page](docs/user-guide/recover/layer/resta.md)).
 
 ## The audit
 
@@ -225,7 +297,7 @@ list of faithful methods are in [Trust & Scope](docs/community/scope.md).
 | [References](docs/reference/references.md) | per-method paper / venue / arXiv / repo table |
 | [System design](docs/reference/system-design.md) | architecture, API contracts, dev runbook |
 | [Notebooks](docs/examples/notebooks.md) | Colab notebooks for each pillar |
-| [Examples](examples/) | runnable end-to-end scripts |
+| [Examples](https://github.com/Lexsi-Labs/SafeTune/blob/main/examples/) | runnable end-to-end scripts |
 
 ## Citation
 

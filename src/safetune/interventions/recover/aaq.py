@@ -46,6 +46,7 @@ from typing import Any, Dict, List, Optional
 import torch.nn as nn
 
 from ._invariant import assert_mutates
+from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
 
@@ -295,8 +296,11 @@ class _FakeQuantizer:
 # ---------------------------------------------------------------------------
 
 @assert_mutates("apply_aaq")
+@keyword_refs("aligned_model_path", "base_model_path", "quantization_bits", "apc_weight",
+              "calibration_steps", "lr", "probe_texts", "top_k", "simulate_quantization")
 def apply_aaq(
     model: nn.Module,
+    *,
     aligned_model_path: str = "",
     base_model_path: str = "",
     quantization_bits: int = 4,

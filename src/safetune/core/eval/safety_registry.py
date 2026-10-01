@@ -11,19 +11,12 @@ Key concepts:
   with a given judge backend, metric set, and thresholds.
 - SafetyEvalRegistry: in-memory registry for tasks, with helpers to create
   default HarmBench / JailbreakBench / XSTest / HH-RLHF tasks.
-- run_safety_eval_from_hf: convenience entrypoint that auto-loads a pack
-  from Hugging Face and executes the corresponding pack runner.
 """
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from ..core.data_compiler.safety_packs import SafetyPack, resolve_pack
-from ..core.data_compiler.pack_runners import (
-    PackRunResult,
-    load_pack_from_hf,
-    run_pack,
-)
+from ..data_compiler.safety_packs import SafetyPack, resolve_pack
 from .registry import EvalRegistry
 
 
@@ -125,46 +118,3 @@ class SafetyEvalRegistry:
         if not cls._tasks:
             cls.register_default_tasks()
         return sorted(cls._tasks.keys())
-
-
-def run_safety_eval_from_hf(
-    task_name: str,
-    *,
-    max_samples: Optional[int] = None,
-    split: Optional[str] = None,
-    thresholds: Optional[Dict[str, float]] = None,
-    harmfulness_scores: Optional[List[float]] = None,
-    jailbreak_labels: Optional[List[bool]] = None,
-) -> PackRunResult:
-    """Load a Safety Pack from Hugging Face and run its pack runner.
-
-    This function is intentionally simple: it delegates dataset loading to
-    ``load_pack_from_hf`` and metric/gate computation to ``run_pack``.
-
-    Args:
-        task_name: Name of a registered SafetyEvalTask.
-        max_samples: If set, truncate to this many rows.
-        split: Optional override for HF split (defaults to pack mapping).
-        thresholds: Optional gate thresholds to override those on the task.
-        harmfulness_scores: Optional classifier scores for HarmBench-style packs.
-        jailbreak_labels: Optional jailbreak labels for JailbreakBench-style packs.
-
-    Returns:
-        PackRunResult with metrics and gate decisions.
-    """
-    task = SafetyEvalRegistry.get_task(task_name)
-    pack = task.resolve_pack()
-
-    rows = load_pack_from_hf(pack.name, max_samples=max_samples, split=split)
-    use_thresholds = thresholds if thresholds is not None else task.thresholds
-
-    result = run_pack(
-        pack.name,
-        rows,
-        pack_version=pack.version,
-        thresholds=use_thresholds,
-        harmfulness_scores=harmfulness_scores,
-        jailbreak_labels=jailbreak_labels,
-    )
-    return result
-

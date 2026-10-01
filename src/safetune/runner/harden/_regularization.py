@@ -1,13 +1,14 @@
 """Harden runner — regularization-based trainers (SAP, AsFT, Surgery, Booster)."""
 import os
 import torch
-from transformers import AutoModelForCausalLM
+from safetune._refusal_helpers import _load_pretrained_lm
 
 from ._base import (
     _HardenBase, _keep_model_columns, default_data_collator,
     _sap_safety_collator, _sap_contrastive_collator, _BFLOAT16, _to_dev,
 )
 from safetune.runner.utils.model_utils import free
+from safetune.config import resolve_dtype
 import safetune.harden as HARD
 from torch.utils.data import DataLoader
 
@@ -23,6 +24,7 @@ class SAPTrainer(_HardenBase):
     """
 
     METHOD = "SAP"
+    HF_TRAINER = HARD.SAPHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  grad_rate: float = 0.1,
@@ -69,7 +71,7 @@ class SAPTrainer(_HardenBase):
             safety_loader = DataLoader(
                 _keep_model_columns(safety_dataset), batch_size=self.batch_size,
                 shuffle=True, collate_fn=_sap_safety_collator)
-        tr = HARD.SAPTrainer(
+        tr = HARD.SAPHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
@@ -89,6 +91,7 @@ class AsFTTrainer(_HardenBase):
     """
 
     METHOD = "AsFT"
+    HF_TRAINER = HARD.AsFTHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  reg_lambda: float = 1.0,
@@ -114,15 +117,15 @@ class AsFTTrainer(_HardenBase):
             )
         aligned_path = (self.aligned_model_path
                         or getattr(self.tok, "name_or_path", None))
-        aligned_obj = AutoModelForCausalLM.from_pretrained(
-            aligned_path, torch_dtype=_BFLOAT16)
+        aligned_obj = _load_pretrained_lm(
+            aligned_path, torch_dtype=resolve_dtype())
         aligned_sd = {k: v.detach().cpu().clone()
                       for k, v in aligned_obj.state_dict().items()}
         del aligned_obj; free()
         args = self._configure_args(HARD.AsFTConfig(reg_lambda=self.reg_lambda), out_dir)
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
-        tr = HARD.AsFTTrainer(
+        tr = HARD.AsFTHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
@@ -141,6 +144,7 @@ class SurgeryTrainer(_HardenBase):
     """
 
     METHOD = "Surgery"
+    HF_TRAINER = HARD.SurgeryHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
                  sink_lambda: float = 0.01,
@@ -163,7 +167,7 @@ class SurgeryTrainer(_HardenBase):
         refusal_loader = DataLoader(
             _keep_model_columns(safety_dataset), batch_size=self.batch_size, shuffle=True,
             collate_fn=default_data_collator)
-        tr = HARD.SurgeryTrainer(
+        tr = HARD.SurgeryHFTrainer(
             model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
@@ -178,15 +182,19 @@ class BoosterTrainer(_HardenBase):
 
     Args:
         perturb_scale: perturbation scale for finite-difference. Default 0.01.
+        n_harmful_batches: harmful examples used for the harm gradient when
+            ``harmful_batches`` is not passed. Default 8.
     """
 
     METHOD = "Booster"
 
     def __init__(self, model=None, tokenizer=None, *,
                  perturb_scale: float = 0.01,
+                 n_harmful_batches: int = 8,
                  **kwargs):
         super().__init__(model, tokenizer, **kwargs)
         self.perturb_scale = perturb_scale
+        self.n_harmful_batches = n_harmful_batches
 
     def train(self, train_dataset, out_dir: str = None, *,
               harmful_batches=None, **kwargs) -> str:
@@ -196,12 +204,14 @@ class BoosterTrainer(_HardenBase):
         task_loss_fn = lambda m, b: m(**b).loss
         if harmful_batches is None:
             from safetune.runner.utils.data_utils import harden_contamination_sets
-            harm_ds = harden_contamination_sets(self.tok, n=64)[0]
+            # The first rows are the same for any n >= n_harmful_batches, so this
+            # shares the other harden fallbacks' cached set (previously n=64).
+            harm_ds = harden_contamination_sets(self.tok)[0]
             dev = next(model.parameters()).device
             harmful_batches = [
                 {k: torch.tensor([harm_ds[i][k]]).to(dev)
                  for k in ("input_ids", "attention_mask", "labels")}
-                for i in range(min(len(harm_ds), 8))
+                for i in range(min(len(harm_ds), self.n_harmful_batches))
             ]
         # Compute harmful gradient g_h once at initial weights.
         harm_grads = HARD.collect_harmful_gradient(model, harmful_batches, task_loss_fn)

@@ -1,6 +1,6 @@
 # Benchmarks
 
-18 registered benchmarks across 5 categories:
+20 registered benchmarks across 5 categories:
 
 | Category | Description |
 |---|---|
@@ -19,10 +19,12 @@
 | `harmbench` | jailbreak | harmbench-mistral-7b |
 | `wildjailbreak` | jailbreak | wildguard |
 | `sorrybench_v1` | jailbreak | fine-tuned Mistral-7b |
-| `advbench` | jailbreak | GCG-49 string-match |
+| `advbench` | jailbreak | refusal-prefix string match (`StringMatchJudge`) |
 | `hexphi` | jailbreak | Llama-3.1-8B |
 | `ailuminate` | jailbreak | Llama-3.1-8B |
 | `orbench` | over_refusal | Llama-3.1-8B |
+| `orbench_hard` | over_refusal | Llama-3.1-8B |
+| `orbench_toxic` | jailbreak | Llama-3.1-8B |
 | `xstest` | over_refusal | — (exact-match refusal rate) |
 | `beavertails` | jailbreak | — (keyword-match) |
 | `jailbreakbench` | jailbreak | — (jailbreakbench judge built-in) |
@@ -34,6 +36,20 @@
 | `star1` | domain | — (built-in scorer) |
 | `muse` | domain | — (built-in scorer) |
 | `rwku` | domain | — (built-in scorer) |
+
+Default prompt sets:
+
+- `harmbench`: 400 behaviours from `walledai/HarmBench`, configs `standard`
+  (200), `contextual` (100) and `copyright` (100). A contextual row is
+  `context + "\n\n---\n\n" + behaviour`, as HarmBench builds it.
+  `configure(datasets={"harmbench": {"config": "standard"}})` gives the
+  200-behaviour set used before.
+- `wildjailbreak`: the first 500 `adversarial_harmful` rows of the
+  `allenai/wildjailbreak` eval set. `configure(datasets={"wildjailbreak":
+  {"where": None, "limit": None}})` gives all 2,210 rows, as before.
+- `orbench_hard` is OR-Bench hard-1k (benign prompts that sound harmful;
+  refusing them is over-refusal) and `orbench_toxic` is OR-Bench toxic (655
+  harmful prompts). `orbench` is both combined.
 
 ## API
 
@@ -57,8 +73,15 @@ by_cat = benchmarks_by_category()
 When `evaluate()` is called with `benchmarks=None`:
 
 ```
-harmbench, wildjailbreak, advbench, sorrybench_v1, hexphi, orbench, ailuminate
+harmbench, wildjailbreak, advbench, sorrybench_v1, hexphi, orbench_hard, orbench_toxic, ailuminate
 ```
+
+`safety_mean` (the runner trainers' aggregate) averages the harm benchmarks
+only: OR-Bench hard-1k (`orbench_overrefusal`) and toxic
+(`orbench_toxic_refusal`) are reported on their own.
+`configure(orbench_in_safety_mean=True)` restores the old behaviour: one
+combined `orbench` in the suite, whose `orbench_refusal` is averaged into
+`safety_mean`.
 
 This page is a registry reference — `get_benchmark`/`list_benchmarks` look up metadata but don't
 run anything. To actually execute a benchmark end-to-end, call `evaluate()` (see the

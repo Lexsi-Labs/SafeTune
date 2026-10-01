@@ -53,6 +53,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import torch.nn as nn
 
 from ._invariant import assert_mutates
+from safetune._refusal_helpers import _layer_index
 
 logger = logging.getLogger(__name__)
 
@@ -146,11 +147,7 @@ class PKEGradientEditor:
 
     @staticmethod
     def _layer_idx(name: str) -> Optional[int]:
-        parts = name.split(".")
-        for i, p in enumerate(parts):
-            if p == "layers" and i + 1 < len(parts) and parts[i + 1].isdigit():
-                return int(parts[i + 1])
-        return None
+        return _layer_index(name)
 
     # -- located parameter resolution -------------------------------------------
 

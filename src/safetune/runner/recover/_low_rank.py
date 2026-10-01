@@ -7,11 +7,21 @@ import safetune.recover as R
 class LoXTrainer(_RecoverBase):
     """LoX: Low-rank over-extrapolation safety recovery.
 
+    Adds ``extrapolation_factor * LowRank_rank(aligned - base)`` to the model.
+
     Args:
         base_model: base model.
         aligned_model: aligned reference.
         rank: low-rank factorization rank. Default 8.
         extrapolation_factor: extrapolation coefficient. Default 0.3.
+
+    The paper (Perin et al., COLM 2025) hardens the *aligned* model before a
+    fine-tune, with rank = the alignment delta's effective rank (6 on its
+    Llama-2-7B) and factor 1.25; this trainer applies it after the drift. On
+    Qwen2.5-0.5B the rank-8 slice holds about 2% of the delta's energy, so at
+    factor 0.3 it moves each weight by about as much as the drift did but left
+    HarmBench refusals at 3/16 (drifted 2/16). That is a small correction, not
+    a bug; ``ReStaTrainer`` adds the full delta.
     """
 
     METHOD = "LoXTrainer"

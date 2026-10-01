@@ -34,7 +34,7 @@ def main() -> int:
 
     try:
         import torch
-        from transformers import AutoModelForCausalLM
+        from safetune.runner.utils.model_utils import load_model  # causal or vision-language
         from safetune.runner.recover import ReStaTrainer
     except Exception as exc:  # noqa: BLE001
         print(f"✗ Could not import dependencies: {exc}")
@@ -45,8 +45,7 @@ def main() -> int:
     print(f"SafeTune RECOVER quickstart — model={args.model}  device={device}\n")
 
     try:
-        base = AutoModelForCausalLM.from_pretrained(
-            args.model, torch_dtype=torch.float32).to(device)
+        base = load_model(args.model, dtype=torch.float32, device=device)
     except Exception as exc:  # noqa: BLE001
         print(f"✗ Could not load '{args.model}': {exc}")
         return 1
@@ -88,8 +87,7 @@ def main() -> int:
     print("  (the safety vector θ_aligned − θ_base, added onto the drifted model)")
     print("\nThe canonical contract — every recover trainer accepts `model=`:")
     print("  patched = ReStaTrainer(model, base_model=..., aligned_model=...).apply()")
-    print("  see docs/getting-started/index.md for the full recover catalog,")
-    print("  and docs/trust/results.md for results on real drifted checkpoints.")
+    print("  see docs/user-guide/recover.md for the full recover catalog.")
     return 0
 
 

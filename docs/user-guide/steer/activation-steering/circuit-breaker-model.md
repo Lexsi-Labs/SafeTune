@@ -12,8 +12,13 @@ Ref: Zou et al., "Improving Alignment and Robustness with Circuit Breakers," Neu
 
 ```python
 CircuitBreakerTrainer(
-    model: PreTrainedModel,
+    model: PreTrainedModel | None = None,
     tokenizer: PreTrainedTokenizer | None = None,
+    *,
+    model_id: str | None = None,     # load the model from here when `model` is None
+    results_dir: str | None = None,  # default: the runner's results directory
+    drift_task: str | None = None,
+    **kwargs,                        # unknown keys are warned about, not used
 )
 ```
 
@@ -26,8 +31,11 @@ model, not on the trainer.
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `model` | `PreTrainedModel` | required | Model to train |
+| `model` | `PreTrainedModel` | `None` | Model to train |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
+| `model_id` | `str` | `None` | Hub id / path to load the model from when `model` is `None` |
+| `results_dir` | `str` | `None` | Output directory; `None` is the runner default |
+| `drift_task` | `str` | `None` | Optional drift-evaluation task |
 
 ## Full example
 

@@ -61,7 +61,7 @@ else:  # pragma: no cover
         pass
 
 
-class LisaTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
+class LisaHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """Trainer implementing Lisa's Bi-State Optimization (BSO) with proximal term.
 
     Faithful to the authors' ``LisaTrainer`` (``git-disl/Lisa/trainer.py``):
@@ -101,7 +101,7 @@ class LisaTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
             raise ImportError(
-                "transformers is required for LisaTrainer"
+                "transformers is required for LisaHFTrainer"
             ) from _TRAINER_IMPORT_ERROR
         if _LISA_IMPORT_ERROR is not None:
             raise ImportError(
@@ -263,3 +263,8 @@ class LisaTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type
         self._lisa_clock += 1
 
         return loss
+
+
+from ._deprecated import renamed as _renamed
+
+__getattr__ = _renamed(__name__, LisaTrainer="LisaHFTrainer")  # old name, remove in 0.3

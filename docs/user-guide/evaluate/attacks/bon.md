@@ -8,7 +8,9 @@ Ref: Hughes, Price, Lynch et al., arXiv:2412.03556. The paper reports 89% ASR
 on GPT-4o at N=10000, measured with a harmful-content classifier and the full
 success gate. The default `StringMatchJudge` here is a GPU-free refusal proxy,
 not that classifier, so it is a lower-cost baseline rather than a literal
-reproduction of that number.
+reproduction of that number. It matches the 12 refusal prefixes at the start of
+the response (before, the default was the 29-phrase GCG match;
+`StringMatchJudge(mode="gcg")` gives that).
 
 ```python
 from safetune.evaluate import BoNAttack, BoNConfig

@@ -11,6 +11,8 @@ from typing import Any, List, Optional
 import torch
 import torch.nn as nn
 
+from safetune._refusal_helpers import _left_padding
+
 from .base import GenerationConfig, InferenceBackend
 
 logger = logging.getLogger(__name__)
@@ -20,10 +22,11 @@ class TransformersBackend(InferenceBackend):
     """Inference via ``AutoModelForCausalLM.generate``.
 
     The model may be a HuggingFace hub id, a local path, or a pre-instantiated
-    ``nn.Module``. In the last case ``tokenizer`` must be supplied.
+    ``nn.Module`` or steering wrapper (e.g. ``CASTModel``, whose ``generate``
+    applies its gate). In the last two cases ``tokenizer`` must be supplied.
 
     Args:
-        model: hub id, local path, or ``nn.Module``.
+        model: hub id, local path, ``nn.Module`` or steering wrapper.
         tokenizer: required if ``model`` is an ``nn.Module``; otherwise
             inferred from ``model`` via ``AutoTokenizer.from_pretrained``.
         device: ``"cuda"``, ``"cuda:1"``, ``"cpu"``, or ``"auto"`` (default).
@@ -51,7 +54,7 @@ class TransformersBackend(InferenceBackend):
         self._dtype = torch_dtype
         self._trust_remote = trust_remote_code
 
-        if isinstance(model, nn.Module):
+        if isinstance(model, nn.Module) or hasattr(model, "generate"):  # or a steering wrapper
             if tokenizer is None:
                 raise ValueError(
                     "TransformersBackend: when ``model`` is an nn.Module, "
@@ -69,35 +72,38 @@ class TransformersBackend(InferenceBackend):
     def _ensure_loaded(self) -> None:
         if self._loaded_model is not None and self._loaded_tokenizer is not None:
             return
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoTokenizer
+        from safetune._refusal_helpers import _load_pretrained_lm
+        from safetune.utils.errors import hf_access_errors
 
-        if self._loaded_tokenizer is None:
-            self._loaded_tokenizer = AutoTokenizer.from_pretrained(
-                self._loaded_model_name,
-                trust_remote_code=self._trust_remote,
-            )
-            if self._loaded_tokenizer.pad_token is None:
-                self._loaded_tokenizer.pad_token = self._loaded_tokenizer.eos_token
-            self._loaded_tokenizer.padding_side = "left"
+        with hf_access_errors(self._loaded_model_name, kind="model"):
+            if self._loaded_tokenizer is None:
+                self._loaded_tokenizer = AutoTokenizer.from_pretrained(
+                    self._loaded_model_name,
+                    trust_remote_code=self._trust_remote,
+                )
+                if self._loaded_tokenizer.pad_token is None:
+                    self._loaded_tokenizer.pad_token = self._loaded_tokenizer.eos_token
+                self._loaded_tokenizer.padding_side = "left"
 
-        if self._loaded_model is None:
-            dtype = self._dtype
-            if dtype is None:
-                dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
-            device_map = self._device if self._device != "auto" else "auto"
-            logger.info(
-                "TransformersBackend: loading %s (dtype=%s, device=%s)",
-                self._loaded_model_name,
-                dtype,
-                device_map,
-            )
-            self._loaded_model = AutoModelForCausalLM.from_pretrained(
-                self._loaded_model_name,
-                torch_dtype=dtype,
-                device_map=device_map,
-                trust_remote_code=self._trust_remote,
-            )
-            self._loaded_model.eval()
+            if self._loaded_model is None:
+                dtype = self._dtype
+                if dtype is None:
+                    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+                device_map = self._device if self._device != "auto" else "auto"
+                logger.info(
+                    "TransformersBackend: loading %s (dtype=%s, device=%s)",
+                    self._loaded_model_name,
+                    dtype,
+                    device_map,
+                )
+                self._loaded_model = _load_pretrained_lm(
+                    self._loaded_model_name,
+                    torch_dtype=dtype,
+                    device_map=device_map,
+                    trust_remote_code=self._trust_remote,
+                )
+                self._loaded_model.eval()
 
     # --------------------------------------------------------------- generate
 
@@ -107,9 +113,11 @@ class TransformersBackend(InferenceBackend):
         model = self._loaded_model
         cfg = self.config
 
+        templated = False
         if self.chat_template:
             try:
                 formatted = [self._apply_chat_template(tok, p) for p in prompts]
+                templated = True
             except Exception as e:
                 logger.warning(
                     "TransformersBackend: chat_template failed (%s); using raw prompts.", e
@@ -123,12 +131,15 @@ class TransformersBackend(InferenceBackend):
         bs = max(1, cfg.batch_size)
         for i in range(0, len(formatted), bs):
             batch = formatted[i : i + bs]
-            enc = tok(
-                batch,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-            ).to(device)
+            # A passed-in tokenizer may be right-padded (load_tok, for training).
+            with _left_padding(tok):
+                enc = tok(
+                    batch,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    add_special_tokens=not templated,  # the template renders BOS itself
+                ).to(device)
             with torch.no_grad():
                 gen_kwargs = dict(
                     max_new_tokens=cfg.max_new_tokens,
