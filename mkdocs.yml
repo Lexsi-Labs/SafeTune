@@ -69,15 +69,15 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/Lexsi-Labs
       name: Lexsi Labs on GitHub
-    - icon: fontawesome/brands/github
-      link: https://github.com/Lexsi-Labs/SafeTune
-      name: SafeTune on GitHub
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/safetune/
       name: SafeTune on PyPI
     - icon: simple/huggingface
       link: https://huggingface.co/Lexsi
       name: Lexsi Labs on Hugging Face
+    - icon: fontawesome/brands/square-github
+      link: https://github.com/Lexsi-Labs/SafeTune
+      name: SafeTune on GitHub
     - icon: fontawesome/brands/x-twitter
       link: https://x.com/Lexsi_labs
       name: Lexsi Labs on X
