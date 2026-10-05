@@ -63,21 +63,27 @@ extra:
     provider: mike
     default: latest
   social:
+    - icon: material/web
+      link: https://lexsi.ai/
+      name: Lexsi Labs
     - icon: fontawesome/brands/github
-      link: https://github.com/Lexsi-Labs/SafeTune
-      name: SafeTune on GitHub
+      link: https://github.com/Lexsi-Labs
+      name: Lexsi Labs on GitHub
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/safetune/
       name: SafeTune on PyPI
+    - icon: simple/huggingface
+      link: https://huggingface.co/Lexsi
+      name: Lexsi Labs on Hugging Face
+    - icon: fontawesome/brands/square-github
+      link: https://github.com/Lexsi-Labs/SafeTune
+      name: SafeTune on GitHub
     - icon: fontawesome/brands/x-twitter
       link: https://x.com/Lexsi_labs
       name: Lexsi Labs on X
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/company/lexsi-labs/
       name: Lexsi Labs on LinkedIn
-    - icon: simple/huggingface
-      link: https://huggingface.co/Lexsi
-      name: Lexsi Labs on Hugging Face
 
 plugins:
   - search
