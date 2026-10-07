@@ -84,6 +84,9 @@ extra:
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/company/lexsi-labs/
       name: Lexsi Labs on LinkedIn
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/MhVUGVYE8q
+      name: Lexsi Labs on Discord
 
 plugins:
   - search
