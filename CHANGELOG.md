@@ -5,6 +5,14 @@ All notable changes to SafeTune are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+- `trl` is capped below 1.15. TRL 1.15.0 (8 Oct 2026) computes the DPO loss with a
+  Triton kernel and does not check that the tensors are on a GPU, so on a Linux
+  machine without one the DPO-based trainers (CST, DeRTa and the rest of that
+  family) failed with `RuntimeError: 0 active drivers ([]). There should only be one.`
+  The requirement is now `trl>=0.12,<1.15`.
+
 ## [0.1.8] - 2026-10-02
 
 0.1.8, the version the release pipeline publishes next; the last PyPI
