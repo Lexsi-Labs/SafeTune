@@ -231,6 +231,12 @@ jobs:
           fi
           python scripts/release.py validate-version "$RELEASE_TAG"
 
+      # The default torch wheel pulls about 4 GB of CUDA libraries, which no longer
+      # fit on the runner next to the test dependencies (No space left on device).
+      # The suite runs on CPU, so install the CPU build first; pip then keeps it.
+      - name: Install CPU torch
+        run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
       - name: Install project test dependencies
         run: python -m pip install -e ".[dev]"
 

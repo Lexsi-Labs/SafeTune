@@ -118,6 +118,9 @@ dev = [
     "pytest-mock>=3.10.0",
     "pytest-timeout>=2.1.0",
     "hypothesis>=6.70.0",
+    # tests/runtime/test_gated_resource_errors.py builds httpx responses; newer
+    # huggingface_hub releases no longer install httpx for us.
+    "httpx>=0.24",
     "pre-commit>=3.0.0",
     "nvitop>=1.1.0; platform_system!='Darwin'",
     "gpustat>=1.1.1",
