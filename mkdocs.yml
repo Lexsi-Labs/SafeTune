@@ -237,6 +237,7 @@ nav:
           - Interpret: reference/api/interpret.md
           - Evaluate: reference/api/evaluate.md
           - Configuration: reference/api/config.md
+      - Hyperparameters: reference/hyperparameters.md
       - CLI Reference: reference/cli.md
       - References: reference/references.md
       - Feature Map: reference/feature-map.md
