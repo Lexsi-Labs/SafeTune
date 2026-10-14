@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   machine without one the DPO-based trainers (CST, DeRTa and the rest of that
   family) failed with `RuntimeError: 0 active drivers ([]). There should only be one.`
   The requirement is now `trl>=0.12,<1.15`.
+- Docs: a Hyperparameters reference page (`docs/reference/hyperparameters.md`) covering every
+  `safetune.configure()` runtime setting and a quick-reference table for all 75 methods, each row
+  linking to its guide; the footer links to the Lexsi Labs GitHub organisation, website and Discord.
+- The release workflow's test gate installs the CPU build of `torch` first (the default wheel pulls
+  the CUDA libraries and filled the runner's disk), and `httpx` is in the `dev` extra (newer
+  `huggingface_hub` releases no longer install it, so `tests/runtime` failed at collection).
 
 ## [0.1.8] - 2026-10-02
 
