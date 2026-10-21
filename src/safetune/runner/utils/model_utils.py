@@ -65,11 +65,16 @@ def load_model(name: str, *, dtype=None, device: str = None):
     """
     from safetune._refusal_helpers import _load_pretrained_lm
     device = resolve_device(device)
-    m = _load_pretrained_lm(
-        name,
-        dtype=resolve_dtype(dtype, device),
-        device_map=device,
-    )
+    dt = resolve_dtype(dtype, device)
+    if device == "mps":
+        # transformers' threaded async load into device_map="mps" segfaults or
+        # silently zeros the weights for some dtypes/models on Apple GPUs (e.g.
+        # fp32 with tiny-aya-global). Load on CPU and move: equivalent placement
+        # on a single-device target, and the reliable path on mps.
+        m = _load_pretrained_lm(name, dtype=dt, device_map="cpu")
+        m = m.to(device)
+    else:
+        m = _load_pretrained_lm(name, dtype=dt, device_map=device)
     m.eval()
     tok = _TOK_CACHE.get(name)
     return _fix_pad_token(m, tok)

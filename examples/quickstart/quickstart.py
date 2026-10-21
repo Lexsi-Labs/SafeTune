@@ -90,7 +90,9 @@ def main() -> int:
         tok = AutoTokenizer.from_pretrained(args.model, padding_side="left")
         if tok.pad_token is None:
             tok.pad_token = tok.eos_token
-        model = load_model(args.model, dtype=torch.float32, device=device)
+        # Let resolve_dtype pick the dtype (bf16 on mps, fp32 on CPU). Forcing fp32
+        # with device_map="mps" hits a loader bug that zeros/segfaults on Apple GPUs.
+        model = load_model(args.model, dtype=None, device=device)
         model.eval()
     except Exception as exc:  # noqa: BLE001
         print(f"✗ Could not load '{args.model}': {exc}")
@@ -118,6 +120,12 @@ def main() -> int:
     # ---- 2. baseline generations ------------------------------------------
     print("[2/3] Generating on held-out harmful prompts (baseline) ...")
     base_out = [generate(p) for p in PROBE]
+    if all(not o.strip() for o in base_out):
+        print("✗ The model produced only empty output — the load looks broken\n"
+              "  (a known transformers fp32 + device_map zero-weights issue on mps).\n"
+              "  Re-run without forcing a dtype, or on CPU (--device cpu). Not\n"
+              "  reporting refusal numbers from a model that did not generate.")
+        return 1
     judge = StringMatchJudge(mode="gcg")  # the GCG refusal-substring check
     base_refusals = sum(judge.is_refusal(o) for o in base_out)
 
