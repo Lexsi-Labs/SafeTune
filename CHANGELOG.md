@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `extract_math_answer` drops the colon, full stop and closing paragraph around an answer given in
+  a sentence, so `The answer is: 42` no longer scores 0.0 in `MathReasoningReward`.
 - `trl` is capped below 1.15. TRL 1.15.0 (8 Oct 2026) computes the DPO loss with a
   Triton kernel and does not check that the tensors are on a GPU, so on a Linux
   machine without one the DPO-based trainers (CST, DeRTa and the rest of that
