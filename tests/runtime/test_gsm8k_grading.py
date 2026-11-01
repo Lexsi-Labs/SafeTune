@@ -35,6 +35,8 @@ def test_numeric_formats_compare_by_value(pred, gold):
         ("19%", "18"),
         ("1/0", "1"),
         ("eighteen", "18"),
+        ("1$8", "18"),
+        ("1%8", "18"),
         ("", "18"),
     ],
 )
