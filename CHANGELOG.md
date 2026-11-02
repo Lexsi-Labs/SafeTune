@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The release workflow's test gate installs the CPU build of `torch` first (the default wheel pulls
   the CUDA libraries and filled the runner's disk), and `httpx` is in the `dev` extra (newer
   `huggingface_hub` releases no longer install it, so `tests/runtime` failed at collection).
+- `grade_gsm8k_answer` compares by value: a correct `$18`, `18%` or `3/4` no longer grades as wrong
+  against gold `18` or `0.75`, in GSM8K baselines and in `MathReasoningReward`.
 
 ## [0.1.8] - 2026-10-02
 
