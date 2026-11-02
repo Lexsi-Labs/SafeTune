@@ -37,6 +37,7 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
+from collections.abc import Iterator
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -230,6 +231,7 @@ _METHODS = frozenset(
     "isdigit isalpha isalnum isupper islower find issubset issuperset union intersection "
     "difference symmetric_difference copy".split()
 )
+_SET_METHODS = frozenset("union intersection difference symmetric_difference issubset issuperset".split())
 _PLAIN = (bool, int, float, str, list, tuple, set, frozenset, dict, type(None))
 _BUILTIN_NAMES = frozenset(dir(builtins))
 # Every container, string and repeat the trainer builds or reads while evaluating a test is held to
@@ -247,16 +249,36 @@ class _Vals(list):
     touched = 0
 
 
+_VIEWS = (type({}.keys()), type({}.values()), type({}.items()))
+
+
+def _prep(v: "_Vals", x: Any) -> Any:
+    """Consume a lazy iterable (zip, enumerate, reversed, an iterator, a dict view) once into a list, under the cap."""
+    if not isinstance(x, (Iterator, *_VIEWS)):
+        return x
+    out = []
+    for item in x:
+        out.append(item)
+        if len(out) > _MAX_REPEAT:
+            raise _Fail
+    return out
+
+
+def _no_collisions(items: Any) -> None:
+    if items and max(Counter(map(hash, items)).values()) > _MAX_SAME_HASH:
+        raise _Fail
+
+
 def _small(v: "_Vals", *things: Any) -> None:
-    """Refuse a big container or string, a total past the cap for this assert, and hash collisions."""
+    """Refuse a big container or string, and a total past the cap for this assert."""
     for t in things:
         if type(t) in (str, list, tuple, set, frozenset, dict):
             if len(t) > _MAX_REPEAT:
                 raise _Fail
             v.touched += len(t)
-            # Values that hash alike make building a set or dict quadratic.
-            if type(t) is not str and t and max(Counter(map(hash, t)).values()) > _MAX_SAME_HASH:
-                raise _Fail
+            # Values that hash alike make building or combining a set or dict quadratic.
+            if type(t) in (set, frozenset, dict):
+                _no_collisions(t)
     if v.touched > 10 * _MAX_REPEAT:
         raise _Fail
 
@@ -418,9 +440,20 @@ def _compile_node(node: ast.expr, calls: List[str]) -> Ev:
         func = node.func
         if isinstance(func, ast.Name) and func.id in _FUNCS:
             def call(v: List[Any]) -> Any:
-                values = [a(v) for a in args]
+                values = [_prep(v, a(v)) for a in args]
                 if func.id != "len":
                     _small(v, *values)
+                # Check the members a set will hold, and for a dict the first item of each pair.
+                if func.id in ("set", "frozenset"):
+                    for items in values:
+                        if type(items) in (list, tuple):
+                            _no_collisions(items)
+                elif func.id == "dict":
+                    for pairs in values:
+                        if type(pairs) in (list, tuple, set, frozenset):
+                            if not all(type(p) in (list, tuple) and len(p) == 2 for p in pairs):
+                                raise _Fail
+                            _no_collisions([p[0] for p in pairs])
                 return _FUNCS[func.id](*values, **{k: a(v) for k, a in kwargs})
 
             return call
@@ -434,12 +467,20 @@ def _compile_node(node: ast.expr, calls: List[str]) -> Ev:
                 r = receiver(v)
                 if type(r) not in _PLAIN:
                     raise _Fail
-                values = [a(v) for a in args]
+                values = [_prep(v, a(v)) for a in args]
                 _small(v, r, *values)
+                if func.attr in _SET_METHODS:  # the receiver and every argument, together
+                    members: List[Any] = []
+                    for items in (r, *values):
+                        if type(items) in (list, tuple, set, frozenset, dict):
+                            members.extend(items)
+                    _no_collisions(members)
                 if func.attr == "join" and (len(values) != 1 or not hasattr(values[0], "__len__")
                                             or len(r) * len(values[0]) > _MAX_REPEAT):
                     raise _Fail
-                return getattr(r, func.attr)(*values, **{k: a(v) for k, a in kwargs})
+                out = _prep(v, getattr(r, func.attr)(*values, **{k: a(v) for k, a in kwargs}))
+                _small(v, out)  # a view's elements are checked before they are used
+                return out
 
             return method
     raise _Undecomposable(ast.unparse(node))

@@ -432,3 +432,125 @@ def test_colliding_hashes_are_refused_before_the_set_is_built():
         with pytest.raises(_code_grader._Fail):
             check([bad])
         assert time.time() - start < 0.2
+
+
+COLLIDE = [(2**61 - 1) * i for i in range(1, 9000)]
+DISTINCT = list(range(9000))
+DVALUES = {i: (2**61 - 1) * i for i in range(1, 9000)}
+
+
+def _evaluate(test, **named):
+    """Run the trainer-side check on values given by candidate-call name."""
+    from safetune.rewards import _code_grader
+
+    calls, check = _code_grader._plan_assert(test)
+    values = [named[c.split("(")[0]] for c in calls]
+    start = time.time()
+    try:
+        return check(values)
+    finally:
+        assert time.time() - start < 1
+
+
+@pytest.mark.parametrize(
+    "test, named",
+    [
+        ("assert len(set(f().values())) == 1", dict(f=DVALUES)),
+        ("assert len(frozenset(f().values())) == 1", dict(f=DVALUES)),
+        ("assert len(set(zip(f(), g()))) == 1", dict(f=COLLIDE, g=COLLIDE)),
+        ("assert len(set(zip(g(), f()))) == 1", dict(f=COLLIDE, g=COLLIDE)),
+        ("assert len(dict(zip(f(), g()))) == 1", dict(f=COLLIDE, g=DISTINCT)),
+        ("assert len(set(reversed(f()))) == 1", dict(f=COLLIDE)),
+        ("assert len(set(sorted(f().values()))) == 1", dict(f=DVALUES)),
+        ("assert len(set([1]).union(zip(g(), g()))) == 1", dict(g=COLLIDE)),
+        ("assert len(set([1]).union(g().values())) == 1", dict(g=DVALUES)),
+        ("assert set([1]).issubset(g().values())", dict(g=DVALUES)),
+        ("assert len(f().keys() | g().keys()) == 1", dict(f=DVALUES, g=DVALUES)),
+    ],
+)
+def test_colliding_hashes_through_lazy_iterables_are_refused(test, named):
+    from safetune.rewards import _code_grader
+
+    with pytest.raises((_code_grader._Fail, TypeError)):
+        _evaluate(test, **named)
+
+
+@pytest.mark.parametrize(
+    "test, named, want",
+    [
+        ("assert len(set(f().values())) == 9000", dict(f={i: i for i in range(9000)}), True),
+        ("assert len(frozenset(f().items())) == 8999", dict(f=DVALUES), True),
+        ("assert len(set(zip(f(), g()))) == 9000", dict(f=DISTINCT, g=DISTINCT), True),
+        ("assert len(dict(zip(f(), g()))) == 9000", dict(f=DISTINCT, g=COLLIDE + [0]), True),
+        ("assert len(dict(enumerate(f()))) == 8999", dict(f=COLLIDE), True),
+        ("assert len(set(enumerate(f()))) == 8999", dict(f=COLLIDE), True),
+        ("assert len(set(reversed(f()))) == 9000", dict(f=DISTINCT), True),
+        ("assert sorted(f()) == sorted(f())", dict(f=COLLIDE), True),
+        ("assert len(set(f().keys()) | set(g().keys())) == 8999", dict(f=DVALUES, g=DVALUES), True),
+    ],
+)
+def test_distinct_values_through_lazy_iterables_still_work(test, named, want):
+    assert _evaluate(test, **named) is want
+
+
+SET_A, SET_B, SET_C = (set(COLLIDE[i * 3000:(i + 1) * 3000]) for i in range(3))
+HALF = (set(COLLIDE[:4000]), set(COLLIDE[4000:8000]))
+PAIRS = [(k, 1) for k in COLLIDE]
+
+
+@pytest.mark.parametrize(
+    "test, named",
+    [
+        ("assert len(f() | g()) == 1", dict(f=HALF[0], g=HALF[1])),
+        ("assert len(f() & g()) == 1", dict(f=HALF[0], g=HALF[1])),
+        ("assert len(f() - g()) == 1", dict(f=HALF[0], g=HALF[1])),
+        ("assert len(f() ^ g()) == 1", dict(f=HALF[0], g=HALF[1])),
+        ("assert len(f().union(g())) == 1", dict(f=HALF[0], g=HALF[1])),
+        ("assert len(f().intersection(g())) == 1", dict(f=HALF[0], g=HALF[1])),
+        ("assert len(f().difference(g())) == 1", dict(f=HALF[0], g=HALF[1])),
+        ("assert len(f().symmetric_difference(g())) == 1", dict(f=HALF[0], g=HALF[1])),
+        ("assert len(f().union(g(), h())) == 1", dict(f=SET_A, g=SET_B, h=SET_C)),
+        ("assert len(set(f()) | set(g()) | set(h())) == 1", dict(f=list(SET_A), g=list(SET_B), h=list(SET_C))),
+        ("assert len(dict(f())) == 1", dict(f=PAIRS + [()])),
+        ("assert len(dict(f())) == 1", dict(f=PAIRS + [(1, 2, 3)])),
+        ("assert len(dict(f())) == 1", dict(f=PAIRS + [5])),
+        ("assert len(dict(f())) == 1", dict(f=PAIRS)),
+        ("assert len(dict(f())) == 1", dict(f=frozenset(PAIRS))),
+        ("assert len(dict(f())) == 1", dict(f=set(PAIRS))),
+    ],
+)
+def test_set_operators_methods_and_dict_pairs_refuse_colliding_hashes(test, named):
+    from safetune.rewards import _code_grader
+
+    with pytest.raises((_code_grader._Fail, TypeError)):
+        _evaluate(test, **named)
+
+
+def test_distinct_sets_and_pairs_still_work():
+    a, b = set(range(4000)), set(range(2000, 6000))
+    assert _evaluate("assert len(f() | g()) == 6000", f=a, g=b) is True
+    assert _evaluate("assert len(f() & g()) == 2000", f=a, g=b) is True
+    assert _evaluate("assert len(f().union(g(), g())) == 6000", f=a, g=b) is True
+    assert _evaluate("assert len(dict(f())) == 9000", f=[(i, 1) for i in range(9000)]) is True
+    assert _evaluate("assert len(dict(f())) == 9000", f=frozenset((i, 1) for i in range(9000))) is True
+
+
+@pytest.mark.parametrize(
+    "pair",
+    [frozenset({1, 2}), {1, 2}, "ab", {1: 2, 3: 4}, b"ab", [1]],
+)
+def test_dict_needs_every_element_to_be_a_pair_of_a_list_or_tuple(pair):
+    from safetune.rewards import _code_grader
+
+    with pytest.raises(_code_grader._Fail):
+        _evaluate("assert len(dict(f())) == 1", f=[(1, 2), pair])
+    with pytest.raises(_code_grader._Fail):
+        _evaluate("assert len(dict(f())) == 1", f=PAIRS[:5000] + [pair])
+
+
+def test_pairs_whose_keys_collide_in_a_frozenset_pair_are_refused():
+    from safetune.rewards import _code_grader
+
+    with pytest.raises(_code_grader._Fail):
+        _evaluate("assert len(dict(f())) == 1", f=[frozenset({k, 1}) for k in COLLIDE])
+    assert _evaluate("assert dict(f()) == {1: 2}", f=[(1, 2)]) is True
