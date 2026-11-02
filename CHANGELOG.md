@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - `extract_math_answer` drops the colon, full stop and closing paragraph around an answer given in
-  a sentence, so `The answer is: 42` no longer scores 0.0 in `MathReasoningReward`.
+  a sentence, so `The answer is: 42` no longer scores 0.0 in `MathReasoningReward` (#31, @ANDROIDHASSAN).
 - `trl` is capped below 1.15. TRL 1.15.0 (8 Oct 2026) computes the DPO loss with a
   Triton kernel and does not check that the tensors are on a GPU, so on a Linux
   machine without one the DPO-based trainers (CST, DeRTa and the rest of that
@@ -21,7 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the CUDA libraries and filled the runner's disk), and `httpx` is in the `dev` extra (newer
   `huggingface_hub` releases no longer install it, so `tests/runtime` failed at collection).
 - `grade_gsm8k_answer` compares by value: a correct `$18`, `18%` or `3/4` no longer grades as wrong
-  against gold `18` or `0.75`, in GSM8K baselines and in `MathReasoningReward`.
+  against gold `18` or `0.75`, in GSM8K baselines and in `MathReasoningReward` (#30, @ANDROIDHASSAN).
+  Only a leading currency sign and a trailing percent or currency sign are dropped, so `1$8` and
+  `1%8` don't read as 18.
 
 ## [0.1.8] - 2026-10-02
 
