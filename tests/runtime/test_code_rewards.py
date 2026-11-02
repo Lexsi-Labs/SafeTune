@@ -566,3 +566,49 @@ def test_pairs_whose_keys_collide_in_a_frozenset_pair_are_refused():
 def test_two_large_honest_results_in_one_assert_still_pass(test):
     code = "def f(): return list(range(9000))\ndef g(): return list(range(9000, 18000))"
     assert MBPPReward(_config()).compute(code, test_list=[test]) == 1.0
+
+
+REPEATS = (
+    "def f(): return [0] * 9000\n"
+    "def g(): return [2] * 9000\n"
+    "def h(): return [1] * 100 + [1.0] * 100 + [True] * 100\n"
+    "def p(): return [(1, 2)] * 9000\n"
+    "def s(): return ['a'] * 9000\n"
+)
+
+
+@pytest.mark.parametrize(
+    "test",
+    [
+        "assert set(f()) == {0}",
+        "assert frozenset(f()) == frozenset({0})",
+        "assert set(f()).union(g()) == {0, 2}",
+        "assert set(f()) | set(g()) == {0, 2}",
+        "assert dict(p()) == {1: 2}",
+        "assert set(h()) == {1}",
+        "assert set(s()) == {'a'}",
+        "assert len(set(f())) == 1",
+    ],
+)
+def test_many_equal_values_are_not_a_collision(test):
+    start = time.time()
+    assert _mbpp(REPEATS, test) == 1.0
+    assert time.time() - start < 5
+
+
+def test_distinct_colliding_values_are_still_refused_and_equal_ones_are_not():
+    from safetune.rewards import _code_grader
+
+    assert not _code_grader._too_many_alike([0] * 9000)
+    assert not _code_grader._too_many_alike([1] * 100 + [1.0] * 100 + [True] * 100)
+    assert _code_grader._too_many_alike(COLLIDE)
+    assert _code_grader._too_many_alike(COLLIDE + COLLIDE)
+    for test, named in (
+        ("assert len(set(f())) == 1", dict(f=COLLIDE)),
+        ("assert len(frozenset(f())) == 1", dict(f=COLLIDE)),
+        ("assert len(dict(f())) == 1", dict(f=PAIRS)),
+        ("assert len(set(f()).union(g())) == 1", dict(f=[1], g=COLLIDE)),
+        ("assert len(set(f()) | set(g())) == 1", dict(f=[1], g=COLLIDE)),
+    ):
+        with pytest.raises(_code_grader._Fail):
+            _evaluate(test, **named)

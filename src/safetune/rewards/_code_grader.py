@@ -36,7 +36,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-from collections import Counter
 from collections.abc import Iterator
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -123,8 +122,30 @@ class _Failed:
 _FAILED = _Failed()
 
 
+def _member_key(x: Any) -> Tuple[str, str]:
+    """A key that hashes well and treats equal numbers (1, 1.0, True) as one."""
+    if isinstance(x, (bool, int)):
+        return "n", repr(int(x))
+    if isinstance(x, float):
+        return "n", repr(int(x)) if x.is_integer() else repr(x)
+    return type(x).__name__, repr(x)
+
+
+def _too_many_alike(items: Any) -> bool:
+    """Whether more than _MAX_SAME_HASH DISTINCT members share one hash, which makes a set or dict quadratic.
+
+    Equal members collapse cheaply, so only a crowded bucket is looked at, and linearly.
+    """
+    buckets: Dict[int, List[Any]] = {}
+    for x in items:
+        buckets.setdefault(hash(x), []).append(x)
+    return any(
+        len(b) > _MAX_SAME_HASH and len({_member_key(x) for x in b}) > _MAX_SAME_HASH for b in buckets.values()
+    )
+
+
 def _hashed(items: List[Any]) -> List[Any]:
-    if items and max(Counter(map(hash, items)).values()) > _MAX_SAME_HASH:
+    if _too_many_alike(items):
         raise ValueError("too many colliding hashes")
     return items
 
@@ -265,7 +286,7 @@ def _prep(v: "_Vals", x: Any) -> Any:
 
 
 def _no_collisions(items: Any) -> None:
-    if items and max(Counter(map(hash, items)).values()) > _MAX_SAME_HASH:
+    if _too_many_alike(items):
         raise _Fail
 
 
