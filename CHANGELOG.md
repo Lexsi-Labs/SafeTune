@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This is not a sandbox: the child can still read files, use the network and signal the parent, and
   a completion can still forge a constant expected result such as `True`. Reported by Ebin Babu
   Thomas (@ebt55).
+- Code reward asserts are now decided in the trainer: the child only runs the completion's own
+  calls and returns plain data, and the trainer evaluates the rest (`and`, `or`, `not`, chained
+  comparisons, arithmetic, `len`, `sorted`, `isinstance` and similar) itself. Redefining or
+  patching builtins can no longer change what a test computes. An assert that uses anything outside
+  that set, or a task whose function shares a builtin's name, fails with a warning. The evaluator
+  is bounded in work and size, and refuses colliding hashes before it builds a set.
 
 ### Changed
 

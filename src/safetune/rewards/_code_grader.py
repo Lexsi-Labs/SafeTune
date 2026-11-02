@@ -10,9 +10,23 @@ read the user's files, use the network and signal other processes, the trainer
 included. A determined candidate can also find the open result file and write
 values into it: that needs the expected value to score, and only plain data
 crosses, but it can pass a test that wants a constant such as ``True``.
+
+Only the candidate's own calls (``f(3)``, ``mod.f(3)``, a constant it defines) run in
+the child, as separate expressions whose results come back as plain data. The
+trainer evaluates the rest of the assert, on plain data, with a whitelist of
+builtins, ``math`` functions and methods: ``and``, ``or``, ``not``, chained
+comparisons, arithmetic, ``len``, ``sorted``, ``isinstance`` and the like all run
+here, so a candidate can't change them by redefining names or patching
+``builtins``. An assert that uses anything else fails with a warning. A task
+whose required function shares a builtin's name can't be graded either: its
+tests fail, with a warning.
+
+What remains: the candidate can still return a forged plain value, so a test
+whose expected value it can guess is not protected.
 """
 
 import ast
+import builtins
 import json
 import logging
 import math
@@ -22,6 +36,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -37,35 +52,51 @@ _MAX_MEMORY_BYTES = 4 * 1024 * 1024 * 1024
 # object with its own __eq__ can't cross. The candidate can replace anything
 # here, but all that gets it is a value of its own choosing.
 _HARNESS = r"""
-import inspect, json, os, sys
-try:
-    import resource
-    for limit, value in ((resource.RLIMIT_AS, int(sys.argv[3])), (resource.RLIMIT_FSIZE, int(sys.argv[4]))):
-        resource.setrlimit(limit, (value, value))
-except (ImportError, ValueError, OSError):
-    pass  # not every platform enforces these
-with open(sys.argv[1]) as f:
-    job = json.load(f)
-os.unlink(sys.argv[1])
-result = open(sys.argv[2], "w")
-sys.argv = ["candidate"]
-def enc(x):
-    t = type(x)
-    if x is None or t in (bool, int, str): return x
-    if t is float: return {"f": repr(x)}
-    if t in (list, tuple, set, frozenset): return {t.__name__: [enc(i) for i in x]}
-    if t is dict: return {"dict": [[enc(k), enc(v)] for k, v in x.items()]}
-    raise TypeError(t)
-ns = {"__name__": "__main__"}
-exec(compile(job["code"], "<candidate>", "exec"), ns)
-values = [enc(eval(e, ns)) for e in job["exprs"]]
-if job["has_call"]:
-    fs = [v for k, v in ns.items() if not k.startswith("_") and inspect.isfunction(v)]
-    fs = fs or [v for k, v in ns.items() if not k.startswith("_") and callable(v)]
-    inp = job["call"]
-    values.append(enc(fs[0](*inp) if type(inp) in (list, tuple) else fs[0](inp)))
-json.dump(values, result)
-result.close()
+def _main():
+    import inspect, json, os, sys
+    # Only the candidate's own calls are evaluated here; the trainer evaluates the rest of a test.
+    # Names used after the candidate runs are bound first, so patching builtins doesn't break the encoding.
+    _eval, _exec, _compile, _open, _dump = eval, exec, compile, open, json.dump
+    _type, _bool, _int, _str, _float, _repr = type, bool, int, str, float, repr
+    _list, _tuple, _set, _frozenset, _dict = list, tuple, set, frozenset, dict
+    _Exception, _TypeError, _isfunction, _callable = Exception, TypeError, inspect.isfunction, callable
+    try:
+        import resource
+        for limit, value in ((resource.RLIMIT_AS, int(sys.argv[3])), (resource.RLIMIT_FSIZE, int(sys.argv[4]))):
+            resource.setrlimit(limit, (value, value))
+    except (ImportError, ValueError, OSError):
+        pass  # not every platform enforces these
+    with _open(sys.argv[1]) as f:
+        job = json.load(f)
+    os.unlink(sys.argv[1])
+    result = _open(sys.argv[2], "w")
+    sys.argv = ["candidate"]
+
+    def enc(x):
+        t = _type(x)
+        if x is None or t is _bool or t is _int or t is _str: return x
+        if t is _float: return {"f": _repr(x)}
+        if t is _list or t is _tuple or t is _set or t is _frozenset: return {t.__name__: [enc(i) for i in x]}
+        if t is _dict: return {"dict": [[enc(k), enc(v)] for k, v in x.items()]}
+        raise _TypeError(t)
+
+    ns = {"__name__": "__main__"}
+    _exec(_compile(job["code"], "<candidate>", "exec"), ns)
+    values = []
+    for e in job["exprs"]:
+        try:
+            values.append(enc(_eval(e, ns)))
+        except _Exception:
+            values.append({"e": 0})
+    if job["has_call"]:
+        fs = [v for k, v in ns.items() if k[:1] != "_" and _isfunction(v)]
+        fs = fs or [v for k, v in ns.items() if k[:1] != "_" and _callable(v)]
+        inp = job["call"]
+        values.append(enc(fs[0](*inp) if _type(inp) in (_list, _tuple) else fs[0](inp)))
+    _dump(values, result)
+    result.close()
+
+_main()
 """
 
 _CONTAINERS = {"list": list, "tuple": tuple, "set": set, "frozenset": frozenset}
@@ -84,17 +115,37 @@ _COMPARE = {
 }
 
 
+class _Failed:
+    """A candidate call that raised or returned something that isn't plain data."""
+
+
+_FAILED = _Failed()
+
+
+def _hashed(items: List[Any]) -> List[Any]:
+    if items and max(Counter(map(hash, items)).values()) > _MAX_SAME_HASH:
+        raise ValueError("too many colliding hashes")
+    return items
+
+
 def _decode(value: Any, budget: List[int]) -> Any:
     budget[0] -= 1
     if budget[0] < 0:
         raise ValueError("result has too many elements")
     if isinstance(value, dict):
         (kind, payload), = value.items()
+        if kind == "e":
+            return _FAILED
         if kind == "f":
             return float(payload)
         if kind == "dict":
-            return {_decode(k, budget): _decode(v, budget) for k, v in payload}
-        return _CONTAINERS[kind](_decode(i, budget) for i in payload)
+            pairs = [(_decode(k, budget), _decode(v, budget)) for k, v in payload]
+            _hashed([k for k, _ in pairs])
+            return dict(pairs)
+        items = [_decode(i, budget) for i in payload]
+        if kind in ("set", "frozenset"):
+            _hashed(items)
+        return _CONTAINERS[kind](items)
     return value
 
 
@@ -160,34 +211,274 @@ def run_candidate(
                 proc.wait()
 
 
-def _expression(node: ast.expr) -> Tuple[Optional[str], Any]:
-    """Return (source to run in the child, None), or (None, literal kept here)."""
+class _Fail(Exception):
+    """A part of the test could not be evaluated, which fails it."""
+
+
+class _Undecomposable(Exception):
+    pass
+
+
+_FUNCS = {
+    n: getattr(builtins, n)
+    for n in ("len sum min max abs sorted set frozenset list tuple dict int float str bool isinstance "
+              "any all round reversed zip enumerate divmod").split()
+}
+_MATH = {n: getattr(math, n) for n in "isclose sqrt floor ceil fabs isnan isinf isfinite pi e inf nan".split()}
+_METHODS = frozenset(
+    "count index keys values items get startswith endswith lower upper strip lstrip rstrip split join "
+    "isdigit isalpha isalnum isupper islower find issubset issuperset union intersection "
+    "difference symmetric_difference copy".split()
+)
+_PLAIN = (bool, int, float, str, list, tuple, set, frozenset, dict, type(None))
+_BUILTIN_NAMES = frozenset(dir(builtins))
+# Every container, string and repeat the trainer builds or reads while evaluating a test is held to
+# this many elements, and an assert may visit this many nodes, so a forged value or a big literal
+# can't make the trainer allocate or loop for long.
+_MAX_REPEAT = 10**5
+_MAX_NODES = 10_000
+_MAX_SAME_HASH = 64
+
+
+class _Vals(list):
+    """The child's values for one evaluation, plus the count of nodes visited."""
+
+    visited = 0
+    touched = 0
+
+
+def _small(v: "_Vals", *things: Any) -> None:
+    """Refuse a big container or string, a total past the cap for this assert, and hash collisions."""
+    for t in things:
+        if type(t) in (str, list, tuple, set, frozenset, dict):
+            if len(t) > _MAX_REPEAT:
+                raise _Fail
+            v.touched += len(t)
+            # Values that hash alike make building a set or dict quadratic.
+            if type(t) is not str and t and max(Counter(map(hash, t)).values()) > _MAX_SAME_HASH:
+                raise _Fail
+    if v.touched > 10 * _MAX_REPEAT:
+        raise _Fail
+
+Ev = Callable[[List[Any]], Any]
+
+
+def _is_chain(node: ast.expr) -> bool:
+    while isinstance(node, ast.Attribute):
+        node = node.value
+    return isinstance(node, ast.Name)
+
+
+def _candidate(node: ast.expr) -> bool:
+    """Whether ``node`` is the candidate's: a name it defines, or a call to one (``f(1)``, ``mod.f(1)``)."""
+    if isinstance(node, ast.Call):
+        return _is_chain(node.func) and _candidate(node.func)
+    if isinstance(node, ast.Attribute):
+        return _is_chain(node) and _candidate(node.value)
+    if isinstance(node, ast.Name):
+        if node.id in _FUNCS or node.id == "math":
+            return False
+        if node.id in _BUILTIN_NAMES:
+            raise _Undecomposable(node.id)
+        return True
+    return False
+
+
+def _binop(op: ast.operator, a: Any, b: Any, v: "_Vals") -> Any:
+    _small(v, a, b)
+    if isinstance(op, ast.Mult):
+        for seq, n in ((a, b), (b, a)):
+            if isinstance(seq, (str, list, tuple)) and type(n) in (int, bool):
+                if len(seq) * abs(n) > _MAX_REPEAT:
+                    raise _Fail
+    elif isinstance(op, ast.Add):
+        if isinstance(a, (str, list, tuple)) and isinstance(b, (str, list, tuple)) and len(a) + len(b) > _MAX_REPEAT:
+            raise _Fail
+    elif isinstance(op, ast.Pow):
+        if type(a) is int and type(b) is int and (abs(b) > 1000 or a.bit_length() * abs(b) > 10_000):
+            raise _Fail
+    elif isinstance(op, ast.Mod):
+        if type(a) not in (int, float) or type(b) not in (int, float):  # no printf-style formatting
+            raise _Fail
+    return _BINOPS[type(op)](a, b)
+
+
+_BINOPS = {
+    ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv, ast.Mod: operator.mod, ast.Pow: operator.pow,
+    ast.BitAnd: operator.and_, ast.BitOr: operator.or_, ast.BitXor: operator.xor,
+}
+_UNARY = {ast.USub: operator.neg, ast.UAdd: operator.pos, ast.Invert: operator.invert, ast.Not: operator.not_}
+
+
+def _compile(node: ast.expr, calls: List[str]) -> Ev:
+    run = _compile_node(node, calls)
+
+    def counted(v: Any) -> Any:
+        v.visited += 1
+        if v.visited > _MAX_NODES:
+            raise _Fail
+        return run(v)
+
+    return counted
+
+
+def _compile_node(node: ast.expr, calls: List[str]) -> Ev:
+    """Turn a test expression into a function of the child's values.
+
+    Each maximal candidate call becomes one expression for the child; everything
+    else is evaluated here, on plain data, by this whitelist.
+    """
     try:
-        return None, ast.literal_eval(node)
+        literal = ast.literal_eval(node)
+        return lambda v: literal
     except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
-        return ast.unparse(node), None
+        pass
+    if _candidate(node):
+        calls.append(ast.unparse(node))
+        i = len(calls) - 1
+
+        def get(v: List[Any]) -> Any:
+            if v[i] is _FAILED:
+                raise _Fail
+            return v[i]
+
+        return get
+    if isinstance(node, ast.BoolOp):
+        subs = [_compile(x, calls) for x in node.values]
+        if isinstance(node.op, ast.And):
+            def conj(v: List[Any]) -> Any:
+                r: Any = True
+                for s in subs:
+                    r = s(v)
+                    if not r:
+                        break
+                return r
+
+            return conj
+
+        def disj(v: List[Any]) -> Any:  # an `or` holds if any side holds, even if another raised
+            failed, r = False, False
+            for s in subs:
+                try:
+                    r = s(v)
+                except (_Fail, TypeError, ValueError, RecursionError, OverflowError, ZeroDivisionError):
+                    failed = True
+                    continue
+                if r:
+                    return r
+            if failed:
+                raise _Fail
+            return r
+
+        return disj
+    if isinstance(node, ast.UnaryOp):
+        x, op = _compile(node.operand, calls), _UNARY[type(node.op)]
+        return lambda v: op(x(v))
+    if isinstance(node, ast.BinOp) and type(node.op) in _BINOPS:
+        a, b = _compile(node.left, calls), _compile(node.right, calls)
+        return lambda v: _binop(node.op, a(v), b(v), v)
+    if isinstance(node, ast.Compare):
+        ops = [_COMPARE[type(op)] for op in node.ops]
+        parts = [_compile(x, calls) for x in [node.left, *node.comparators]]
+
+        def compare(v: List[Any]) -> bool:
+            left = parts[0](v)
+            for op, part in zip(ops, parts[1:]):
+                right = part(v)
+                if not op(left, right):
+                    return False
+                left = right
+            return True
+
+        return compare
+    if isinstance(node, ast.IfExp):
+        t, a, b = (_compile(x, calls) for x in (node.test, node.body, node.orelse))
+        return lambda v: a(v) if t(v) else b(v)
+    if isinstance(node, ast.Subscript):
+        value, index = _compile(node.value, calls), _compile_slice(node.slice, calls)
+        return lambda v: value(v)[index(v)]
+    if isinstance(node, (ast.Tuple, ast.List, ast.Set)) and not any(isinstance(x, ast.Starred) for x in node.elts):
+        items, make = [_compile(x, calls) for x in node.elts], {ast.Tuple: tuple, ast.List: list, ast.Set: set}[type(node)]
+        return lambda v: make(i(v) for i in items)
+    if isinstance(node, ast.Dict) and all(k is not None for k in node.keys):
+        pairs = [(_compile(k, calls), _compile(x, calls)) for k, x in zip(node.keys, node.values)]
+        return lambda v: {k(v): x(v) for k, x in pairs}
+    if isinstance(node, ast.Name) and node.id in _FUNCS:
+        thing = _FUNCS[node.id]
+        return lambda v: thing
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "math" \
+            and node.attr in _MATH:
+        thing = _MATH[node.attr]
+        return lambda v: thing
+    if isinstance(node, ast.Call) and not any(isinstance(a, ast.Starred) for a in node.args) \
+            and all(k.arg for k in node.keywords):
+        args = [_compile(a, calls) for a in node.args]
+        kwargs = [(k.arg, _compile(k.value, calls)) for k in node.keywords]
+        func = node.func
+        if isinstance(func, ast.Name) and func.id in _FUNCS:
+            def call(v: List[Any]) -> Any:
+                values = [a(v) for a in args]
+                if func.id != "len":
+                    _small(v, *values)
+                return _FUNCS[func.id](*values, **{k: a(v) for k, a in kwargs})
+
+            return call
+        if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and func.value.id == "math" \
+                and func.attr in _MATH and callable(_MATH[func.attr]):
+            return lambda v: _MATH[func.attr](*(a(v) for a in args), **{k: a(v) for k, a in kwargs})
+        if isinstance(func, ast.Attribute) and func.attr in _METHODS:
+            receiver = _compile(func.value, calls)
+
+            def method(v: List[Any]) -> Any:
+                r = receiver(v)
+                if type(r) not in _PLAIN:
+                    raise _Fail
+                values = [a(v) for a in args]
+                _small(v, r, *values)
+                if func.attr == "join" and (len(values) != 1 or not hasattr(values[0], "__len__")
+                                            or len(r) * len(values[0]) > _MAX_REPEAT):
+                    raise _Fail
+                return getattr(r, func.attr)(*values, **{k: a(v) for k, a in kwargs})
+
+            return method
+    raise _Undecomposable(ast.unparse(node))
 
 
-def _plan_assert(assertion: str) -> Optional[Tuple[List[Tuple[Optional[str], Any]], Callable[..., bool]]]:
-    """Split an assert into its operands and the check the trainer applies."""
+def _compile_slice(node: ast.expr, calls: List[str]) -> Ev:
+    if isinstance(node, ast.Slice):
+        parts = [_compile(x, calls) if x is not None else (lambda v: None) for x in (node.lower, node.upper, node.step)]
+        return lambda v: slice(*(p(v) for p in parts))
+    return _compile(node, calls)
+
+
+def _plan_assert(assertion: str) -> Optional[Tuple[List[str], Callable[[List[Any]], bool]]]:
+    """Split an assert into the candidate calls the child runs and the check the trainer applies."""
     try:
         body = ast.parse(assertion.strip()).body
-    except (SyntaxError, ValueError):
-        return None
-    if len(body) != 1 or not isinstance(body[0], ast.Assert):
-        return None
-    test = body[0].test
-    if isinstance(test, ast.Compare) and len(test.ops) == 1 and type(test.ops[0]) in _COMPARE:
-        return [_expression(test.left), _expression(test.comparators[0])], _COMPARE[type(test.ops[0])]
-    if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
-        return [_expression(test.operand)], operator.not_
-    if isinstance(test, ast.Call) and ast.unparse(test.func) == "math.isclose" and len(test.args) == 2:
-        try:
-            kwargs = {k.arg: ast.literal_eval(k.value) for k in test.keywords}
-        except (ValueError, TypeError, SyntaxError):
+        if len(body) != 1 or not isinstance(body[0], ast.Assert):
             return None
-        return [_expression(a) for a in test.args], lambda a, b: math.isclose(a, b, **kwargs)
-    return [_expression(test)], bool
+        calls: List[str] = []
+        ev = _compile(body[0].test, calls)
+    except (SyntaxError, ValueError, MemoryError, RecursionError, _Undecomposable):
+        return None
+    return calls, lambda values: bool(ev(_Vals(values)))
+
+
+def _bound_names(code: str) -> set:
+    """Names the candidate binds at module level by ``def``, ``class`` or assignment."""
+    try:
+        body = ast.parse(code).body
+    except (SyntaxError, ValueError, MemoryError, RecursionError):
+        return set()
+    names = set()
+    for stmt in body:
+        if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(stmt.name)
+        elif isinstance(stmt, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]
+            names.update(n.id for t in targets for n in ast.walk(t) if isinstance(n, ast.Name))
+    return names
 
 
 def grade_assertion(code: str, assertion: str, timeout: float) -> bool:
@@ -196,15 +487,17 @@ def grade_assertion(code: str, assertion: str, timeout: float) -> bool:
     if plan is None:
         logger.warning("Can't grade test, counting it as failed: %.80s", assertion)
         return False
-    operands, check = plan
-    values = run_candidate(code, timeout, exprs=tuple(src for src, _ in operands if src is not None))
+    calls, check = plan
+    used = {n.id for n in ast.walk(ast.parse(assertion.strip())) if isinstance(n, ast.Name)}
+    if used & (set(_FUNCS) | {"math"}) & _bound_names(code):
+        logger.warning("Test uses a builtin's name that the candidate defines, counting it as failed: %.80s", assertion)
+        return False
+    values = run_candidate(code, timeout, exprs=tuple(calls))
     if values is None:
         return False
-    produced = iter(values)
-    args = [next(produced) if src is not None else literal for src, literal in operands]
     try:
-        return bool(check(*args))
-    except (TypeError, ValueError, RecursionError, OverflowError):
+        return check(values)
+    except (_Fail, TypeError, ValueError, RecursionError, OverflowError, ZeroDivisionError, MemoryError, KeyError, IndexError, AttributeError):
         return False
 
 
