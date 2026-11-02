@@ -46,7 +46,7 @@ _MAX_RESULT_BYTES = 16 * 1024 * 1024
 # Ints that hash alike make building a set or dict quadratic: 10,000 colliding ints cost about
 # a second, 100,000 about half a minute. So the trainer-side decode is bounded by element
 # count too, not only by file size.
-_MAX_DECODED_ELEMENTS = 10_000
+_MAX_DECODED_ELEMENTS = 100_000
 _MAX_MEMORY_BYTES = 4 * 1024 * 1024 * 1024
 
 # Runs in the child. It encodes exact builtin types only, so a subclass or an

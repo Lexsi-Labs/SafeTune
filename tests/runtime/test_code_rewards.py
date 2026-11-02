@@ -554,3 +554,15 @@ def test_pairs_whose_keys_collide_in_a_frozenset_pair_are_refused():
     with pytest.raises(_code_grader._Fail):
         _evaluate("assert len(dict(f())) == 1", f=[frozenset({k, 1}) for k in COLLIDE])
     assert _evaluate("assert dict(f()) == {1: 2}", f=[(1, 2)]) is True
+
+
+@pytest.mark.parametrize(
+    "test",
+    [
+        "assert len(set(f()).union(g())) == 18000",
+        "assert len(dict(zip(f(), g()))) == 9000",
+    ],
+)
+def test_two_large_honest_results_in_one_assert_still_pass(test):
+    code = "def f(): return list(range(9000))\ndef g(): return list(range(9000, 18000))"
+    assert MBPPReward(_config()).compute(code, test_list=[test]) == 1.0
