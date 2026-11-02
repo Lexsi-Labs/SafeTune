@@ -5,9 +5,7 @@ Code-related reward functions for SafeTune.
 from typing import List, Optional, Dict, Any
 import logging
 import re
-import subprocess
-import tempfile
-import os
+from ._code_grader import grade_assertion, grade_io, run_candidate
 from .base import RewardFunction, RewardConfig
 
 logger = logging.getLogger(__name__)
@@ -30,7 +28,7 @@ class CodeSyntaxReward(RewardFunction):
         try:
             compile(code, '<string>', 'exec')
             return True
-        except (SyntaxError, IndentationError):
+        except (SyntaxError, ValueError, RecursionError, MemoryError):
             return False
 
 
@@ -57,6 +55,11 @@ class CodeExecutionReward(RewardFunction):
             for b in blocks:
                 if 'def ' in b: return b.strip()
             return blocks[0].strip()
+        try:
+            compile(text, '<string>', 'exec')
+            return text.strip()  # all code: keep any imports above the first def
+        except (SyntaxError, ValueError, RecursionError, MemoryError):
+            pass
         lines = text.split('\n')
         code_lines = []
         in_fn = False
@@ -69,26 +72,8 @@ class CodeExecutionReward(RewardFunction):
         # SECURITY: run model-generated code OUT-OF-PROCESS with a timeout, NOT
         # via an in-process exec() with full builtins (which is an
         # arbitrary-code-execution vector in the reward process — it could read
-        # files, open sockets, etc.). This matches the subprocess isolation the
-        # test-runner methods below already use.
-        temp_file = None
-        try:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-                f.write(code)
-                temp_file = f.name
-            result = subprocess.run(
-                ['python', temp_file], capture_output=True, text=True,
-                timeout=self.timeout,
-            )
-            return result.returncode == 0
-        except Exception:
-            return False
-        finally:
-            if temp_file:
-                try:
-                    os.unlink(temp_file)
-                except OSError:
-                    pass
+        # files, open sockets, etc.). Exiting early doesn't count as running.
+        return run_candidate(code, self.timeout) is not None
 
     def _validate_with_test_cases(self, code: str, test_cases: List[Any]) -> float:
         if not test_cases: return 0.0
@@ -104,42 +89,10 @@ class CodeExecutionReward(RewardFunction):
         return passed / len(test_cases)
 
     def _run_assertion_test(self, code: str, assertion: str) -> bool:
-        test_code = f'{code}\n\n{assertion}\nprint("PASS")'
-        try:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-                f.write(test_code)
-                temp_file = f.name
-            result = subprocess.run(['python', temp_file], capture_output=True, text=True, timeout=self.timeout)
-            os.unlink(temp_file)
-            return result.returncode == 0 and "PASS" in result.stdout
-        except Exception:
-            try: os.unlink(temp_file)
-            except Exception: pass
-            return False
+        return grade_assertion(code, assertion, self.timeout)
 
     def _run_dict_test(self, code: str, test_case: Dict[str, Any]) -> bool:
-        test_input = test_case.get('input')
-        expected_output = test_case.get('expected_output')
-        test_code = f'''{code}
-functions = {{k: v for k, v in globals().items() if callable(v) and not k.startswith('_')}}
-main_func = list(functions.values())[0] if functions else None
-if not main_func: exit(1)
-inp = {repr(test_input)}
-exp = {repr(expected_output)}
-act = main_func(*inp) if isinstance(inp, (list, tuple)) else main_func(inp)
-if act == exp: print("PASS")
-'''
-        try:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-                f.write(test_code)
-                temp_file = f.name
-            result = subprocess.run(['python', temp_file], capture_output=True, text=True, timeout=self.timeout)
-            os.unlink(temp_file)
-            return result.returncode == 0 and "PASS" in result.stdout
-        except Exception:
-            try: os.unlink(temp_file)
-            except Exception: pass
-            return False
+        return grade_io(code, test_case, self.timeout)
 
 
 class CodeCompletenessReward(RewardFunction):
@@ -181,11 +134,14 @@ class CodeQualityReward(RewardFunction):
 
 
 class CodeCorrectnessReward(RewardFunction):
-    """Alias for CodeExecutionReward for backward compatibility."""
+    """CodeExecutionReward that scores 0 when no tests arrive."""
     def __init__(self, config: RewardConfig):
         self.exec_reward = CodeExecutionReward(config)
         super().__init__(config)
     def compute(self, text: str, reference: Optional[str] = None, **kwargs) -> float:
+        if not kwargs.get('test_cases', self.exec_reward.test_cases):
+            logger.warning("code_correctness got no test cases; scoring 0.")
+            return 0.0
         return self.exec_reward.compute(text, reference, **kwargs)
 
 
@@ -193,9 +149,9 @@ class MBPPReward(RewardFunction):
     """Reward for MBPP-style code generation.
 
     MBPP problems ship with three Python ``assert`` statements as the test
-    suite. The reward extracts a code block from ``text``, executes it together
-    with the asserts in a sandboxed subprocess, and returns the fraction of
-    asserts that pass. Tests are taken from ``kwargs['test_list']`` (a list of
+    suite. The reward extracts a code block from ``text``, runs it in a child
+    process, checks each assert on the values it returns, and returns the
+    fraction of asserts that pass. Tests are taken from ``kwargs['test_list']`` (a list of
     assert strings) or from ``config.params['test_list']``.
     """
 
@@ -209,29 +165,7 @@ class MBPPReward(RewardFunction):
         code = self._extract_code(text)
         if not code or not tests:
             return 0.0
-        passed = 0
-        for test in tests:
-            program = f"{code}\n{test}\n"
-            try:
-                with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as fh:
-                    fh.write(program)
-                    fh.flush()
-                    path = fh.name
-                result = subprocess.run(
-                    ["python", path],
-                    capture_output=True,
-                    text=True,
-                    timeout=self.timeout,
-                )
-                if result.returncode == 0:
-                    passed += 1
-            except (subprocess.TimeoutExpired, OSError):
-                pass
-            finally:
-                try:
-                    os.unlink(path)
-                except OSError:
-                    pass
+        passed = sum(grade_assertion(code, test, self.timeout) for test in tests)
         return passed / len(tests)
 
     def _extract_code(self, text: str) -> str:

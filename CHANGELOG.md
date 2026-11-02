@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Code rewards (`code_execution`, `code_correctness`, `mbpp_reward`) no longer trust the output
+  of the code they run. They used to read a pass from a printed `PASS` or from the exit code, so a
+  completion that printed `PASS` or exited with 0 scored full marks, and they ran the `python` found
+  on `PATH` instead of the interpreter running SafeTune. The candidate now runs in a child process
+  (`sys.executable -I`, an empty temporary working directory, a minimal environment, a killed
+  process group on timeout, and limits on result size and memory). It returns plain data only, and
+  the trainer compares it, so printed text, exit codes and always-equal objects no longer score.
+  This is not a sandbox: the child can still read files, use the network and signal the parent, and
+  a completion can still forge a constant expected result such as `True`. Reported by Ebin Babu
+  Thomas (@ebt55).
+
+### Changed
+
+- Code rewards: a function under test must return plain builtin data (numbers, strings, bytes,
+  booleans, `None`, and lists, tuples, dicts and sets of them); the child does not inherit
+  environment variables or `PYTHONPATH`; an `assert` the grader can't split into a call and an
+  expected value fails with a warning; `code_correctness` with no tests scores 0 and warns; imports
+  above the first `def` in bare code are kept.
+
 - `extract_math_answer` drops the colon, full stop and closing paragraph around an answer given in
   a sentence, so `The answer is: 42` no longer scores 0.0 in `MathReasoningReward` (#31, @ANDROIDHASSAN).
 - `trl` is capped below 1.15. TRL 1.15.0 (8 Oct 2026) computes the DPO loss with a
