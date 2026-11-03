@@ -46,7 +46,11 @@ def safegrad_kl_alignment_loss(
     temperature: float = 1.0,
     reduction: str = "batchmean",
 ) -> torch.Tensor:
-    """KL(student || aligned) safety distillation loss (paper's KL mode).
+    """KL(aligned || student) safety distillation loss (paper's KL mode, Eq. 6).
+
+    Computes ``sum P_aligned * (log P_aligned - log P_student)`` (``F.kl_div(log P_student,
+    P_aligned)``), i.e. the divergence of the student from the frozen reference, summed
+    over positions and vocabulary and averaged over the batch.
 
     Use this when you have access to a *frozen aligned* model alongside the
     model being fine-tuned. Run both on the user batch, then call this on

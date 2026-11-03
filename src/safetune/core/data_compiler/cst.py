@@ -59,8 +59,9 @@ class CSTFormatter:
     def _format_prompt(self, system: str, user: str) -> str:
         if self.config.chat_template:
             return self.config.chat_template.format(system=system, user=user)
-        # Default: simple concatenation with newlines
-        return f"[SYSTEM]: {system}\n[USER]: {user}"
+        # Default: simple concatenation with newlines, ending on an assistant marker so the
+        # response does not run into the user turn.
+        return f"[SYSTEM]: {system}\n[USER]: {user}\n[ASSISTANT]: "
 
     def format_example(
         self,

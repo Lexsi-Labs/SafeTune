@@ -83,11 +83,22 @@ class SAPTrainer(_HardenBase):
 # ── AsFTTrainer ───────────────────────────────────────────────────────────────
 
 class AsFTTrainer(_HardenBase):
-    """AsFT: safety-basin orthogonal penalty constraint.
+    """AsFT: safety-basin orthogonal penalty constraint (Yang et al., arXiv:2506.08473).
+
+    The model being trained is the **aligned** (safety-tuned) model, as in the
+    authors' script. The alignment direction of every LoRA-targeted matrix is
+    ``d = W_aligned - W_base``, where ``W_aligned`` is the trained model's weight
+    at construction and ``W_base`` comes from ``base_model_path``.
 
     Args:
         reg_lambda: regularization coefficient. Default 1.0.
-        aligned_model_path: HF path/ID for the aligned reference.
+        base_model_path: HF path/ID of the pre-alignment base model the aligned
+            model was tuned from. Loaded on CPU, only the LoRA-targeted weights
+            are kept, then freed. Without it the run is plain LoRA SFT (a
+            warning is logged).
+        aligned_model_path: removed; raises ``ValueError``. It used to be the
+            "aligned reference" but the direction was ``aligned_path - trained
+            model``, which is neither the authors' convention nor useful.
     """
 
     METHOD = "AsFT"
@@ -95,33 +106,52 @@ class AsFTTrainer(_HardenBase):
 
     def __init__(self, model=None, tokenizer=None, *,
                  reg_lambda: float = 1.0,
+                 base_model_path: str = None,
                  aligned_model_path: str = None,
                  **kwargs):
+        if aligned_model_path is not None:
+            raise ValueError(
+                "AsFTTrainer: aligned_model_path is no longer accepted. The model being "
+                "trained is the aligned model; pass the pre-alignment base model as "
+                "base_model_path (the direction is W_aligned - W_base, as in the AsFT "
+                "authors' script)."
+            )
         super().__init__(model, tokenizer, **kwargs)
         self.reg_lambda = reg_lambda
-        self.aligned_model_path = aligned_model_path
+        self.base_model_path = base_model_path
+
+    @staticmethod
+    def _lora_target_weights(model):
+        """``{plain module name + ".weight": CPU copy}`` of every LoRA-wrapped linear."""
+        out = {}
+        for name, mod in model.named_modules():
+            if hasattr(mod, "lora_A") and hasattr(mod, "base_layer"):
+                key = name[len("base_model.model."):] if name.startswith("base_model.model.") else name
+                out[key + ".weight"] = mod.base_layer.weight.detach().cpu().clone()
+        return out
 
     def train(self, train_dataset, out_dir: str = None, **kwargs) -> str:
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
-        base_obj = model.get_base_model() if hasattr(model, "get_base_model") else model
-        base_sd = {k: v.detach().cpu().clone()
-                   for k, v in base_obj.state_dict().items()}
-        if not self.aligned_model_path:
+        # W_aligned: the trained model's weights, copied before any update.
+        aligned_sd = base_sd = None
+        if self.base_model_path:
+            aligned_sd = self._lora_target_weights(model)
+            # Same dtype as the trained weights, so W_aligned - W_base is not rounding noise.
+            dtype = next(iter(aligned_sd.values())).dtype if aligned_sd else resolve_dtype()
+            base_obj = _load_pretrained_lm(
+                self.base_model_path, torch_dtype=dtype, device_map="cpu")
+            base_full = base_obj.state_dict()
+            base_sd = {k: base_full[k].detach().cpu().clone()
+                       for k in aligned_sd if k in base_full}
+            del base_obj, base_full; free()
+        else:
             import logging
             logging.getLogger(__name__).warning(
-                "AsFTTrainer: no aligned_model_path given — the aligned "
-                "reference defaults to the training model, so the alignment "
-                "direction is zero and AsFT reduces to plain LoRA SFT. Pass "
-                "aligned_model_path=<pre-drift aligned checkpoint>."
+                "AsFTTrainer: no base_model_path given — there is no alignment "
+                "direction, so AsFT reduces to plain LoRA SFT. Pass "
+                "base_model_path=<pre-alignment base model>."
             )
-        aligned_path = (self.aligned_model_path
-                        or getattr(self.tok, "name_or_path", None))
-        aligned_obj = _load_pretrained_lm(
-            aligned_path, torch_dtype=resolve_dtype())
-        aligned_sd = {k: v.detach().cpu().clone()
-                      for k, v in aligned_obj.state_dict().items()}
-        del aligned_obj; free()
         args = self._configure_args(HARD.AsFTConfig(reg_lambda=self.reg_lambda), out_dir)
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
@@ -140,14 +170,15 @@ class SurgeryTrainer(_HardenBase):
     """Surgery: surgical gradient modification (refusal-aware).
 
     Args:
-        sink_lambda: refusal anchor loss weight. Default 0.01.
+        sink_lambda: weight lambda of the attention-sink divergence regularizer (Eq. 4 of
+            arXiv:2602.05228). Default 300, as in the paper and the official script.
     """
 
     METHOD = "Surgery"
     HF_TRAINER = HARD.SurgeryHFTrainer
 
     def __init__(self, model=None, tokenizer=None, *,
-                 sink_lambda: float = 0.01,
+                 sink_lambda: float = 300.0,
                  **kwargs):
         super().__init__(model, tokenizer, **kwargs)
         self.sink_lambda = sink_lambda
@@ -159,6 +190,9 @@ class SurgeryTrainer(_HardenBase):
             safety_dataset = build_safety_dataset(self.tok)
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
+        # The sink penalty reads the attention weights, which sdpa / flash attention do not
+        # return. SurgeryHFTrainer still raises if this has no effect on the model.
+        model.set_attn_implementation("eager")
         args = self._configure_args(HARD.SurgeryConfig(sink_lambda=self.sink_lambda), out_dir)
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
@@ -213,8 +247,6 @@ class BoosterTrainer(_HardenBase):
                  for k in ("input_ids", "attention_mask", "labels")}
                 for i in range(min(len(harm_ds), self.n_harmful_batches))
             ]
-        # Compute harmful gradient g_h once at initial weights.
-        harm_grads = HARD.collect_harmful_gradient(model, harmful_batches, task_loss_fn)
         opt = torch.optim.AdamW(model.parameters(), lr=self.lr)
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
@@ -224,6 +256,9 @@ class BoosterTrainer(_HardenBase):
         for _ in range(self.epochs):
             for batch in loader:
                 batch = _to_dev(batch, model.device)
+                # g_h at the CURRENT weights (git-disl/Booster trainer.py:281-291), then g_h' at
+                # w - alpha * g_h / ||g_h|| on the same harmful batches (trainer.py:293-310).
+                harm_grads = HARD.collect_harmful_gradient(model, harmful_batches, task_loss_fn)
                 with HARD.booster_simulated_perturbation(model, harm_grads, cfg):
                     perturbed = HARD.collect_harmful_gradient(model, harmful_batches,
                                                               task_loss_fn)

@@ -112,10 +112,12 @@ class LisaOptimizerWrapper:
         self.current_step += 1
 
     @contextmanager
-    def apply_proximal_penalty(self, loss: torch.Tensor) -> torch.Tensor:
+    def apply_proximal_penalty(self, loss: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
         """
         Context manager that applies the Lisa proximal L2 penalty to the loss
-        before backward is called.
+        before backward is called. ``scale`` multiplies the penalty only; a trainer
+        that sums ``gradient_accumulation_steps`` micro-step losses passes
+        ``1 / gradient_accumulation_steps`` so the penalty counts once per step.
 
         Usage:
             with lisa_wrapper.apply_proximal_penalty(base_loss) as modified_loss:
@@ -137,6 +139,8 @@ class LisaOptimizerWrapper:
                     if param.requires_grad:
                         penalty += (self.rho / 2) * torch.norm(param - self.alignment_weights[name]) ** 2
 
+            if scale != 1.0:
+                penalty = penalty * scale
             modified_loss = modified_loss + penalty
 
         yield modified_loss

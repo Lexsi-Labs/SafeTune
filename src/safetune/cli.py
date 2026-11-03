@@ -136,7 +136,14 @@ def _do_harden(args: argparse.Namespace) -> None:
                                       max_len=get_config().max_len)
 
     TrainerClass = getattr(harden, HARDEN_REGISTRY[algo])
-    trainer = TrainerClass(model, tok, **_trainer_kwargs(args))
+    kwargs = _trainer_kwargs(args)
+    # --base is the pre-alignment base for trainers that take one (LoX-Harden, AsFT); the
+    # others warn on unknown kwargs, so they do not get it. DOOR opts out: its base_model_path is
+    # the NPO reference, which is the initial policy (the aligned model), not the pre-alignment base.
+    if (args.base and getattr(TrainerClass, "CLI_FORWARD_BASE", True)
+            and "base_model_path" in inspect.signature(TrainerClass.__init__).parameters):
+        kwargs["base_model_path"] = args.base
+    trainer = TrainerClass(model, tok, **kwargs)
     safety_dataset = _load_safety_dataset(args, trainer, tok, get_config().max_len)
     extra = {} if safety_dataset is None else {"safety_dataset": safety_dataset}
     # The CLI loads the data itself, so it records the refs for lexsi_provenance.json.
@@ -280,7 +287,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--epochs",      type=int,   default=1,      help="Training epochs")
     parser.add_argument("--batch-size",  type=int,   default=1,      help="Batch size")
     parser.add_argument("--lr",          "--learning-rate", type=float, default=5e-5, help="Learning rate (train/unlearn)")
-    parser.add_argument("--base",        type=str, help="Base model path (for recover)")
+    parser.add_argument("--base",        type=str, help="Base model path (for recover, and harden methods that take base_model_path)")
     parser.add_argument("--aligned",     type=str, help="Aligned model path (for recover)")
     parser.add_argument("--alpha",       type=float, default=None,
                         help="Interpolation strength for patch (recover) methods")

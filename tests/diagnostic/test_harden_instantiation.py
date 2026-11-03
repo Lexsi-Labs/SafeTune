@@ -109,13 +109,15 @@ def test_harden_vanilla_trainer_constructs(mod_name, cfg_name, trainer_name, wor
                                  save_strategy="no", report_to=[])
     model = _TinyLM()
     train_ds = _tiny_dataset()
+    # Surgery raises without its refusal batches (X_r).
+    extra = {"refusal_dataset": _tiny_dataset(2)} if trainer_name == "SurgeryTrainer" else {}
     try:
-        trainer = TrainerCls(model=model, args=args, train_dataset=train_ds)
+        trainer = TrainerCls(model=model, args=args, train_dataset=train_ds, **extra)
     except TypeError:
         # Some constructors require additional kwargs (e.g. SafeGradTrainer's
         # safety_dataset). Pass minimal extras.
         trainer = TrainerCls(model=model, args=args, train_dataset=train_ds,
-                             safety_dataset=_tiny_dataset(2))
+                             safety_dataset=_tiny_dataset(2), **extra)
     assert trainer is not None
     assert hasattr(trainer, "training_step")
 

@@ -1,8 +1,8 @@
-"""Model-merging and safety recovery primitives (LSSF, SOMF, Task Arithmetic, NLSR)."""
+"""Safety recovery primitives (LSSF, NLSR)."""
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Union
+from typing import Any, Dict, Iterable, Mapping, Optional
 
 import torch
 import torch.nn as nn
@@ -134,79 +134,7 @@ def apply_lssf(
 
 
 # =============================================================================
-# 2. SOMF, TASK ARITHMETIC, AND PRE-POST MERGING
-# =============================================================================
-
-def _resolve_pre_model(pre_model: Union[nn.Module, str]) -> nn.Module:
-    if isinstance(pre_model, nn.Module):
-        return pre_model
-    if not isinstance(pre_model, str):
-        raise TypeError(f"pre_model must be an nn.Module or string; got {type(pre_model)!r}")
-    from safetune._refusal_helpers import _load_pretrained_lm
-    return _load_pretrained_lm(pre_model, torch_dtype="auto")
-
-
-@assert_mutates("task_arithmetic")
-def task_arithmetic(finetuned: nn.Module, base: nn.Module, aligned: nn.Module, alpha: float = 1.0) -> nn.Module:
-    ft_sd, base_sd, aligned_sd = finetuned.state_dict(), base.state_dict(), aligned.state_dict()
-    n_applied = 0
-    with torch.no_grad():
-        for name, ft_p in ft_sd.items():
-            if name not in base_sd or name not in aligned_sd: continue
-            task_vec = aligned_sd[name].to(ft_p.device, dtype=torch.float32) - base_sd[name].to(ft_p.device, dtype=torch.float32)
-            updated = ft_p.to(torch.float32) + alpha * task_vec
-            ft_p.copy_(updated.to(ft_p.dtype))
-            n_applied += 1
-    logger.info("task_arithmetic: applied safety vector to %d params", n_applied)
-    return finetuned
-
-
-def _somf_subspace_mask(task_vec: torch.Tensor, mask_threshold: float) -> torch.Tensor:
-    if task_vec.numel() == 0: return torch.ones_like(task_vec, dtype=torch.bool)
-    mag_f = task_vec.abs().float()
-    MAX_QUANTILE_ELEMENTS = 10_000_000
-    if mag_f.numel() > MAX_QUANTILE_ELEMENTS:
-        indices = torch.randint(0, mag_f.numel(), (MAX_QUANTILE_ELEMENTS,), device=mag_f.device)
-        thr = torch.quantile(mag_f.flatten()[indices], mask_threshold)
-    else:
-        thr = torch.quantile(mag_f, mask_threshold)
-    return mag_f >= thr
-
-
-@assert_mutates("somf_merge")
-def somf_merge(finetuned: nn.Module, aligned: nn.Module, base: nn.Module, mask_threshold: float = 0.9, lam: float = 1.0, subspace_mask: dict | None = None) -> nn.Module:
-    ft_sd, aligned_sd, base_sd = finetuned.state_dict(), aligned.state_dict(), base.state_dict()
-    n_applied = 0
-    with torch.no_grad():
-        for name, ft_p in ft_sd.items():
-            if name not in aligned_sd or name not in base_sd: continue
-            ft_f, base_f, aligned_f = ft_p.to(torch.float32), base_sd[name].to(ft_p.device, dtype=torch.float32), aligned_sd[name].to(ft_p.device, dtype=torch.float32)
-            task_vec = ft_f - base_f
-            if task_vec.numel() == 0: continue
-            mask = subspace_mask[name].to(ft_p.device, dtype=torch.bool) if subspace_mask and name in subspace_mask else _somf_subspace_mask(task_vec, mask_threshold)
-            merged = aligned_f + lam * (task_vec * mask.to(torch.float32))
-            ft_p.copy_(merged.to(ft_p.dtype))
-            n_applied += 1
-    logger.info("somf_merge: fused %d params", n_applied)
-    return finetuned
-
-
-@assert_mutates("apply_prepost_merge")
-def apply_prepost_merge(model: nn.Module, pre_model: Union[nn.Module, str], alpha: float = 0.5, param_filter: Optional[Callable] = None, **extra) -> nn.Module:
-    pre_sd = _resolve_pre_model(pre_model).state_dict()
-    n_applied = 0
-    with torch.no_grad():
-        for name, post_p in model.named_parameters():
-            if name not in pre_sd or (param_filter and not param_filter(name, post_p)): continue
-            pre_p = pre_sd[name].to(post_p.device, dtype=torch.float32)
-            merged = (1.0 - alpha) * post_p.to(torch.float32) + alpha * pre_p
-            post_p.copy_(merged.to(post_p.dtype))
-            n_applied += 1
-    return model
-
-
-# =============================================================================
-# 3. NEURON-LEVEL SAFETY REALIGNMENT (NLSR)
+# 2. NEURON-LEVEL SAFETY REALIGNMENT (NLSR)
 # =============================================================================
 
 def _load_state_dict(path: str) -> Dict[str, Any]:

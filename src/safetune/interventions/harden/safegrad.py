@@ -105,6 +105,11 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         kl_temperature: softmax temperature for the KL alignment loss
             (paper default 1.0).
         **kwargs: forwarded to :class:`transformers.Trainer`.
+
+    Note:
+        ``gradient_accumulation_steps`` must be 1 (a ``ValueError`` is raised
+        otherwise): the surgery runs per micro-batch, so with accumulation the
+        alignment term would be added once per micro-batch.
     """
 
     def __init__(
@@ -130,6 +135,14 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
             ) from _SAFEGRAD_IMPORT_ERROR
 
         super().__init__(*args, **kwargs)
+        if int(getattr(self.args, "gradient_accumulation_steps", 1) or 1) > 1:
+            raise ValueError(
+                "SafeGradHFTrainer does not support gradient_accumulation_steps > 1: the "
+                "gradient surgery runs after every micro-batch and adds rho * g_align each "
+                "time, while the task loss is divided by the accumulation steps, so the "
+                "update would no longer be Algorithm 1's g'_user + rho * g_align. Use "
+                "gradient_accumulation_steps=1 (raise per_device_train_batch_size instead)."
+            )
         self._safety_dataset = safety_dataset
         self._safety_iter: Optional[Iterator] = (
             cycle(iter(safety_dataset)) if safety_dataset is not None else None

@@ -17,8 +17,9 @@ Two changes affect how you call the fixed methods:
 - **Some methods now require an input they previously ignored.** SafeDecoding
   and Contrastive Decoding raise on the HF path unless you pass a distinct
   expert / weak model (passing the target as its own guide was an identity
-  no-op); AsFT and LoX-Harden warn when `aligned_model_path` is unset (the
-  aligned reference is mandatory — without it they reduce to plain SFT);
+  no-op); AsFT warns when `base_model_path` is unset (the reference is mandatory —
+  without it it reduces to plain SFT); LoX-Harden takes the pre-alignment
+  `base_model_path` (required, raises if missing) and trains the aligned model;
   Surgery warns and is inactive unless the model is loaded with
   `attn_implementation="eager"`; SPPFT `sppft_mode="scale"` now falls back to
   the paper-faithful `"freeze"`.
@@ -71,7 +72,7 @@ Two changes affect how you call the fixed methods:
 | Gradient-Ascent / GradDiff | Faithful |
 | crisp_unlearn | Variant |
 | flat_unlearn | Faithful |
-| simdpo_unlearn | Faithful |
+| simdpo_unlearn | Variant |
 
 ## Harden (27 entry points)
 
@@ -84,13 +85,13 @@ Two changes affect how you call the fixed methods:
 | DeRTaTrainer | Faithful |
 | ASRTCallback | Variant |
 | MARTTrainer | Faithful |
-| DeepRefusalTrainer | Faithful |
+| DeepRefusalTrainer | Variant |
 | LisaTrainer | Faithful |
 | AsFTTrainer | Faithful |
-| STARDSSTrainer | Faithful |
+| STARDSSTrainer | Variant |
 | SAPTrainer | Faithful |
-| DOORTrainer | Faithful |
-| LookAheadTrainer | Faithful |
+| DOORTrainer | Variant |
+| LookAheadTrainer | Variant |
 | AntibodyTrainer | Faithful |
 | vaccine_loss | Faithful |
 | SurgeryTrainer | Faithful |
@@ -100,10 +101,22 @@ Two changes affect how you call the fixed methods:
 | RepNoiseTrainer | Faithful |
 | SEAMTrainer | Faithful |
 | CTRAPTrainer | Faithful |
-| TVaccineTrainer | Faithful |
-| SEALTrainer | Faithful |
-| ConstrainedSFTTrainer | Faithful |
+| TVaccineTrainer | Variant |
+| SEALTrainer | Variant |
+| ConstrainedSFTTrainer | Variant |
 | LoXHardenTrainer | Faithful |
+
+Harden notes (second-pass audit):
+
+- `ASRTCallback` is a SafeTune-original heuristic with no paper of its own; it is not an implementation of MART.
+- `MARTTrainer` has no official repository; the audit rests on the paper (arXiv:2311.07689).
+- `DeepRefusalTrainer` is a Variant: the ablation is per layer for the whole sequence at the layer output
+  (the paper and official code gate every layer and token, at the layer input, attention and MLP), and the
+  default harmful set is BeaverTails safe responses rather than the paper's harmful-prefix + refusal data.
+  The paper's p = 0.5 (Sec. 5.1) and alpha = 0.2 are the defaults used.
+- `LisaTrainer`: `lisa_warmup_steps` defaults to 100 micro-steps in `LisaConfig` (the authors skip the first 10%
+  of steps), so a direct `LisaConfig` run shorter than 100 steps gets no proximal term; the runner passes 10.
+  The runner schedule (10 / 20 / 20) is a scaled-down version of the paper's 500 / 500.
 
 ## Steer (19 entry points)
 

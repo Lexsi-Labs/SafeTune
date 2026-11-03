@@ -49,6 +49,11 @@ through `RMUTrainer`: it defaults `alpha` to `1200.0` (not `100.0`) and, when
 `update_layer_ids` is `None`, sets it to `[5, 6, 7]`. `param_substring` is not a
 `RMUTrainer` constructor argument; set it only via the low-level `RMUConfig`.
 
+For reference, the official `wmdp` script defaults to `alpha=100`, `steering_coeff=20`,
+and the WMDP paper's Zephyr-7B setting is `alpha=1200` with `steering_coeff=6.5`.
+`RMUTrainer` pairs `alpha=1200` with `steering_coeff=20`, which is neither; tune both
+for your model.
+
 ## Full example
 
 ```python

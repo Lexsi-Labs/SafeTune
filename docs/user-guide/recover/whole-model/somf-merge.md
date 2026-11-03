@@ -28,9 +28,9 @@ SOMFTrainer(
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `model` | `PreTrainedModel` | required | Drifted (fine-tuned) model to patch — its drift is the task vector |
+| `model` | `PreTrainedModel` | required | Drifted (fine-tuned) model to patch — its drift from `aligned_model` is the task vector |
 | `aligned_model` | `PreTrainedModel` | required | The safety-aligned reference model (e.g. RLHF checkpoint) |
-| `base_model` | `PreTrainedModel` | required | The unaligned base model (pre-RLHF) |
+| `base_model` | `PreTrainedModel` | `None` | Unused; kept so existing calls still work. The task vector is `model − aligned_model` |
 | `mask_threshold` | `float` | `0.9` | Top-quantile cutoff — keep drift components above this magnitude quantile |
 
 ## Full example

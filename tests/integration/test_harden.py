@@ -34,6 +34,7 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _MERGED     = os.path.abspath(os.path.join(_SCRIPT_DIR, "../audit/training/merged"))
 _MODEL_ID   = os.environ.get("SAFETUNE_DRIFT_MODEL",
                              os.path.join(_MERGED, "llama31-8b-gsm8k-drift-merged"))
+_BASE_ID    = os.environ.get("SAFETUNE_BASE_MODEL", "")
 _ALIGNED_ID = os.environ.get("SAFETUNE_ALIGNED_MODEL",
                              os.path.join(_MERGED, "llama31-8b-hh-rlhf-aligned-final"))
 
@@ -42,12 +43,16 @@ _ALIGNED_ID = os.environ.get("SAFETUNE_ALIGNED_MODEL",
 PASS, FAIL, SKIP = "PASS", "FAIL", "SKIP"
 
 
+class _Skip(Exception):
+    """Raised by a test function that cannot run in this environment."""
+
+
 def _check(results: list, name: str, fn):
     try:
         fn()
         results.append((name, PASS))
         print(f"  [{PASS}] {name}")
-    except ImportError as e:
+    except (ImportError, _Skip) as e:
         results.append((name, SKIP))
         print(f"  [{SKIP}] {name}: {e}")
     except Exception as e:
@@ -107,16 +112,37 @@ def _test_sap(fresh, tok, train_ds, safety_ds):
     t.evaluate(out, domain="gsm8k")
 
 def _test_asft(fresh, tok, train_ds, safety_ds):
+    if not _BASE_ID:
+        raise _Skip("SAFETUNE_BASE_MODEL is unset: without the pre-alignment base AsFT has no "
+                    "alignment direction and runs as plain LoRA SFT")
+    import safetune.harden as HARD
     from safetune.runner.harden import AsFTTrainer
-    t = AsFTTrainer(model_id=_MODEL_ID, model=fresh(), tokenizer=tok(),
-                    reg_lambda=1.0, aligned_model_path=_ALIGNED_ID)
-    out = t.train(train_ds, out_dir="asft_run")
+    # AsFT fine-tunes the aligned model; d = W_aligned - W_base.
+    from safetune.runner.utils.model_utils import load_model
+
+    seen = []
+    orig = HARD.AsFTHFTrainer
+
+    class _Spy(orig):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            seen.append(self)
+
+    HARD.AsFTHFTrainer, AsFTTrainer.HF_TRAINER = _Spy, _Spy
+    try:
+        t = AsFTTrainer(model_id=_ALIGNED_ID, model=load_model(_ALIGNED_ID), tokenizer=tok(),
+                        reg_lambda=1.0, base_model_path=_BASE_ID)
+        out = t.train(train_ds, out_dir="asft_run")
+    finally:
+        HARD.AsFTHFTrainer, AsFTTrainer.HF_TRAINER = orig, orig
+    # the regulariser must actually have run, not just training
+    assert seen and seen[0]._use_lora_path and len(seen[0]._proj_matrices) > 0, (
+        "AsFT built no projection matrices: the run was plain LoRA SFT")
     t.evaluate(out, domain="gsm8k")
 
 def _test_surgery(fresh, tok, train_ds, safety_ds):
     from safetune.runner.harden import SurgeryTrainer
-    t = SurgeryTrainer(model_id=_MODEL_ID, model=fresh(), tokenizer=tok(),
-                       sink_lambda=0.01)
+    t = SurgeryTrainer(model_id=_MODEL_ID, model=fresh(), tokenizer=tok())
     out = t.train(train_ds, out_dir="surgery_run", safety_dataset=safety_ds)
     t.evaluate(out, domain="gsm8k")
 
@@ -200,10 +226,14 @@ def _test_constrained_sft(fresh, tok, train_ds, safety_ds):
     t.evaluate(out, domain="gsm8k")
 
 def _test_lox_harden(fresh, tok, train_ds, safety_ds):
+    if not _BASE_ID:
+        raise ImportError("SAFETUNE_BASE_MODEL is unset: LoX-Harden needs the pre-alignment base")
     from safetune.runner.harden import LoXHardenTrainer
-    t = LoXHardenTrainer(model_id=_MODEL_ID, model=fresh(), tokenizer=tok(),
+    from safetune.runner.utils.model_utils import load_model
+    # LoX-Harden trains the aligned model; W_aligned - W_base comes from base_model_path.
+    t = LoXHardenTrainer(model_id=_ALIGNED_ID, model=load_model(_ALIGNED_ID), tokenizer=tok(),
                          rank=8, extrapolation_factor=0.3,
-                         aligned_model_path=_ALIGNED_ID)
+                         base_model_path=_BASE_ID)
     out = t.train(train_ds, out_dir="lox_harden_run")
     t.evaluate(out, domain="gsm8k")
 

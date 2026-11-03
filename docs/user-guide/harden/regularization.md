@@ -13,7 +13,7 @@ AsFTTrainer(
     tokenizer: PreTrainedTokenizer | None = None,
     *,
     reg_lambda: float = 1.0,
-    aligned_model_path: str | None = None,
+    base_model_path: str | None = None,
     **kwargs,
 )
 ```
@@ -22,10 +22,10 @@ AsFTTrainer(
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `model` | `PreTrainedModel` | `None` | Base model (LoRA path recommended) |
+| `model` | `PreTrainedModel` | `None` | The **aligned** (safety-tuned) model to fine-tune, as in the authors' script (LoRA path) |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
 | `reg_lambda` | `float` | `1.0` | Lagrangian weight on the orthogonal-component penalty (LoRA path) |
-| `aligned_model_path` | `str` | `None` | Path to the aligned reference model; defaults to the tokenizer's `name_or_path` |
+| `base_model_path` | `str` | `None` | HF path/ID of the pre-alignment base the aligned model was tuned from; the direction is `d = W_aligned − W_base` per LoRA-targeted matrix. Without it the run is plain LoRA SFT (warning). `aligned_model_path` is removed and raises `ValueError` |
 
 ### AsFTConfig fields
 
@@ -40,7 +40,8 @@ AsFTTrainer(
 ```python
 from safetune.runner import harden
 
-trainer = harden.AsFTTrainer(model, tokenizer, reg_lambda=1.0)
+trainer = harden.AsFTTrainer(aligned_model, tokenizer, reg_lambda=1.0,
+                             base_model_path="meta-llama/Llama-2-7b-hf")
 trainer.train(task_dataset)
 ```
 
@@ -212,7 +213,7 @@ SaLoRATrainer(
 | `rank` | `int` | `16` | LoRA adapter rank |
 | `safety_rank` | `int` | `16` | Number of top singular vectors defining the safety subspace |
 | `strength` | `float` | `1.0` | Projection strength — how strongly the adapter update is kept orthogonal to the safety subspace |
-| `task_init` | `bool` | `True` | Initialize LoRA `A` with the task direction for faster convergence |
+| `task_init` | `bool` | `True` | Initialise the LoRA factors from the SVD of the base weight (paper Eq. 10-12 without its task-feature projection `U Uᵀ`, which needs fine-tuning-data features and is not implemented) |
 | `n_iter` | `int` | `7` | Power-iteration steps for the incremental GPU SVD |
 | `lora_alpha` | `int` | `2 * rank` | LoRA scaling factor |
 | `lora_dropout` | `float` | `0.05` | LoRA dropout rate |

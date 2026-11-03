@@ -110,7 +110,7 @@ def _test_harden():
         ("STARDSSTrainer",         {"use_kl_penalty": True}),
         ("SAPTrainer",             {"grad_rate": 0.1}),
         ("AsFTTrainer",            {"reg_lambda": 1.0}),
-        ("SurgeryTrainer",         {"sink_lambda": 0.01}),
+        ("SurgeryTrainer",         {"sink_lambda": 300.0}),
         ("DeRTaTrainer",           {}),
         ("DOORTrainer",            {"beta": 0.5}),
         ("TARTrainer",             {"inner_steps": 25}),

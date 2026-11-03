@@ -1,15 +1,17 @@
 """
-SEAL: Safety-Enhanced Aligned LLM Fine-tuning via Bilevel Data Selection.
-arXiv 2024 — hanshen95/SEAL
+SEAL-inspired data selector (a second gradient-alignment heuristic, NOT the paper's method).
 
-SEAL fine-tuning:
-1. Trains a data selector (inner loop) via bilevel optimization that assigns 
-   importance weights to fine-tuning examples based on their safety impact.
-2. Filters the fine-tuning dataset using hard-thresholding on the learned weights.
-3. Fine-tunes the LLM only on the curated, safe-leaning subset.
+SEAL (Shen et al., arXiv:2410.07471, https://github.com/hanshen95/SEAL) learns a per-sample
+data ranker by penalty-based bilevel optimisation. This module scores examples by the alignment
+of their gradient with a safety-anchor gradient and filters with a hard threshold; it is a
+different heuristic from the one in ``safetune.harden.seal`` (importance weighting), exported
+from ``safetune.core.data_compiler`` but not used by any trainer.
+
+Intended use: score the examples of a fine-tuning set by gradient alignment, keep the top
+``keep_ratio`` and fine-tune on the kept subset.
 
 This module provides:
-- SEALDataSelector: gradient-based importance scorer using a proxy bilevel step.
+- SEALDataSelector: gradient-alignment importance scorer (no learned ranker, no bilevel loop).
 - select_safe_dataset: convenience function to filter a list of examples.
 """
 

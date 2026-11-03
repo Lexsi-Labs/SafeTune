@@ -3,8 +3,9 @@ Antibody Trainer adapter.
 
 Reference: "Antibody: Strengthening Defense Against Harmful Fine-Tuning for
 Large Language Models via Attenuating Harmful Gradient Influence",
-arXiv:2603.00498. No public code repository was released by the authors; this
-implementation follows the equations in the paper text.
+arXiv:2603.00498. Official code: https://github.com/minhquoc0712/Antibody (the paper
+links it). This implementation follows the equations in the paper text; the official
+alignment trainer uses a different, cosine-based adaptive weight (see ``xi`` below).
 
 Antibody is a two-stage defense against harmful fine-tuning.
 
@@ -420,41 +421,67 @@ class AntibodyTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
         return weighted_loss.detach()
 
     def _refusal_logprob(self, model, inputs, logits, refusal_labels):
-        """Per-sample ``log pi(y_r | x_i)`` for the likelihood ratio (H3 fix).
+        """Per-sample ``log pi(y_r | x_i)`` for the likelihood ratio (paper Eq. 7).
 
-        Scoring the refusal tokens against the logits of the ``(x, y_target)``
-        forward evaluates them under the *wrong prefix* (the model has been
-        teacher-forced on ``y_target``, not ``y_r``). Instead, build the
-        ``(x, y_r)`` sequence by splicing the refusal tokens into ``input_ids``
-        at the positions where ``refusal_labels != -100`` (the prompt region,
-        marked -100, keeps the original tokens) and run a second, no-grad
-        forward. Falls back to the same-forward gather only when the batch has
-        no ``input_ids`` of matching shape (e.g. ``inputs_embeds``-only).
+        ``y_r`` must be scored after the sample's *own* prompt ``x_i``. The official
+        data pipeline pairs every instance with a refusal view built from the same
+        source prompt (minhquoc0712/Antibody @6c557b1, ``utils.py:347-360`` cycles the
+        refusal answers over the instances and ``utils.py:388-394`` tokenises
+        ``preprocess(sources, [refusal + eos])``). Here the refusal batch only supplies
+        the *answer* tokens (positions where ``refusal_labels != -100``, row ``i`` uses
+        refusal row ``i mod B_r``); each sample's prompt (its tokens before the first
+        supervised label) is re-used, and ``(x_i, y_r)`` is scored in a second no-grad
+        forward. Falls back to the same-forward gather only when the batch has no
+        ``input_ids`` (e.g. ``inputs_embeds``-only).
         """
         import torch
 
         input_ids = inputs.get("input_ids") if isinstance(inputs, dict) else None
+        labels = inputs.get("labels") if isinstance(inputs, dict) else None
         if (
             input_ids is None
+            or labels is None
             or not hasattr(input_ids, "shape")
-            or refusal_labels.shape != input_ids.shape
+            or input_ids.dim() != 2
+            or refusal_labels.shape[:1] == (0,)
         ):
-            # Cannot rebuild the (x, y_r) sequence; degrade to the old
-            # (miscalibrated) same-forward gather rather than crashing.
+            # Cannot rebuild (x_i, y_r); degrade to the old (miscalibrated) gather.
             return self._sequence_logprob(logits.detach(), refusal_labels)
 
-        refusal_mask = refusal_labels != -100
-        ref_input_ids = torch.where(
-            refusal_mask, refusal_labels.clamp_min(0).to(input_ids.dtype), input_ids
-        )
-        ref_inputs = {
-            k: v
-            for k, v in inputs.items()
-            if k not in ("labels", "input_ids", "refusal_labels")
-        }
-        ref_inputs["input_ids"] = ref_input_ids
-        ref_out = model(**ref_inputs)
-        return self._sequence_logprob(ref_out.logits, refusal_labels)
+        device = input_ids.device
+        attn = inputs.get("attention_mask")
+        if attn is None:
+            attn = torch.ones_like(input_ids)
+        tok = getattr(self, "processing_class", None) or getattr(self, "tokenizer", None)
+        pad_id = getattr(tok, "pad_token_id", None)
+        pad_id = 0 if pad_id is None else int(pad_id)
+
+        rows_ids, rows_mask, rows_lab = [], [], []
+        n_ref = refusal_labels.size(0)
+        for i in range(input_ids.size(0)):
+            supervised = (labels[i] != -100).nonzero(as_tuple=False)
+            start = int(supervised[0]) if len(supervised) else int(input_ids.size(1))
+            r = refusal_labels[i % n_ref].to(device)
+            answer = r[r != -100].to(input_ids.dtype)
+            rows_ids.append(torch.cat([input_ids[i, :start], answer]))
+            rows_mask.append(torch.cat([attn[i, :start], torch.ones_like(answer)]).to(attn.dtype))
+            rows_lab.append(torch.cat([
+                torch.full((start,), -100, dtype=torch.long, device=device),
+                answer.to(torch.long),
+            ]))
+        width = max(int(x.numel()) for x in rows_ids)
+
+        def _pad(rows, value, dtype):
+            out = torch.full((len(rows), width), value, dtype=dtype, device=device)
+            for k, row in enumerate(rows):
+                out[k, : row.numel()] = row
+            return out
+
+        ref_input_ids = _pad(rows_ids, pad_id, input_ids.dtype)
+        ref_mask = _pad(rows_mask, 0, attn.dtype)
+        ref_labels = _pad(rows_lab, -100, torch.long)
+        ref_out = model(input_ids=ref_input_ids, attention_mask=ref_mask)
+        return self._sequence_logprob(ref_out.logits, ref_labels)
 
     @staticmethod
     def _sequence_logprob(logits, labels):
@@ -493,41 +520,19 @@ class AntibodyTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
         return (ce * mask).sum(dim=-1) / denom
 
     def _refusal_labels(self, inputs, model):
-        """Resolve the refusal target ``y_r`` used in the likelihood ratio.
+        """Resolve the refusal answers ``y_r`` used in the likelihood ratio.
 
-        Priority: explicit ``refusal_labels`` field in the batch, else a batch
-        drawn from ``refusal_dataset`` (broadcast / trimmed to the user batch
-        shape). Returns ``None`` if no refusal reference is available.
+        Priority: explicit ``refusal_labels`` field in the batch, else a batch drawn from
+        ``refusal_dataset``. Only the answer tokens (labels != -100) are used, so the
+        batch does not need to match the user batch in shape or prompt. Returns ``None``
+        if no refusal reference is available.
         """
-        import torch
-
         if "refusal_labels" in inputs:
-            rl = inputs["refusal_labels"]
-            return rl.to(inputs["labels"].device)
+            return inputs["refusal_labels"].to(inputs["labels"].device)
 
         batch = self._prepare(self._next("refusal"), model)
         if isinstance(batch, dict) and "labels" in batch:
-            rl = batch["labels"]
-            tgt = inputs["labels"]
-            if rl.shape == tgt.shape:
-                return rl.to(tgt.device)
-            # Shape mismatch: trim / pad on the time axis, broadcast on batch.
-            B, T = tgt.shape
-            rl = rl.to(tgt.device)
-            if rl.size(0) == 1 and B > 1:
-                rl = rl.expand(B, -1)
-            rl = rl[:B]
-            if rl.size(1) >= T:
-                rl = rl[:, :T]
-            else:
-                pad = torch.full(
-                    (rl.size(0), T - rl.size(1)), -100,
-                    dtype=rl.dtype, device=rl.device,
-                )
-                rl = torch.cat([rl, pad], dim=1)
-            if rl.size(0) < B:
-                return None
-            return rl
+            return batch["labels"].to(inputs["labels"].device)
         return None
 
     # ----------------------------------------------------------------- common

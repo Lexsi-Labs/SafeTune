@@ -18,14 +18,16 @@ This is a PRE-FT intervention: apply LoX to the base model before fine-tuning
 begins, then fine-tune the resulting model with a standard LoRA trainer.
 The amplified safety subspace is harder for the fine-tuning to erase.
 
-Paper defaults: alpha=1.0, rank=None (full rank of delta_W).
+Defaults: the paper uses k=6 and an extrapolation coefficient of 1.25 (0.5 for one Mistral
+model); the official script defaults to k=0 and coef=1. This module's config defaults are
+alpha=0.3 and rank=8 (the runner uses the same).
 
 Note: This is a harden method because it is applied BEFORE fine-tuning to make
 the model more resistant to drift. It differs from the Recover pillar's apply_lox
 (which is applied POST fine-tuning to restore safety). Both use the same SVD
 extrapolation math but at different points in the pipeline.
 
-Reference: Perin et al. "LoX: Safety through Low-Rank Extrapolation" COLM 2025.
+Reference: Perin et al. "LoX: Low-Rank Extrapolation Robustifies LLM Safety Against Fine-tuning" COLM 2025.
 Official code: https://github.com/VITA-Group/LoX
 """
 from __future__ import annotations

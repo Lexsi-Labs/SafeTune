@@ -66,10 +66,17 @@ def task_arithmetic(
     base_sd = base.state_dict()
     aligned_sd = aligned.state_dict()
     n_applied = 0
+    seen_ptrs = set()
     with torch.no_grad():
         for name, ft_p in ft_sd.items():
             if name not in base_sd or name not in aligned_sd:
                 continue
+            # A tied weight (embed_tokens / lm_head) is listed under several names but is
+            # one tensor: add the safety vector once, not once per name.
+            if ft_p.numel() > 0:
+                if ft_p.data_ptr() in seen_ptrs:
+                    continue
+                seen_ptrs.add(ft_p.data_ptr())
             task_vec = aligned_sd[name].to(ft_p.device, dtype=torch.float32) - base_sd[name].to(
                 ft_p.device, dtype=torch.float32
             )
@@ -118,8 +125,8 @@ def _somf_subspace_mask(
 def somf_merge(
     finetuned: nn.Module,
     *,
-    base: nn.Module,
     aligned: nn.Module,
+    base: Optional[nn.Module] = None,
     mask_threshold: float = 0.9,
     lam: float = 1.0,
     subspace_mask: dict | None = None,
@@ -133,25 +140,41 @@ def somf_merge(
     faithful mask, train one via :func:`learn_somf_mask` and pass it as
     ``subspace_mask=``; otherwise treat the default as "SOMF-style heuristic
     fusion," not the published SOMF.
+
+    Task vectors are taken relative to the aligned model, ``delta = theta_ft -
+    theta_aligned`` (Yi et al., Alg. 1), and the result is ``theta_aligned + lam *
+    mask * delta``. ``base`` is unused and kept only so existing calls still work.
+
+    A tied weight's mask may be keyed under any of its names in ``subspace_mask``; if several
+    are, the first name in the state dict wins.
     """
     ft_sd = finetuned.state_dict()
     aligned_sd = aligned.state_dict()
-    base_sd = base.state_dict()
     n_applied = 0
+    seen_ptrs = set()
+    masks_by_ptr: Dict[int, torch.Tensor] = {}
+    for name, ft_p in ft_sd.items():
+        if subspace_mask is not None and name in subspace_mask:
+            masks_by_ptr.setdefault(ft_p.data_ptr(), subspace_mask[name])
     with torch.no_grad():
         for name, ft_p in ft_sd.items():
-            if name not in aligned_sd or name not in base_sd:
+            if name not in aligned_sd:
                 continue
+            # A tied weight (embed_tokens / lm_head) is listed under several names but is
+            # one tensor: merge it once, not once per name.
+            if ft_p.numel() > 0:
+                if ft_p.data_ptr() in seen_ptrs:
+                    continue
+                seen_ptrs.add(ft_p.data_ptr())
             ft_f = ft_p.to(torch.float32)
-            base_f = base_sd[name].to(ft_p.device, dtype=torch.float32)
             aligned_f = aligned_sd[name].to(ft_p.device, dtype=torch.float32)
             
-            task_vec = ft_f - base_f
+            task_vec = ft_f - aligned_f
             if task_vec.numel() == 0:
                 continue
                 
-            if subspace_mask is not None and name in subspace_mask:
-                mask = subspace_mask[name].to(ft_p.device, dtype=torch.bool)
+            if ft_p.data_ptr() in masks_by_ptr:
+                mask = masks_by_ptr[ft_p.data_ptr()].to(ft_p.device, dtype=torch.bool)
             else:
                 mask = _somf_subspace_mask(task_vec, mask_threshold)
                 
@@ -175,8 +198,8 @@ def somf_merge(
 def learn_somf_mask(
     finetuned: nn.Module,
     *,
-    base: nn.Module,
     aligned: nn.Module,
+    base: Optional[nn.Module] = None,
     preference_data: Iterable[Mapping],
     num_steps: int = 200,
     lr: float = 1e-2,
@@ -186,7 +209,10 @@ def learn_somf_mask(
     device: str = "cpu",
     seed: int = 42,
 ) -> Dict[str, torch.Tensor]:
-    """Learn the SOMF subspace mask M via Concrete relaxation + DPO safety loss."""
+    """Learn the SOMF subspace mask M via Concrete relaxation + DPO safety loss.
+
+    The mask is over ``theta_ft - theta_aligned``; ``base`` is unused (see :func:`somf_merge`).
+    """
     try:
         from torch.func import functional_call  # PyTorch >= 2.0
     except ImportError:
@@ -203,19 +229,18 @@ def learn_somf_mask(
 
     ft_sd = finetuned.state_dict()
     aligned_sd = aligned.state_dict()
-    base_sd = base.state_dict()
 
     delta: Dict[str, torch.Tensor] = {}
     log_alpha: Dict[str, torch.Tensor] = {}
 
     for name, ft_p in ft_sd.items():
-        if name not in aligned_sd or name not in base_sd:
+        if name not in aligned_sd:
             continue
         if ft_p.dim() < 2:
             continue
         d = (
             ft_p.to(dev, dtype=torch.float32)
-            - base_sd[name].to(dev, dtype=torch.float32)
+            - aligned_sd[name].to(dev, dtype=torch.float32)
         )
         if d.numel() == 0:
             continue
@@ -225,7 +250,7 @@ def learn_somf_mask(
     if not log_alpha:
         logger.warning(
             "learn_somf_mask: no 2-D parameters found in common across "
-            "finetuned/aligned/base; returning an empty mask."
+            "finetuned/aligned; returning an empty mask."
         )
         return {}
 

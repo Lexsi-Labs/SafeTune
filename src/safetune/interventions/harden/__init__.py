@@ -33,7 +33,7 @@ from .ctrap import CTRAPHFTrainer, CTRAPConfig
 from .seal import SEALHFTrainer, SEALConfig
 from .constrained_sft import ConstrainedSFTHFTrainer, ConstrainedSFTConfig
 from .lox_harden import LoXHardenConfig, apply_lox_harden
-from .salora import SaLoRAConfig, compute_safety_subspace, project_lora_step
+from .salora import SaLoRAConfig, compute_safety_subspace, fold_safety_module, project_lora_step
 from .tar import TARConfig, tar_outer_loss
 from .asrt import ASRTCallback, ASRTConfig
 from .mart import MARTConfig
@@ -122,7 +122,7 @@ __all__ = [
     # Pre-FT subspace extrapolation
     "LoXHardenConfig", "apply_lox_harden",
     # SaLoRA
-    "SaLoRAConfig", "compute_safety_subspace", "project_lora_step",
+    "SaLoRAConfig", "compute_safety_subspace", "project_lora_step", "fold_safety_module",
     # TAR
     "TARConfig", "tar_outer_loss",
 ]

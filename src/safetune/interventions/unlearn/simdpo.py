@@ -24,10 +24,13 @@ sequence-mean log-likelihood as the implicit reward:
 
        = -E[ logsigmoid( β/|y| * (log p_θ(y_c | x) - log p_θ(y_r | x)) - γ ) ]
 
-FIDELITY: SimPO's defining **target reward margin γ** defaults to ``0`` here
-(plain reference-free contrastive unlearning with SimPO's length-normalized
-reward); set ``gamma`` > 0 to recover the full SimPO objective. This is also
-distinct from SimNPO (a forget-only, no-pair length-normalized NPO variant).
+FIDELITY (Variant): the loss is exactly SimPO's (Eq. 6) applied to (safe
+refusal, harmful completion) pairs, but SimPO is a preference-optimisation
+method, not an unlearning method, so this is a SafeTune application of it.
+SimPO's **target reward margin γ** is ``0`` here; ``simdpo_forget_loss`` takes
+``gamma``, but ``simdpo_unlearn`` and ``SimDPOTrainer`` do not expose it. This
+is also distinct from SimNPO (a forget-only, no-pair length-normalized NPO
+variant).
 
 For **safety unlearning** we adapt the polarity:
 
@@ -62,8 +65,8 @@ Retain batches (for ``simdpo_retain``) are plain single-example batches with
 
 References
 ----------
-- Chen et al., "SimDPO: Simple Preference Optimization with a Reference-Free
-  Reward", arXiv:2405.14734, 2024.
+- Meng, Xia, Chen, "SimPO: Simple Preference Optimization with a
+  Reference-Free Reward", arXiv:2405.14734, NeurIPS 2024.
 - Multiple DPO-for-unlearning papers, 2024:
   - Lu et al., "Online DPO for LLM Unlearning", 2024.
   - Zhang et al., "Negative Preference Optimization", arXiv:2404.05868, 2024.

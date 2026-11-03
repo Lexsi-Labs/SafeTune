@@ -217,14 +217,20 @@ def _legacy_weight_delta_subspace(
 
 
 # ---------------------------------------------------------------------------
-# Component 2: task-specific initialisation of the trainable LoRA params
+# Component 2: SVD initialisation of the trainable LoRA params (no task-feature projection)
 # ---------------------------------------------------------------------------
 
 def task_specific_init(
     model: nn.Module,
     config: Optional[SaLoRAConfig] = None,
 ) -> int:
-    """Apply SaLoRA's task-specific GPU-accelerated SVD initialisation."""
+    """Initialise ``A``, ``B`` from the SVD of the base weight (GPU, randomised).
+
+    This is the SVD part of the paper's initialisation (Eq. 11-12: ``B = U_W sqrt(S_W)``,
+    ``A = sqrt(S_W) V_W^T``). The paper's *task-specific* step, ``B = U U^T U_W sqrt(S_W)`` with
+    ``U`` the top left singular vectors of ``W X_t`` on fine-tuning-data features (Eq. 8-10),
+    is not implemented; ``task_init`` therefore means "SVD initialisation".
+    """
     cfg = config or SaLoRAConfig()
     if not cfg.task_init:
         return 0
@@ -335,14 +341,94 @@ def _install_safety_module(
 
         items = lora_B.values() if hasattr(lora_B, "values") else [lora_B]
         hook_fn = _make_hook(mod)
-        for sub in items:
-            sub.register_forward_hook(hook_fn)
+        mod._salora_hook_handles = [  # type: ignore[attr-defined]
+            sub.register_forward_hook(hook_fn) for sub in items
+        ]
 
         mod._salora_installed = True  # type: ignore[attr-defined]
         installed += 1
         
     logger.info("salora: installed fixed safety module C in %d LoRA layers.", installed)
     return installed
+
+
+# ---------------------------------------------------------------------------
+# Residual re-parameterisation W' = W - C B A (paper Eq. 13)
+# ---------------------------------------------------------------------------
+
+def offset_base_weights(model: nn.Module) -> int:
+    """Subtract the initial adapter's contribution from the base weight: ``W' = W - s * C B A``.
+
+    After the task-specific initialisation ``B, A`` are non-zero, so the model with the
+    safety module would no longer equal the pretrained one. Eq. 13 re-parameterises the layer
+    so that it does. ``s`` is the PEFT scaling of the adapter (``lora_alpha / r``, or
+    ``lora_alpha / sqrt(r)`` with rsLoRA), ``C`` the installed safety module (for
+    ``strength != 1`` the blended one the hook applies, so the identity still holds).
+    Idempotent; returns the number of layers offset.
+    """
+    done = 0
+    for _name, mod in list(model.named_modules()):
+        if not getattr(mod, "_salora_installed", False) or getattr(mod, "_salora_offset", False):
+            continue
+        C = getattr(mod, "lora_C", None)
+        base = getattr(mod, "base_layer", None)
+        weight = getattr(base, "weight", None)
+        if C is None or weight is None or weight.dim() != 2 or not weight.is_floating_point():
+            continue
+        delta = torch.zeros_like(weight, dtype=torch.float32)
+        for adapter in list(mod.lora_A.keys()):
+            if adapter not in mod.lora_B:
+                continue
+            A = mod.lora_A[adapter].weight.detach().float()
+            B = mod.lora_B[adapter].weight.detach().float()
+            step = float(mod.scaling[adapter]) * (C.to(device=B.device, dtype=torch.float32) @ (B @ A))
+            # Conv1D (GPT-2) stores the base weight as (in, out): PEFT's fan_in_fan_out.
+            delta += step.T if getattr(mod, "fan_in_fan_out", False) else step
+        with torch.no_grad():
+            weight.sub_(delta.to(device=weight.device, dtype=weight.dtype))
+        mod._salora_offset = True  # type: ignore[attr-defined]
+        done += 1
+    if done:
+        logger.info("salora: offset the base weight (W' = W - C B A) in %d LoRA layers.", done)
+    return done
+
+
+# ---------------------------------------------------------------------------
+# Folding the safety module into the adapter (paper Sec. 4.3)
+# ---------------------------------------------------------------------------
+
+def fold_safety_module(model: nn.Module) -> int:
+    """Fold the fixed safety module into ``lora_B`` (``B <- C B``) and drop the forward hook.
+
+    SaLoRA applies ``C`` in a forward hook on ``lora_B``, so ``merge_and_unload()`` (which adds
+    ``scaling * B A``) and any adapter-only save would lose it. The paper (Sec. 4.3, Fig. 4)
+    saves ``B' = C B`` instead. Call this once, after training and before merging or saving.
+    Idempotent; returns the number of LoRA layers folded.
+    """
+    folded = 0
+    for _name, mod in list(model.named_modules()):
+        if not getattr(mod, "_salora_installed", False):
+            continue
+        C = getattr(mod, "lora_C", None)
+        if C is None:
+            continue
+        for handle in getattr(mod, "_salora_hook_handles", []):
+            handle.remove()
+        mod._salora_hook_handles = []  # type: ignore[attr-defined]
+        lora_B = getattr(mod, "lora_B", None)
+        items = lora_B.values() if hasattr(lora_B, "values") else [lora_B]
+        for sub in items:
+            w = getattr(sub, "weight", None)
+            if w is None:
+                continue
+            with torch.no_grad():
+                w.copy_((C.to(device=w.device, dtype=torch.float32) @ w.detach().float()).to(w.dtype))
+        del mod.lora_C
+        mod._salora_installed = False  # type: ignore[attr-defined]
+        folded += 1
+    if folded:
+        logger.info("salora: folded the safety module into lora_B for %d layers (B <- C B).", folded)
+    return folded
 
 
 # ---------------------------------------------------------------------------
@@ -372,6 +458,9 @@ def project_lora_step(
             affected += task_specific_init(model, cfg)
         if install_forward:
             affected += _install_safety_module(model, safety_subspace, cfg.strength)
+            if apply_task_init:
+                # Eq. 13: the model must still equal the pretrained one after the initialisation.
+                offset_base_weights(model)
         return affected
 
     logger.warning(
@@ -400,4 +489,6 @@ __all__ = [
     "compute_safety_subspace",
     "task_specific_init",
     "project_lora_step",
+    "fold_safety_module",
+    "offset_base_weights",
 ]

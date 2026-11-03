@@ -7,7 +7,10 @@ The paper defines a per-head sink value ``alpha_h(X)`` (Eq. 2) and the *sink
 divergence* ``d_h = alpha_h(X_m) - alpha_h(X_r)`` (Eq. 3), the difference in
 sink value between *harmful* data ``X_m`` and *refusal* data ``X_r``. The
 training regularizer (Eq. 4) is ``lambda * (1/|H|) * sum_h ReLU(d_h)`` --
-penalising only heads whose harmful-vs-refusal sink gap is positive.
+penalising only heads whose harmful-vs-refusal sink gap is positive. ``|H|`` counts the
+heads of all layers; the sink value excludes the sink row and padded query rows (see
+:mod:`safetune.core.optim.surgery`). ``lambda`` defaults to 300 (paper Table 8, official
+script); the earlier default 0.01 made the penalty about 1e-5 of the cross-entropy.
 
 Per the paper's Algorithm 1, a batch of (simulated) refusal data is sampled at
 *every* training step and its sink profile becomes the reference ``alpha_h(X_r)``;
@@ -27,8 +30,8 @@ The trainer then uses ``inputs`` as ``X_m``. This is correct when the goal is
 to defend against harmful-content fine-tuning attacks, but diverges from the
 paper for benign fine-tuning scenarios.
 
-If ``refusal_dataset`` is not supplied the reference cannot be computed; the
-trainer falls back to plain training (no penalty).
+``refusal_dataset`` is required: without it there is no reference ``alpha_h(X_r)``, so the
+trainer raises instead of training without the penalty.
 """
 
 from __future__ import annotations
@@ -62,10 +65,26 @@ except Exception as _e:  # pragma: no cover
 if _TRAINER_IMPORT_ERROR is None:
     @dataclass
     class SurgeryConfig(TrainingArguments):  # type: ignore[misc]
-        sink_lambda: float = 0.01
+        sink_lambda: float = 300.0
 else:  # pragma: no cover
     class SurgeryConfig(object):  # type: ignore[assignment]
         pass
+
+
+_NO_ATTENTIONS_MSG = (
+    "Surgery needs the attention weights, but the model returned none "
+    "(output_attentions is ignored under sdpa / flash attention; transformers returns an "
+    "empty tuple). Load the model with attn_implementation=\"eager\", e.g. "
+    "AutoModelForCausalLM.from_pretrained(..., attn_implementation=\"eager\"). "
+    "Without it the sink penalty is zero and training is plain SFT."
+)
+
+
+def _require_attentions(attentions):
+    """Raise unless ``attentions`` is a non-empty tuple of attention-weight tensors."""
+    if attentions is None or len(attentions) == 0:
+        raise ValueError(_NO_ATTENTIONS_MSG)
+    return attentions
 
 
 class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
@@ -74,8 +93,8 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
     Args:
         refusal_dataset: iterable of batches of *refusal* data (``X_r`` in the
             paper, Algorithm 1). Cycled indefinitely; one batch per step sets
-            the reference sink profile ``alpha_h(X_r)``. Required for the
-            penalty to fire.
+            the reference sink profile ``alpha_h(X_r)``. Required; ``None``
+            raises.
         harmful_dataset: optional iterable of batches of *simulated harmful*
             data (``X_m`` in the paper, Algorithm 1 — the separate "harmful
             dataset" required by the paper). When supplied, a batch from this
@@ -102,10 +121,16 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
             raise ImportError(
                 "safetune.core.optim.surgery is unavailable"
             ) from _SURGERY_IMPORT_ERROR
+        if refusal_dataset is None:
+            raise ValueError(
+                "SurgeryHFTrainer needs refusal_dataset: batches of refusal data whose sink "
+                "profile is the reference alpha_h(X_r) (paper Algorithm 1). Without it the sink "
+                "penalty is never computed and training is plain SFT."
+            )
         
         super().__init__(*args, **kwargs)
         
-        sink_lambda = getattr(self.args, "sink_lambda", 0.01)
+        sink_lambda = getattr(self.args, "sink_lambda", 300.0)
         self._surgery = SurgeryWrapper(_CoreSurgeryConfig(sink_lambda=sink_lambda))
         
         self._refusal_dataset = refusal_dataset
@@ -153,37 +178,20 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
         if refusal_batch is None:
             return False
             
-        try:
-            call_inputs = self._prepare_custom_batch(refusal_batch, model)
-            if isinstance(call_inputs, dict):
-                call_inputs["output_attentions"] = True
-                
-            # No grad: the refusal sink profile is a detached reference target.
-            import torch
+        call_inputs = self._prepare_custom_batch(refusal_batch, model)
+        if isinstance(call_inputs, dict):
+            call_inputs["output_attentions"] = True
 
-            with torch.no_grad():
-                ref_outputs = model(**call_inputs)
-                
-            ref_attentions = getattr(ref_outputs, "attentions", None)
-            if ref_attentions is None:
-                if not getattr(self, "_warned_no_attn", False):
-                    logger.warning(
-                        "Surgery: model returned no attention weights "
-                        "(output_attentions is ignored under sdpa/flash "
-                        "attention) — the attention-sink penalty is INACTIVE and "
-                        "training is plain SFT. Load the model with "
-                        "attn_implementation=\"eager\" to enable it."
-                    )
-                    self._warned_no_attn = True
-                return False
-                
-            self._surgery.set_reference(ref_attentions)
-            return True
-            
-        except Exception as e:
-            # A failure to compute the reference must not abort training
-            logger.debug(f"Skipping reference update this step due to error: {e}")
-            return False
+        # No grad: the refusal sink profile is a detached reference target.
+        import torch
+
+        with torch.no_grad():
+            ref_outputs = model(**call_inputs)
+
+        # Raises (not a silent skip) when the model returns no attention weights.
+        ref_attentions = _require_attentions(getattr(ref_outputs, "attentions", None))
+        self._surgery.set_reference(ref_attentions, call_inputs.get("attention_mask"))
+        return True
 
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):  # type: ignore[override]
         import torch
@@ -221,8 +229,11 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
         # only when a refusal reference was actually computed. Without a
         # reference the penalty would degenerate to raw sink magnitude, so we
         # skip it entirely instead.
-        if attentions is not None and have_reference:
-            penalty = self._surgery.compute_sink_penalty(attentions)
+        if have_reference:
+            _require_attentions(attentions)
+            mask_src = harmful_call if harmful_batch is not None else call_inputs
+            penalty = self._surgery.compute_sink_penalty(
+                attentions, mask_src.get("attention_mask") if isinstance(mask_src, dict) else None)
             if penalty.device != base_loss.device:
                 penalty = penalty.to(base_loss.device)
             loss = base_loss + penalty.to(base_loss.dtype)

@@ -22,13 +22,14 @@ where beta_t = beta * exp(-decay_rate * t) is large for early positions (t=0,1,2
 and decays exponentially, protecting the first-token distribution most strongly.
 
 The reference model p_ref is the aligned model BEFORE fine-tuning (frozen).
-The KL direction KL(p_ref || p_model) is the reverse KL — zero-avoiding,
-meaning the model is strongly penalised for assigning near-zero probability
-to tokens where the aligned reference has significant mass. This is the correct
-direction for a safety constraint (prevents the model from forgetting safe
-response prefixes).
+The KL direction is the forward KL(p_ref || p_model), which penalises the model for
+assigning near-zero probability to tokens where the aligned reference has significant
+mass (it discourages forgetting safe response prefixes).
 
-Paper defaults: beta=0.5, decay_rate=0.1.
+Defaults: beta=0.5, decay_rate=0.1 are this module's choices. The official code instead
+uses a sigmoid-based per-token weight (beta=0.1, beta_1=0.5, beta_2..5=2.0).
+
+The reference model defaults to the tokenizer's ``name_or_path``.
 
 Usage::
 
@@ -172,7 +173,7 @@ class ConstrainedSFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else obje
             shift_labels = None
         Sm1 = shift_logits.shape[1]
 
-        # KL(p_ref || p_model) per position — reverse KL, zero-avoiding.
+        # KL(p_ref || p_model) per position — forward KL.
         # = sum_v p_ref * (log p_ref - log p_model)
         log_p_model = F.log_softmax(shift_logits, dim=-1)   # (B, S-1, V)
         log_p_ref   = F.log_softmax(shift_ref, dim=-1)      # (B, S-1, V)

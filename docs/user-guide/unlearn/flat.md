@@ -58,16 +58,27 @@ clipping is on by default.
 
 ### Supported divergences
 
-| Key | Aggressiveness | Notes |
-|---|---|---|
-| `"kl"` | Conservative | Default; stable convergence |
-| `"reverse_kl"` | Conservative | Mode-seeking variant |
-| `"jeffrey"` | Moderate | Symmetric KL sum |
-| `"squared_hellinger"` | Moderate | Bounded loss; numerically stable |
-| `"pearson"` | Aggressive | Unbounded; clip gradients |
-| `"neyman"` | Aggressive | Unbounded; clip gradients |
-| `"jensen_shannon"` | Moderate | Bounded [0, log 2] |
-| `"total_variation"` | Most aggressive | Binary; hard boundary |
+The paper reports four divergences (`kl`, `jensen_shannon`, `pearson`, `total_variation`) and
+finds `kl` the most consistent; the other four exist only in the official code. The table below is
+a **direction check on a tiny random model** (2-layer Llama, one harmful and one refusal answer,
+60 AdamW steps, `variant="flat"`, seed 0, no weight decay) and shows only which way each loss
+moves the mean token probability of the two answers. It is not a utility or safety result.
+
+| Key | Harmful answer (lr 1e-3 / 1e-2) | Refusal (lr 1e-3 / 1e-2) | Direction |
+|---|---|---|---|
+| `kl` | 0.005 / 0.000 | 0.487 / 1.000 | as intended (harmful down, refusal up) |
+| `reverse_kl` | 0.439 / 1.000 | 0.003 / 0.000 | wrong way (harmful up, refusal down) |
+| `jeffrey` | 0.003 / 0.000 | 0.460 / 1.000 | as intended (harmful down, refusal up) |
+| `squared_hellinger` | 0.425 / 1.000 | 0.003 / 0.000 | wrong way (harmful up, refusal down) |
+| `pearson` | 0.003 / 0.000 | 0.460 / 1.000 | as intended (harmful down, refusal up) |
+| `neyman` | 0.001 / 0.000 | 0.001 / 0.000 | both collapse to 0 |
+| `jensen_shannon` | 0.003 / 0.000 | 0.451 / 1.000 | as intended (harmful down, refusal up) |
+| `total_variation` | 0.003 / 0.000 | 0.455 / 1.000 | as intended (harmful down, refusal up) |
+
+Before training: harmful 0.016, refusal 0.017. `reverse_kl` and `squared_hellinger` move the
+wrong way and `neyman` drives both to zero; the official formulas have the same signs, so
+`flat_unlearn` keeps the loss and logs a warning for those three. Prefer `kl`, `jeffrey`, `pearson`,
+`jensen_shannon` or `total_variation`.
 
 ## Full example
 
@@ -115,14 +126,15 @@ loss = flat_fdiv_loss(
 )
 ```
 
-Minimising this drives good-answer (refusal) likelihood up and forget-answer
-(harmful) likelihood down simultaneously.
+For `kl`, `jeffrey`, `pearson`, `jensen_shannon` and `total_variation`, minimising this raised the
+refusal's mean token probability and lowered the harmful answer's in the direction check above;
+`reverse_kl`, `squared_hellinger` and `neyman` did not. This function logs nothing for them: the warning comes only from `flat_unlearn`.
 
 ## When to use
 
 - **Best for:** reference-free unlearning — no frozen model needed; only forget data + a canned refusal template.
 - **`"kl"` divergence** — safest default.
-- **`"total_variation"`** — hardest boundary; use when you need the most aggressive forgetting.
+- **`"total_variation"`** — the paper's best divergence on its Harry Potter / Llama2-7B table (Table 9); `kl` was the most consistent across datasets and models.
 - **Compare to `GradientAscent`:** FLAT is more principled (variational bound) and avoids collapse because it pushes toward a refusal, not just away from harmful completions.
 
 ## Citation

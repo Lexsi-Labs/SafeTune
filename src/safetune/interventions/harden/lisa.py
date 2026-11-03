@@ -41,7 +41,9 @@ if _TRAINER_IMPORT_ERROR is None:
 
         Attributes:
             lisa_rho: proximal penalty coefficient ``rho`` (paper default 0.1).
-            lisa_warmup_steps: steps before the proximal penalty begins firing.
+            lisa_warmup_steps: micro-steps before the proximal penalty begins firing.
+                A run shorter than this never gets the penalty (the runner
+                passes 10).
                 The authors skip the proximal term for the first ~10% of total
                 training steps; this exposes that as an explicit step count.
             lisa_alignment_step: number of consecutive steps spent in the
@@ -78,7 +80,9 @@ class LisaHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
       weights are committed to its consensus tracker.
     * **Proximal term.** Injected through the wrapper's
       ``apply_proximal_penalty`` context manager inside ``compute_loss`` so it
-      enters the autograd graph before backward. In the ``alignment`` state it
+      enters the autograd graph before backward, so it counts once per optimizer step: the
+      Trainer divides it by the accumulation steps with the task loss, or, when the task loss
+      is normalised by ``num_items_in_batch``, it is divided here. In the ``alignment`` state it
       anchors to the ``finetune`` consensus; in the ``finetune`` state it
       anchors to the ``alignment`` consensus.
 
@@ -241,7 +245,18 @@ class LisaHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
             base_loss = result
             outputs = None
 
-        with self._lisa.apply_proximal_penalty(base_loss) as modified_loss:
+        # The penalty must count once per optimizer step. Trainer.training_step divides
+        # the returned loss by the accumulation steps unless the loss was already scaled
+        # through num_items_in_batch; only in that case divide the penalty here.
+        scaled = getattr(self, "loss_is_scaled_for_ga", None)
+        if scaled is None:
+            scaled = (getattr(self, "model_accepts_loss_kwargs", False)
+                      and num_items_in_batch is not None) or (
+                getattr(self, "compute_loss_func", None) is not None)
+        ga = getattr(self, "current_gradient_accumulation_steps", None) or getattr(
+            self.args, "gradient_accumulation_steps", 1)
+        scale = 1.0 / max(int(ga), 1) if scaled else 1.0
+        with self._lisa.apply_proximal_penalty(base_loss, scale=scale) as modified_loss:
             final_loss = modified_loss
 
         if return_outputs:

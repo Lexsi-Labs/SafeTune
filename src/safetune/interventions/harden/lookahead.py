@@ -19,14 +19,21 @@ Two variants (paper Eq. 4 / Sec. 3):
 * ``virtual`` -- a fixed generic phrase ``P`` (default
                 ``"Let's solve this problem. "``) is inserted on the instruction
                 side ``I' = I (+) connector (+) P`` and *also* prepended to the
-                answer ``O' = P (+) O``.
+                answer ``O' = P (+) O``, with the loss on ``P`` and ``O``.
+
+**Differences from the paper.** The runner receives tokenised rows, so the raw
+instruction text is not available. The preview is therefore inserted into the token
+stream between the prompt (including the chat template's assistant header) and the
+answer, not into the user turn, and the connector ``" The answer begins with: "`` is not
+added. Real mode inserts ``O[:m]`` (``m`` is clamped to the answer length) with no loss
+on the copy; virtual mode inserts ``P`` once as an unsupervised preview and once as the
+supervised start of ``O' = P (+) O``.
 
 The standard cross-entropy SFT objective is unchanged; only the data is modified.
 
-This module reimplements the answer-aware collator locally (``AnswerPreviewCollator``)
-because the previewed prefix must be inserted *between the prompt and the answer*
-and the previewed tokens must be the *real answer tokens* (or the phrase ``P``),
-not a run of token-id-0.
+This module implements the collator locally (``AnswerPreviewCollator``): the previewed
+prefix is inserted between the prompt and the answer, and the previewed tokens are the
+real answer tokens (or the phrase ``P``), not a run of token-id-0.
 """
 
 from __future__ import annotations
@@ -97,17 +104,18 @@ def _answer_start(labels: List[int]) -> int:
 
 class AnswerPreviewCollator:
     """Insert a *real answer-prefix* (or the virtual phrase ``P``) preview between
-    the prompt and the answer, as described in LookAhead Tuning (arXiv:2503.19041).
+    the prompt and the answer (see the module docstring for how this differs from
+    LookAhead Tuning, arXiv:2503.19041).
 
-    ``real`` mode    -- inserts the first ``prefix_length`` answer tokens just
-                        before the answer, labelled -100 (no loss): the model
+    ``real`` mode    -- inserts the first ``min(prefix_length, len(answer))`` answer
+                        tokens just before the answer, labelled -100 (no loss): the model
                         previews the answer, the real answer tokens still train.
-    ``virtual`` mode -- inserts the fixed phrase ``P`` (``prefix_token_ids``)
-                        before the answer, labelled -100 on the instruction-side
-                        copy; the answer ``O`` itself is left intact (the paper's
-                        ``O' = P (+) O`` is realised by the preview sitting
-                        immediately before, supervised-free, ahead of ``O``).
+    ``virtual`` mode -- inserts the fixed phrase ``P`` (``prefix_token_ids``) twice
+                        before the answer: an unsupervised preview copy (-100) and a
+                        supervised copy, so the loss covers ``O' = P (+) O``.
     """
+
+    MODES = ("real", "virtual")
 
     def __init__(
         self,
@@ -121,31 +129,29 @@ class AnswerPreviewCollator:
         self.base_collator = base_collator
         self.config = config
         self.prefix_mode = str(getattr(config, "prefix_mode", "virtual") or "virtual")
-        self.prefix_length = int(getattr(config, "prefix_length", 6) or 6)
+        if self.prefix_mode not in self.MODES:
+            raise ValueError(
+                f"prefix_mode must be one of {self.MODES}, got {self.prefix_mode!r}"
+            )
+        length = getattr(config, "prefix_length", 6)
+        self.prefix_length = 6 if length is None else int(length)
+        if self.prefix_length < 0:
+            raise ValueError(f"prefix_length must be >= 0, got {self.prefix_length}")
         self.prefix_token_ids = getattr(config, "prefix_token_ids", None)
+        # ponytail: id 0 without a tokenizer; the padded positions have mask 0 and label -100.
+        self.pad_token_id = getattr(config, "pad_token_id", None) or 0
 
-    def _virtual_prefix_ids(self) -> List[int]:
-        if self.prefix_token_ids:
-            return list(self.prefix_token_ids)
-        # No phrase tokens supplied: fall back to repeating the answer's own first
-        # token below (handled per-example). An empty list means "use real preview".
-        return []
-
-    def _preview_for_example(self, input_ids: List[int], labels: List[int]) -> List[int]:
-        """Return the token ids previewed for one example."""
-        start = _answer_start(labels)
-        answer_ids = list(input_ids[start:])
-        m = max(0, min(self.prefix_length, len(answer_ids)))
+    def _preview_for_example(self, answer_ids: List[int]) -> List[int]:
+        """Return the token ids previewed for one example (``answer_ids`` = supervised tokens)."""
         if self.prefix_mode == "real":
-            # Preview the actual first m answer tokens.
-            return answer_ids[:m]
-        # virtual mode
-        virtual = self._virtual_prefix_ids()
-        if virtual:
-            return virtual
-        # No explicit phrase tokens: preview the real answer prefix as a safe
-        # fallback (still the answer, never token-id-0).
-        return answer_ids[:m]
+            # The first m real answer tokens; m is clamped to the answer length.
+            return answer_ids[: self.prefix_length]
+        if not self.prefix_token_ids:
+            raise ValueError(
+                "prefix_mode='virtual' needs the phrase P as token ids: pass "
+                "prefix_token_ids, or a tokenizer (processing_class) so prefix_text can be encoded."
+            )
+        return list(self.prefix_token_ids)
 
     def _insert_preview(self, example: Any) -> Any:
         if not isinstance(example, dict):
@@ -161,20 +167,29 @@ class AnswerPreviewCollator:
         lbl_list = lbl.tolist() if (torch is not None and isinstance(lbl, torch.Tensor)) else list(lbl)
 
         start = _answer_start(lbl_list)
-        preview = self._preview_for_example(ids_list, lbl_list)
+        # Only supervised positions are answer tokens (padding carries label -100).
+        answer_ids = [t for t, l in zip(ids_list[start:], lbl_list[start:]) if int(l) != -100]
+        preview = self._preview_for_example(answer_ids)
         plen = len(preview)
         if plen == 0:
             return updated
 
-        # Insert the preview *between prompt and answer* (paper: I' = I (+) preview).
-        new_ids = ids_list[:start] + list(preview) + ids_list[start:]
-        # The previewed tokens are on the instruction side -> no loss (-100).
-        new_lbl = lbl_list[:start] + [-100] * plen + lbl_list[start:]
+        # Insert between prompt and answer. The first copy is the instruction-side preview
+        # (no loss); in virtual mode a second, supervised copy starts O' = P (+) O.
+        if self.prefix_mode == "virtual":
+            ins_ids = list(preview) + list(preview)
+            ins_lbl = [-100] * plen + list(preview)
+        else:
+            ins_ids = list(preview)
+            ins_lbl = [-100] * plen
+        n_ins = len(ins_ids)
+        new_ids = ids_list[:start] + ins_ids + ids_list[start:]
+        new_lbl = lbl_list[:start] + ins_lbl + lbl_list[start:]
 
         if "attention_mask" in updated:
             am = example["attention_mask"]
             am_list = am.tolist() if (torch is not None and isinstance(am, torch.Tensor)) else list(am)
-            new_am = am_list[:start] + [1] * plen + am_list[start:]
+            new_am = am_list[:start] + [1] * n_ins + am_list[start:]
         else:
             new_am = None
 
@@ -199,7 +214,24 @@ class AnswerPreviewCollator:
 
     def __call__(self, features: List[Any]) -> Any:
         previewed = [self._insert_preview(f) for f in features]
-        return self.base_collator(previewed)
+        return self.base_collator(self._pad_to_longest(previewed))
+
+    def _pad_to_longest(self, rows: List[Any]) -> List[Any]:
+        """Right-pad rows to the longest one: a clamped preview makes their lengths differ."""
+        fill = {"input_ids": self.pad_token_id, "labels": -100, "attention_mask": 0}
+        longest = max((len(r["input_ids"]) for r in rows if isinstance(r, dict) and "input_ids" in r), default=0)
+        padded = []
+        for row in rows:
+            if isinstance(row, dict):
+                row = dict(row)
+                for key, value in fill.items():
+                    n = longest - len(row[key]) if key in row else 0
+                    if n > 0 and torch is not None and isinstance(row[key], torch.Tensor):
+                        row[key] = torch.cat([row[key], row[key].new_full((n,), value)])
+                    elif n > 0:
+                        row[key] = list(row[key]) + [value] * n
+            padded.append(row)
+        return padded
 
 
 class LookAheadHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
@@ -225,7 +257,8 @@ class LookAheadHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
 
         # Resolve LookAhead config from the args object (optional, with defaults).
         prefix_mode = str(getattr(args_obj, "prefix_mode", "virtual") or "virtual")
-        prefix_length = int(getattr(args_obj, "prefix_length", 6) or 6)
+        _len = getattr(args_obj, "prefix_length", 6)
+        prefix_length = 6 if _len is None else int(_len)
         prefix_token_ids = getattr(args_obj, "prefix_token_ids", None)
         prefix_text = getattr(args_obj, "prefix_text", DEFAULT_VIRTUAL_PREFIX)
 
@@ -251,6 +284,7 @@ class LookAheadHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         cfg.prefix_mode = prefix_mode
         cfg.prefix_length = prefix_length
         cfg.prefix_token_ids = prefix_token_ids
+        cfg.pad_token_id = getattr(tokenizer, "pad_token_id", None)
 
         base_collator = user_collator if user_collator is not None else default_data_collator
         kwargs["data_collator"] = AnswerPreviewCollator(base_collator, config=cfg)

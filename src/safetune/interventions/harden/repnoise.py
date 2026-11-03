@@ -1,11 +1,11 @@
 """
-RepNoise Trainer — faithful standalone implementation.
+RepNoise Trainer — standalone implementation of the RepNoise objective.
 
 Implements "Representation Noising: A Defence Mechanism Against Harmful
-Finetuning" (Rosati et al., arXiv:2405.14577, NeurIPS 2024).  This module is a
-faithful port of the reference objective ``rep_noise_loss`` from the official
+Finetuning" (Rosati et al., arXiv:2405.14577, NeurIPS 2024).  The loss follows the paper's
+appendix formula and the reference objective ``rep_noise_loss`` of the official
 repository ``domenicrosati/representation-noising`` (``representation_noising/
-loss.py``).
+loss.py``), with the differences listed after "Masking" below.
 
 RepNoise protects a model during alignment by training with a three-part
 compound loss that destroys recoverable harmful representations while
@@ -42,9 +42,21 @@ Reference loss (``representation_noising/loss.py``)::
 
 Masking: the reference computes a token mask of positions where the paired
 harmful and harmless ``input_ids`` differ (``~torch.eq(harmful, harmless)``) and
-applies it to both the activations (for MMD) and the CE losses.  When a paired
-harmless batch is not available, this implementation falls back to the harmful
-``attention_mask`` so the term remains well defined.
+applies it to both the activations (for MMD) and the CE losses. That selects the
+response tokens only because the batches are paired. When the harmless batch is not a
+paired one (the runner pairs the harmful batch with an unrelated training batch) the
+mask is the harmful batch's own response tokens (``labels != -100``).
+
+Differences from the reference ``rep_noise_loss``:
+
+* The reference adds ``+1`` inside the log (``harmful_losses / len(hidden_states) + 1``); the
+  paper's appendix formula has no such term and SafeTune follows the paper.
+* The reference draws fresh Gaussian noise at every call and hooks the MLP output of each
+  layer; SafeTune re-seeds the noise at every call (the same tensor each step) and uses the
+  residual-stream hidden states.
+* The retain loss is the plain batch CE (``labels``), not masked by the difference mask.
+* The reference trains on paired harmful/harmless batches; the runner does not pair them.
+
 
 Public API mapping (kept stable; field names unchanged):
 
@@ -243,7 +255,8 @@ else:  # pragma: no cover
 class RepNoiseHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """HuggingFace :class:`~transformers.Trainer` with the RepNoise compound loss.
 
-    Faithful port of ``rep_noise_loss`` (Rosati et al. arXiv:2405.14577):
+    Port of the RepNoise objective (Rosati et al. arXiv:2405.14577; see the module docstring
+    for the differences from the reference ``rep_noise_loss``):
 
         L = L_retain + beta * L_noise - alpha * log(L_harmful)
 
@@ -356,17 +369,32 @@ class RepNoiseHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
 
     @staticmethod
     def _diff_mask(harmful_batch: dict, benign_batch: Optional[dict]) -> "torch.Tensor":
-        """Token mask of positions where harmful and benign input_ids differ.
+        """Token mask the MMD-noise and log-ascent terms act on.
 
-        Faithful to the reference (``~torch.eq(harmful, harmless)``).  Requires
-        the two batches to share shape; otherwise (or when no benign batch is
-        available) falls back to the harmful ``attention_mask`` (or all-ones).
+        *Paired batches* (the reference's data: same prompt, a harmful and a harmless
+        response): ``~torch.eq(harmful, harmless)`` selects exactly the response tokens, as in
+        ``rep_noise_loss``. Two batches are paired when they have the same shape and agree on
+        every prompt position of the harmful batch.
+
+        *Unpaired batches* (e.g. the harmful batch against an unrelated training batch): the
+        difference of two unrelated sequences also selects most of the harmful prompt, so the
+        mask is the harmful batch's own response tokens, ``labels != -100`` (and attended).
+        Without ``labels`` it falls back to the harmful ``attention_mask`` (or all-ones).
         """
         h_ids = harmful_batch["input_ids"]
+        labels = harmful_batch.get("labels")
+        am = harmful_batch.get("attention_mask", None)
         b_ids = benign_batch.get("input_ids") if isinstance(benign_batch, dict) else None
         if b_ids is not None and tuple(b_ids.shape) == tuple(h_ids.shape):
-            return (~torch.eq(h_ids, b_ids.to(h_ids.device)))
-        am = harmful_batch.get("attention_mask", None)
+            b_ids = b_ids.to(h_ids.device)
+            if labels is None:
+                return ~torch.eq(h_ids, b_ids)
+            prompt = (labels == -100) if am is None else ((labels == -100) & am.bool())
+            if bool(torch.eq(h_ids, b_ids)[prompt].all()):
+                return ~torch.eq(h_ids, b_ids)                  # paired: reference behaviour
+        if labels is not None:
+            resp = labels != -100
+            return resp & am.bool() if am is not None else resp
         if am is not None:
             return am.bool()
         return torch.ones_like(h_ids, dtype=torch.bool)
@@ -478,7 +506,7 @@ class RepNoiseHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):  # type: ignore[override]
         """Compute the RepNoise compound loss.
 
-        Faithful three-term objective (reference ``rep_noise_loss``)::
+        Three-term objective (paper / reference ``rep_noise_loss``)::
 
             L = L_retain + beta * L_noise - alpha * log(L_harmful)
 

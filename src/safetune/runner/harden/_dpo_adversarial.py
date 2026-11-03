@@ -164,6 +164,7 @@ class CSTTrainer(_HardenBase):
             safe_system_prompt=self.safe_system_prompt,
             uncensored_system_prompt=self.uncensored_system_prompt,
             include_uncensored_pairs=self.include_uncensored_pairs,
+            tokenizer=self.tok,
         )
         out_dir = self._resolve_out_dir(out_dir)
         # TRL's DPOConfig defaults max_prompt_length to 512 and rejects

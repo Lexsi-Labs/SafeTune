@@ -64,10 +64,13 @@ class SafetyAwareProbingWrapper:
         logits = outputs.logits
 
         # Causal LM shift: logits at position t predict the token at t+1.
-        # ``chosen_labels`` / ``rejected_labels`` are the raw token ids of the
-        # full (prompt + completion) sequence, position-aligned with
-        # ``input_ids`` (see ``sap_contrastive_dataset``), so the standard
-        # shift applies: compare logits[..., :-1, :] with labels[..., 1:].
+        # ``input_ids`` holds the prompt only (padded), as in the authors'
+        # ``SAPcode/train.py``; ``chosen_labels`` / ``rejected_labels`` are the ids of
+        # prompt + completion, position-aligned with it, with -100 on the prompt and
+        # on pad positions (see ``sap_contrastive_dataset``). Only the first completion
+        # token is therefore predicted from real context; the later ones are predicted
+        # from pad positions. (The authors' code compares logits and labels without this
+        # shift, so it predicts every completion token from a pad position.)
         shift_logits = logits[:, :-1, :]
         shift_chosen = chosen_labels[:, 1:]
         shift_rejected = rejected_labels[:, 1:]

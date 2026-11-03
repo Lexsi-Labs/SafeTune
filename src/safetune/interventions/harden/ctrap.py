@@ -3,8 +3,8 @@ CTRAP Trainer — Collapse Trap.
 
 Faithful implementation of the CTRAP algorithm from:
 
-    Yifan Lu, Yigeng Zhou, Jing Li, Yequan Wang, Xuebo Liu, Daojing He,
-    Fangming Liu, Min Zhang.
+    Biao Yi, Tiansheng Huang, Baolei Zhang, Tong Li, Lihai Nie, Zheli Liu,
+    Li Shen.
     "CTRAP: Embedding Collapse Trap to Safeguard Large Language Models
     from Harmful Fine-Tuning."  arXiv:2505.16559, 2025.
 
@@ -298,17 +298,29 @@ def _harmful_ce_loss(outputs: Any, labels: "torch.Tensor") -> "torch.Tensor":
 
 
 def _collapse_loss(outputs: Any, attention_mask: Optional["torch.Tensor"],
-                   collapse_token_id: int) -> "torch.Tensor":
+                   collapse_token_id: int,
+                   labels: Optional["torch.Tensor"] = None) -> "torch.Tensor":
     """Eq. (1): per-token CE toward the fixed collapse token ``e``.
 
-    ``L_Collapse = mean_t [ -log p(e | context_{<t}) ]`` over (masked) tokens.
+    ``L_Collapse = -1/|y| * sum_{t=1..|y|} log p(e | x o y_{<t})``: the mean over the *response*
+    positions. With ``labels`` carrying a masked prompt (``-100``) only the positions whose next
+    token is a response token enter the mean; without ``labels``, or when no position is masked
+    (no prompt), it is the mean over all attended positions.
     """
     logits = _logits_of(outputs).float()           # (B, T, V)
     log_probs = F.log_softmax(logits, dim=-1)       # (B, T, V)
     # -log p(e | ...) at every position.
     nll_e = -log_probs[..., collapse_token_id]      # (B, T)
-    if attention_mask is not None:
-        mask = attention_mask.to(nll_e.dtype)       # (B, T)
+    mask = attention_mask.to(nll_e.dtype) if attention_mask is not None else None
+    if labels is not None:
+        labels = labels.to(nll_e.device)
+        attended = mask > 0 if mask is not None else torch.ones_like(labels, dtype=torch.bool)
+        if bool(((labels == -100) & attended).any()):
+            # position p predicts token p + 1: keep p when that token is a response token
+            resp = torch.zeros_like(nll_e)
+            resp[:, :-1] = ((labels[:, 1:] != -100) & attended[:, :-1]).to(nll_e.dtype)
+            return (nll_e * resp).sum() / resp.sum().clamp(min=1.0)
+    if mask is not None:
         denom = mask.sum().clamp(min=1.0)
         return (nll_e * mask).sum() / denom
     return nll_e.mean()
@@ -461,6 +473,7 @@ class CTRAPHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
                           general_batch: Any) -> "torch.Tensor":
         """Eq. (1) evaluated at simulated parameters θ′ on D_general."""
         attn = general_batch.get("attention_mask")
+        gen_labels = general_batch.get("labels")
         # Forward at θ′ without labels (collapse target replaces them).
         gen_inputs = {k: v for k, v in general_batch.items() if k != "labels"}
 
@@ -470,7 +483,7 @@ class CTRAPHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
             full.update(theta_prime)
             full.update(dict(model.named_buffers()))
             outputs = _functional_call(model, full, args=(), kwargs=gen_inputs)
-            return _collapse_loss(outputs, attn, self._collapse_token_id)
+            return _collapse_loss(outputs, attn, self._collapse_token_id, gen_labels)
 
         # Fallback: temporarily write θ′ into the params, forward, restore.
         named = self._trainable_named_params(model)
@@ -481,7 +494,7 @@ class CTRAPHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
                     if n in theta_prime:
                         p.copy_(theta_prime[n].detach())
             outputs = _forward(model, gen_inputs)
-            loss = _collapse_loss(outputs, attn, self._collapse_token_id)
+            loss = _collapse_loss(outputs, attn, self._collapse_token_id, gen_labels)
             # NOTE: without functional_call the graph back to θ is broken;
             # this path is an approximation regardless of second_order.
             return loss

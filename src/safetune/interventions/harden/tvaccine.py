@@ -1,26 +1,25 @@
 """
-T-Vaccine (Liu et al., 2024, arXiv:2410.09760).
+T-Vaccine (Liu et al., 2024, arXiv:2410.09760): a layer-selective variant of Vaccine.
 
-T-Vaccine is a memory-efficient variant of Vaccine (Huang et al., NeurIPS 2024).
-The key difference: instead of perturbing ALL attention layers uniformly, T-Vaccine
-scores each layer by its gradient norm on a safety batch, selects only the
-top-k safety-critical layers, and applies the SAM-style hidden-state perturbation
-only to those layers.
+**This is a simplification of the paper's method, not the method.** T-Vaccine (Alg. 1; official
+code https://github.com/Lslland/T-Vaccine, ``trainer.py``) computes per-layer gradient norms on a
+*harmful* batch every K steps, turns them into sampling probabilities, and every J steps
+*randomly samples* gamma layers with those probabilities; only the sampled layers are unfrozen
+(LoRA) and perturbed, which is where the memory saving comes from. The T-Vaccine-5 / -8
+variants of the paper sample 5 / 8 layers.
 
-Algorithm (per the paper):
-1. Forward + backward on the alignment loss; collect per-layer gradient norms
-   of the attention output hidden states.
-2. Rank layers by gradient norm; select top-k (default k=50% of layers).
-3. Apply the Vaccine perturbation ONLY to the selected layers:
-   e_r = grad * rho / global_norm_of_selected_grads
-4. Second forward pass with the perturbation hooks active on selected layers only.
-5. Minimise the perturbed loss (pure SAM objective, no clean-loss blend).
+What ``tvaccine_loss`` does instead, at every call:
 
-This directly reuses the vaccine_loss primitive but restricts perturbation to
-the top-k safety-critical layers identified by gradient-norm scoring.
+1. forward + backward on the alignment loss; collect the per-layer gradient norms of the
+   attention-output hidden states (of the alignment batch itself, not of harmful data);
+2. keep the top ``top_k_ratio`` layers by that norm (default 0.5 -- a SafeTune choice, not a
+   paper default), deterministically;
+3. apply the Vaccine perturbation ``e_r = grad * rho / global_norm_of_selected_grads`` to those
+   layers only (this scaling matches the official ``after_first_step``);
+4. second forward with the perturbation hooks on the selected layers; minimise that loss.
 
-Reference implementation: the paper does not have an official public repo, but
-the algorithm is a strict subset of Vaccine with layer selection added.
+No layer is frozen, so there is no memory saving. It reuses the Vaccine primitives
+(``_get_attention_modules``, ``_hidden_from_output``).
 """
 from __future__ import annotations
 
@@ -47,7 +46,7 @@ class TVaccineConfig:
     Attributes:
         rho: L2 perturbation budget. Same as VaccineConfig.rho. Default 2.0.
         top_k_ratio: Fraction of attention layers to perturb, ranked by
-            gradient norm. 0.5 = top 50% (paper default). Range (0, 1].
+            gradient norm. 0.5 = top 50% (a SafeTune default, not the paper's). Range (0, 1].
         attn_module_names: Same as VaccineConfig.attn_module_names.
         alpha: blend weight (1.0 = pure perturbed loss, paper default).
     """
@@ -65,8 +64,9 @@ def tvaccine_loss(
 ) -> torch.Tensor:
     """Compute the T-Vaccine layer-selective perturbation loss.
 
-    Faithful to Liu et al. 2024: only top-k attention layers (by gradient norm)
-    receive the SAM-style hidden-state perturbation.
+    Simplified relative to Liu et al. 2024 (see the module docstring): only the top-k attention
+    layers (by gradient norm of the alignment batch) receive the SAM-style hidden-state
+    perturbation, deterministically, instead of probability-sampled layers.
     """
     cfg = config or TVaccineConfig()
 

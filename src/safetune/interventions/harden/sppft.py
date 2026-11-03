@@ -77,8 +77,9 @@ if _TRAINER_IMPORT_ERROR is None:
                 not count-based.
             safety_layer_indices: explicit safety-layer indices; when non-empty
                 these are frozen verbatim (``manual`` localization).
-            sppft_mode: ``"freeze"`` (paper default — freeze safety-layer params)
-                or ``"scale"`` (reduce their LR; non-paper convenience mode).
+            sppft_mode: ``"freeze"`` (paper default — freeze safety-layer params).
+                ``"scale"`` is not supported on the standard Trainer path and falls
+                back to ``"freeze"`` with a warning.
             sppft_begin_num: exclusive lower bound of the contiguous middle-layer
                 range, in the authors' 32-layer reference frame. Default 4.
             sppft_end_num: exclusive upper bound of the contiguous middle-layer

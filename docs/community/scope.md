@@ -56,13 +56,12 @@ The Faithful methods, by pillar:
   `apply_safety_vector_restore`, `apply_grad_selective_recover`,
   `apply_oneshot_safety_patch`, `apply_antidote_v2`, `apply_repnoise_recover`.
 - **Unlearn:** `RMU`, `NPO`, `Gradient-Ascent / GradDiff`,
-  `flat_unlearn`, `simdpo_unlearn`.
+  `flat_unlearn`.
 - **Harden:** `CSTTrainer`, `EMACallback`, `SafeGradTrainer`, `SPPFTTrainer`,
-  `DeRTaTrainer`, `LisaTrainer`, `AsFTTrainer`, `STARDSSTrainer`, `SAPTrainer`,
-  `vaccine_loss`, `booster_project`, `SaLoRA`, `DOORTrainer`, `LookAheadTrainer`,
-  `tar_outer_loss`, `AntibodyTrainer`, `SurgeryTrainer`, `MARTTrainer`,
-  `DeepRefusalTrainer`, `SEAMTrainer`, `CTRAPTrainer`, `RepNoiseTrainer`,
-  `TVaccineTrainer`, `SEALTrainer`, `ConstrainedSFTTrainer`, `LoXHardenTrainer`.
+  `DeRTaTrainer`, `LisaTrainer`, `AsFTTrainer`, `SAPTrainer`, `vaccine_loss`,
+  `booster_project`, `SaLoRA`, `tar_outer_loss`, `AntibodyTrainer`,
+  `SurgeryTrainer`, `MARTTrainer`, `SEAMTrainer`, `CTRAPTrainer`,
+  `RepNoiseTrainer`, `LoXHardenTrainer`.
 - **Steer:** `extract_refusal_direction`, `CAA`, `LinearProbeGuardModel`,
   `ContrastiveDecodingProcessor`, `ProxyTuningProcessor`, `SafeDecodingProcessor`,
   `NudgingProcessor`, `AlphaSteerModel`, `RepBendModel`, `SafeSteerModel`,
@@ -78,17 +77,40 @@ The Faithful methods, by pillar:
 - **Runtime:** the full guardrail family — `SafetyMiddleware`, `InputSanitizer`,
   `OutputVerifier`, `CoSAlignFormatter`, etc.
 
-## Not Faithful — the 5 Variants
+## Not Faithful — the 13 Variants
 
-The 5 remaining Variant methods run correctly but must not be cited as the named
+The 13 remaining Variant methods run correctly but must not be cited as the named
 method:
 
 - **`deeprefusal`** (Harden) — incompatible API with the published paper;
-  use `DeepRefusalTrainer` instead, which is Faithful.
-- **`ASRTCallback`** (Harden) — heuristic callback; the cited MART method
-  requires 2 co-evolving LLMs; use `MARTTrainer` instead, which is Faithful.
+  `DeepRefusalTrainer` is closer but is itself a Variant (see below).
+- **`DeepRefusalTrainer`** (Harden) — layer-level whole-sequence ablation at the
+  layer output instead of the paper's per-layer, per-token gating at the layer
+  input / attention / MLP, and BeaverTails safe responses instead of the paper's
+  harmful-prefix + refusal data. p = 0.5 and alpha = 0.2 are the paper's values.
+- **`ASRTCallback`** (Harden) — SafeTune-original heuristic callback with no paper
+  of its own; it is not MART. MART (arXiv:2311.07689) needs 2 co-evolving LLMs;
+  use `MARTTrainer` for it (no official repo exists, so its audit rests on the paper).
+- **`STARDSSTrainer`** (Harden) — the loss is the paper's Eq. 3, but the runner sets
+  V_safe from a per-row `kind` label (the paper's static binary baseline) and never
+  computes STAR scores from a guardrail model.
+- **`LookAheadTrainer`** (Harden) — the preview is inserted between the prompt and the
+  answer in the token stream (inside the assistant turn, without the connector), not into
+  the instruction text as in the paper, because the runner receives tokenised rows.
+- **`TVaccineTrainer`** (Harden) — deterministic top-k layers by the alignment batch's
+  gradient norm, instead of the paper's probability sampling from harmful-batch gradient
+  norms with the other layers frozen.
+- **`SEALTrainer`** (Harden) — gradient-cosine importance weighting; the paper's method
+  learns a data ranker by bilevel optimisation.
+- **`ConstrainedSFTTrainer`** (Harden) — additive forward-KL penalty with an exponentially
+  decaying per-position weight; the paper's loss uses a sigmoid-based per-token weight.
+- **`DOORTrainer`** (Harden) — refusal MLE + NPO only: no harmful-prefix augmentation
+  (paper Sec. 3.1) and no alpha-weighted retain term (Eq. 3, official `gd_npo_loss`).
 - **`crisp_unlearn`** (Unlearn) — single-layer squared-L2 variant vs. the
   paper's multi-layer raw-activation approach.
+- **`simdpo_unlearn`** (Unlearn) — SimPO's reference-free, length-normalised
+  loss applied to (safe refusal, harmful completion) pairs; SimPO is a
+  preference-optimisation method, not an unlearning method.
 - **`somf_merge`** (Recover) — magnitude-mask default vs. the paper's learned
   DPO/Concrete mask.
 - **`identify_safety_neurons` activation-mode** (Interpret) — one-model

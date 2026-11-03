@@ -15,8 +15,8 @@ Methods:
 * :func:`flat_unlearn` (+ :class:`FLATConfig`, :func:`flat_fdiv_loss`) — FLAT
   f-divergence loss adjustment with only forget data (Wang et al., ICLR 2025,
   arXiv:2410.11143); reference-free.
-* :func:`simdpo_unlearn` (+ :class:`SimDPOUnlearnConfig`) — SimDPO-based
-  safety unlearning (Chen et al., 2024); reference-free DPO.
+* :func:`simdpo_unlearn` (+ :class:`SimDPOUnlearnConfig`) — safety unlearning
+  with the SimPO loss (Meng, Xia, Chen, 2024); a SafeTune variant, reference-free.
 * :func:`tracin_influence` — TracIn gradient-dot influence estimate
   (Pruthi et al., NeurIPS 2020).
 """

@@ -1,6 +1,6 @@
 """
 CRISP: Persistent Concept Unlearning via Sparse Autoencoders
-(Gao et al., arXiv:2508.13650, 2025).
+(Ashuach et al., arXiv:2508.13650, 2025).
 
 "CRISP: Persistent Concept Unlearning via Sparse Autoencoders" — 2025.
 
@@ -53,11 +53,12 @@ Implementation notes:
     tensors (e.g. ``{"input_ids": ..., "attention_mask": ..., "labels": ...}``).
     If ``"labels"`` is absent in a retain batch the cross-entropy loss is
     skipped for that step and only the suppression term is optimised.
-  * All trainable model parameters are updated (no sub-selection), matching
-    the full-weight fine-tuning described in the paper.
+  * All trainable model parameters are updated (no sub-selection). The paper
+    fine-tunes with LoRA (rank 4-8) instead.
 
-Reference: L. Gao, T. Hua, A. Khodabandeh, et al., "CRISP: Persistent
-Concept Unlearning via Sparse Autoencoders." arXiv:2508.13650 (2025).
+Reference: T. Ashuach, D. Arad, A. Mueller, M. Tutek, Y. Belinkov, "CRISP:
+Persistent Concept Unlearning via Sparse Autoencoders." arXiv:2508.13650 (2025).
+Official code: https://github.com/technion-cs-nlp/CRISP.
 """
 from __future__ import annotations
 
@@ -206,9 +207,10 @@ def crisp_unlearn(
         num_steps: number of (forget, retain) batch pairs to process.
         lr: AdamW learning rate.
         hook_layer: decoder-block index to hook the SAE onto. ``-1`` = last
-            layer (paper default).
-        device: device to cast batches to. Ignored if the model is already on
-            the right device; provided for convenience.
+            layer (a SafeTune default; the paper averages over a subset of
+            mid-depth layers).
+        device: device the model and the batches are moved to (default
+            ``"cpu"``; pass the model's device to avoid moving it).
 
     Returns:
         The updated model (same object, mutated in place).

@@ -685,22 +685,36 @@ def sap_contrastive_dataset(tok, *, n: int = None, max_len: int = None):
     max_len = max_len or get_config().max_len or 256
     contamination, _, refusal = harden_contamination_pairs(n)
     out = []
-    for (u, bad), (_, ref) in zip(contamination, refusal):
-        prompt = tok.apply_chat_template(
-            [{"role": "user", "content": u}], tokenize=False,
-            add_generation_prompt=True)
-        enc = tok(prompt, truncation=True, max_length=max_len,
-                  padding="max_length", add_special_tokens=False)
-        safe = tok(prompt + ref, truncation=True, max_length=max_len,
-                   padding="max_length", add_special_tokens=False)["input_ids"]
-        harm = tok(prompt + bad, truncation=True, max_length=max_len,
-                   padding="max_length", add_special_tokens=False)["input_ids"]
-        out.append({
-            "input_ids":       enc["input_ids"],
-            "attention_mask":  enc["attention_mask"],
-            "chosen_labels":   safe,
-            "rejected_labels": harm,
-        })
+    # Right padding, as the authors' load_tokenizer sets: the prompt is a prefix of every row.
+    saved_side = tok.padding_side
+    tok.padding_side = "right"
+    try:
+        for (u, bad), (_, ref) in zip(contamination, refusal):
+            prompt = tok.apply_chat_template(
+                [{"role": "user", "content": u}], tokenize=False,
+                add_generation_prompt=True)
+            enc = tok(prompt, truncation=True, max_length=max_len,
+                      padding="max_length", add_special_tokens=False)
+            safe = tok(prompt + ref, truncation=True, max_length=max_len,
+                       padding="max_length", add_special_tokens=False)["input_ids"]
+            harm = tok(prompt + bad, truncation=True, max_length=max_len,
+                       padding="max_length", add_special_tokens=False)["input_ids"]
+            # Only the completions are loss targets (SAPcode/datas.py::load_contrastive_data
+            # sets the prompt positions and every pad id to -100).
+            n_prompt = int(sum(enc["attention_mask"]))
+            pad_id = tok.pad_token_id
+
+            def _mask(ids):
+                return [-100 if (i < n_prompt or t == pad_id) else t for i, t in enumerate(ids)]
+
+            out.append({
+                "input_ids":       enc["input_ids"],
+                "attention_mask":  enc["attention_mask"],
+                "chosen_labels":   _mask(safe),
+                "rejected_labels": _mask(harm),
+            })
+    finally:
+        tok.padding_side = saved_side
     return Dataset.from_list(out)
 
 

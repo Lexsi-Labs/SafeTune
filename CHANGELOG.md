@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Code rewards (`code_execution`, `code_correctness`, `mbpp_reward`) no longer trust the output
+  of the code they run. They used to read a pass from a printed `PASS` or from the exit code, so a
+  completion that printed `PASS` or exited with 0 scored full marks, and they ran the `python` found
+  on `PATH` instead of the interpreter running SafeTune. The candidate now runs in a child process
+  (`sys.executable -I`, an empty temporary working directory, a minimal environment, a killed
+  process group on timeout, and limits on result size and memory). It returns plain data only, and
+  the trainer compares it, so printed text, exit codes and always-equal objects no longer score.
+  This is not a sandbox: the child can still read files, use the network and signal the parent, and
+  a completion can still forge a constant expected result such as `True`. Reported by Ebin Babu
+  Thomas (@ebt55).
+- Code reward asserts are now decided in the trainer: the child only runs the completion's own
+  calls and returns plain data, and the trainer evaluates the rest (`and`, `or`, `not`, chained
+  comparisons, arithmetic, `len`, `sorted`, `isinstance` and similar) itself. Redefining or
+  patching builtins can no longer change what a test computes. An assert that uses anything outside
+  that set, or a task whose function shares a builtin's name, fails with a warning. The evaluator
+  is bounded in work and size, and refuses colliding hashes before it builds a set.
+
+### Fixed
+
+- Audit fixes across the harden, recover and unlearn methods (CST, EMA, SafeGrad, ASRT, MART, LISA,
+  ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
+  Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
+  by Deeraj.
+
+### Changed
+
+- Code rewards: a function under test must return plain builtin data (numbers, strings, bytes,
+  booleans, `None`, and lists, tuples, dicts and sets of them); the child does not inherit
+  environment variables or `PYTHONPATH`; an `assert` the grader can't split into a call and an
+  expected value fails with a warning; `code_correctness` with no tests scores 0 and warns; imports
+  above the first `def` in bare code are kept.
+
+- `extract_math_answer` drops the colon, full stop and closing paragraph around an answer given in
+  a sentence, so `The answer is: 42` no longer scores 0.0 in `MathReasoningReward` (#31, @ANDROIDHASSAN).
 - `trl` is capped below 1.15. TRL 1.15.0 (8 Oct 2026) computes the DPO loss with a
   Triton kernel and does not check that the tensors are on a GPU, so on a Linux
   machine without one the DPO-based trainers (CST, DeRTa and the rest of that
@@ -18,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The release workflow's test gate installs the CPU build of `torch` first (the default wheel pulls
   the CUDA libraries and filled the runner's disk), and `httpx` is in the `dev` extra (newer
   `huggingface_hub` releases no longer install it, so `tests/runtime` failed at collection).
+- `grade_gsm8k_answer` compares by value: a correct `$18`, `18%` or `3/4` no longer grades as wrong
+  against gold `18` or `0.75`, in GSM8K baselines and in `MathReasoningReward` (#30, @ANDROIDHASSAN).
+  Only a leading currency sign and a trailing percent or currency sign are dropped, so `1$8` and
+  `1%8` don't read as 18.
 
 ## [0.1.8] - 2026-10-02
 
