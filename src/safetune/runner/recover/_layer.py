@@ -73,7 +73,8 @@ class SafeLoRATrainer(_RecoverBase):
     Args:
         aligned_state_dict (dict): state dict of the aligned model.
         base_state_dict (dict): state dict of the base model (required for a non-PEFT model).
-        base_model / aligned_model: models to take the two state dicts from instead.
+        base_model: model to take the base state dict from instead.
+        aligned_model: model to take the aligned state dict from instead.
         alpha: merge coefficient. Default 0.5.
         threshold: safety subspace threshold. Default 0.5.
     """
