@@ -612,3 +612,10 @@ def test_distinct_colliding_values_are_still_refused_and_equal_ones_are_not():
     ):
         with pytest.raises(_code_grader._Fail):
             _evaluate(test, **named)
+
+
+def test_imported_helper_before_the_function_does_not_hijack_the_call():
+    from safetune.rewards._code_grader import grade_io
+
+    code = "from functools import lru_cache\ndef add(a, b):\n    return a + b"
+    assert grade_io(code, {"input": [2, 3], "expected_output": 5}, 5.0)

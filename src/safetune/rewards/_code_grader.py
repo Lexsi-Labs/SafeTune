@@ -59,7 +59,7 @@ def _main():
     _eval, _exec, _compile, _open, _dump = eval, exec, compile, open, json.dump
     _type, _bool, _int, _str, _float, _repr = type, bool, int, str, float, repr
     _list, _tuple, _set, _frozenset, _dict = list, tuple, set, frozenset, dict
-    _Exception, _TypeError, _isfunction, _callable = Exception, TypeError, inspect.isfunction, callable
+    _Exception, _TypeError, _isfunction, _callable, _getattr = Exception, TypeError, inspect.isfunction, callable, getattr
     try:
         import resource
         for limit, value in ((resource.RLIMIT_AS, int(sys.argv[3])), (resource.RLIMIT_FSIZE, int(sys.argv[4]))):
@@ -89,8 +89,8 @@ def _main():
         except _Exception:
             values.append({"e": 0})
     if job["has_call"]:
-        fs = [v for k, v in ns.items() if k[:1] != "_" and _isfunction(v)]
-        fs = fs or [v for k, v in ns.items() if k[:1] != "_" and _callable(v)]
+        own = [v for k, v in ns.items() if k[:1] != "_" and _callable(v) and _getattr(v, "__module__", None) == "__main__"]
+        fs = [v for v in own if _isfunction(v)] or own
         inp = job["call"]
         values.append(enc(fs[0](*inp) if _type(inp) in (_list, _tuple) else fs[0](inp)))
     _dump(values, result)

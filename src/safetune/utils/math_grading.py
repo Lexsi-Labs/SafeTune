@@ -707,6 +707,8 @@ def parse_gsm8k_gold(ans: str) -> str:
 def _gsm8k_number(text: str) -> float:
     """Read an answer as a number, ignoring a leading currency or trailing percent/currency sign."""
     text = re.sub(r"^([+-]?)\\?\$|\\?[$%]$", r"\1", text)
+    if "_" in text:
+        raise ValueError(text)
     return float(Fraction(text)) if "/" in text else float(text)
 
 
