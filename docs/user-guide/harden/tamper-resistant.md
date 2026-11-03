@@ -150,7 +150,7 @@ RepNoiseTrainer(
     tokenizer: PreTrainedTokenizer | None = None,
     *,
     noise_alpha: float = 1.0,
-    noise_beta: float = 0.1,
+    noise_beta: float = 0.001,
     noise_gamma: float = 1.0,
     **kwargs,
 )
@@ -164,7 +164,7 @@ RepNoiseTrainer(
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
 | `noise_alpha` | `float` | `1.0` | Harmful-CE gradient-ascent weight (`repnoise_beta1` / `alpha` in the paper) |
 | `noise_gamma` | `float` | `1.0` | Retain (benign) cross-entropy weight (`repnoise_beta2` in the paper) |
-| `noise_beta` | `float` | `0.1` | Layer-wise multi-kernel Gaussian MMD noise weight (`repnoise_beta3` / `beta` in the paper) |
+| `noise_beta` | `float` | `0.001` | Layer-wise multi-kernel Gaussian MMD noise weight (`repnoise_beta3` / `beta` in the paper; the paper and the official code use 0.001, versions before this change defaulted to 0.1) |
 
 ### Full example
 
@@ -337,12 +337,14 @@ DOORTrainer(
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `door_pure_mode` | `bool` | `True` | If True, returns pure DOOR objective matching paper's `gd_npo_loss` |
+| `door_pure_mode` | `bool` | `True` | If True, returns refusal MLE + NPO only (the two terms of `gd_npo_loss`, without its retain term and without prefix augmentation) |
 
 ### Full example
 
-`harden.DOORTrainer` runs a self-contained NPO + refusal loop (the pure DOOR
-objective) and exposes `beta` (NPO temperature, `0.5`), `refusal_w` (refusal
+`harden.DOORTrainer` runs a self-contained loop of **refusal MLE plus NPO on the harmful
+response**. It has no harmful-prefix augmentation (paper Sec. 3.1, Eq. 1) and no
+alpha-weighted retain term (Eq. 3; the official `gd_npo_loss` in wicai24/DOOR-Alignment
+has one), so it is a Variant of DOOR, not the paper's full objective. It exposes `beta` (NPO temperature, `0.5`), `refusal_w` (refusal
 weight, `1.0`), and `unlearn_w` (NPO weight, `1.0`) as kwargs. W-DOOR (per-token
 weights from a `proxy_reward_model`) and `door_pure_mode` are only available on
 `harden.SafetyDOORTrainer`.
@@ -356,7 +358,7 @@ trainer.train(ds)
 
 ### When to use
 
-- **Best for:** combining refusal MLE with NPO unlearning on harmful pairs; W-DOOR adds per-token proxy-reward weighting.
+- **Best for:** combining refusal MLE with NPO unlearning on harmful pairs (without the paper's prefix augmentation and retain term); W-DOOR (on `SafetyDOORTrainer` only) adds per-token proxy-reward weighting.
 - **Trade-offs:** balances `refusal_w` against `unlearn_w` — too much refusal weight makes refusals generic/repetitive, too much NPO weight risks capability loss. Needs harmful preference *pairs* (chosen/rejected), which cost more to construct than plain SFT data.
 
 ### Citation
@@ -504,7 +506,7 @@ DeepRefusalTrainer(
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `alpha` | `float` | `0.2` | $\alpha \cdot L_{\text{harmful}} + (1-\alpha) \cdot L_{\text{benign}}$ loss mixing weight (paper default) |
-| `ablation_prob` | `float` | `0.5` | Per-step probability of activating the refusal-direction ablation hook |
+| `ablation_prob` | `float` | `0.5` | Probability that an active decoder layer's output is ablated on a forward pass (paper p = 0.5, Sec. 5.1; the paper also gates every token, which this trainer does not) |
 | `lora_r` | `int` | `16` | LoRA rank (`0` disables LoRA) |
 | `lora_alpha` | `int` | `32` | LoRA scaling factor |
 | `merge_after_training` | `bool` | `True` | Whether to merge LoRA into base weights after training |
@@ -624,7 +626,7 @@ AntibodyTrainer(
 | `lambda_refusal` | `float` | `1.0` (kwarg) | Weight of the alignment-stage refusal loss |
 | `lambda_cap` | `float` | `10.0` (kwarg) | Upper clamp on the adaptive flatness weight $\lambda_t$ |
 | `tau` | `float` | `1.0` (kwarg) | Softmax temperature for the fine-tuning-stage reweighting |
-| `xi` | `float` | `0.0` (kwarg) | Theorem 4.1 coefficient: $\lambda_t = \max\{0,\ \xi - \langle g_{\text{sharp}}, g_{\text{align}}\rangle / \|g_{\text{sharp}}\|^2\}$ |
+| `xi` | `float` | `0.0` (kwarg) | Theorem 4.1 coefficient: $\lambda_t = \max\{0,\ \xi - \langle g_{\text{sharp}}, g_{\text{align}}\rangle / \|g_{\text{sharp}}\|^2\}$. **The default `xi=0` is not the paper's:** Theorem 4.1 needs $a_t > 0$ (so $\xi > 0$). The official code (minhquoc0712/Antibody, `antibody_alignment.py:338`) uses $\lambda_t = \max(0, \eta - \cos(g_{\text{align}}, g_{\text{diff}}))$ with $\eta = 5$ and an EMA of $\lambda_t$ (momentum 0.99). |
 
 ### AntibodyConfig fields (on `args`)
 

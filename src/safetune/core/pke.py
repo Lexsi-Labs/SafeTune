@@ -74,6 +74,11 @@ class ToxicNeuronLocator:
                 continue
             if self.config.target_layers and layer_idx not in self.config.target_layers:
                 continue
+            # PKE edits mlp.down_proj rows, so rank only those rows. Pooling the rows of
+            # every tensor in the layer would select down_proj rows by q/k/v/up/gate deltas.
+            # lora_A / lora_B rows are indexed by LoRA rank, not by down_proj row.
+            if "down_proj" not in name or not name.endswith("weight") or "lora_" in name:
+                continue
             delta = (toxic_state_dict[name].float() - clean_state_dict[name].float()).abs()
             if delta.dim() >= 2:
                 per_neuron = delta.sum(dim=tuple(range(1, delta.dim())))
@@ -98,17 +103,23 @@ class ToxicNeuronLocator:
             total,
             len(self._toxic_neurons),
         )
-        # Sentinel: if the top per-neuron delta across every targeted layer is
-        # near zero, clean and toxic state dicts are effectively identical and
-        # the subsequent edit pass will be a no-op. Surface this loudly so the
-        # caller can recognize the "Same as base" pattern at the source.
-        if top_delta_per_layer and max(top_delta_per_layer) < 1e-8:
+        # Sentinel: nothing to rank, or the top per-neuron delta across every targeted layer is
+        # near zero. A row picked from all-equal deltas would be an arbitrary tie, so locate
+        # nothing and say why: the caller can recognize the "Same as base" pattern at the source.
+        if not top_delta_per_layer:
             logger.warning(
-                "PKE: clean and toxic state dicts are effectively identical "
-                "(max per-neuron delta = %.2e). The edit pass will produce no "
-                "change. Check that you passed two distinct models.",
+                "PKE: found no down_proj weights to compare in the targeted layers of the clean "
+                "and toxic state dicts (LoRA keys are ignored), so no rows were located."
+            )
+        elif max(top_delta_per_layer) < 1e-8:
+            logger.warning(
+                "PKE: no down_proj row moved between the clean and toxic state dicts (max "
+                "per-neuron delta = %.2e), so no rows were located. LoRA keys are "
+                "ignored, so a LoRA-only drift looks like this: merge the adapter first. "
+                "Otherwise check that you passed two distinct models.",
                 max(top_delta_per_layer),
             )
+            self._toxic_neurons = {}
         return self._toxic_neurons
 
     @property

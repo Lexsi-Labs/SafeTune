@@ -21,6 +21,9 @@ Two reward models gate the target update:
     is also helpful; when provided, the final selection maximises
     ``safety_score + helpfulness_score``.
 
+There is no official MART repository; this implementation follows the paper
+(arXiv:2311.07689) only.
+
 Relationship to ASRTCallback
 ------------------------------
 :class:`~safetune.harden.asrt.ASRTCallback` is a SafeTune-original heuristic
@@ -629,6 +632,39 @@ class MARTTrainer:
     # ------------------------------------------------------------------
 
     def _sft_step(
+        self,
+        model: "nn.Module",
+        data: "TensorDataset",
+        lr: float,
+        steps: int,
+        batch_size: int = 4,
+    ) -> None:
+        """Run :meth:`_sft_update` with fp16/bf16 weights upcast to fp32.
+
+        A plain AdamW step at ``lr`` ~2e-5 is below bf16 resolution for most
+        weights, so a bf16 model barely moved (on a tiny Llama, 30% of the
+        attention/MLP weights changed after 20 steps, against 100% in fp32).
+        The weights are trained in fp32 and cast back to their original dtypes
+        afterwards, so generation and the saved model are unchanged. The cast
+        back still rounds the update: the larger a weight, the less of its
+        change survives. Memory: the model briefly takes 4 bytes/param plus 8
+        for the AdamW state; the grads are freed afterwards.
+        """
+        low = (torch.float16, torch.bfloat16)
+        orig = {n: t.dtype for n, t in
+                list(model.named_parameters()) + list(model.named_buffers())}
+        if not any(d in low for d in orig.values()):
+            return self._sft_update(model, data, lr, steps, batch_size)
+        model.float()
+        try:
+            self._sft_update(model, data, lr, steps, batch_size)
+        finally:
+            model.zero_grad(set_to_none=True)
+            for n, t in list(model.named_parameters()) + list(model.named_buffers()):
+                if t.dtype != orig[n]:
+                    t.data = t.data.to(orig[n])
+
+    def _sft_update(
         self,
         model: "nn.Module",
         data: "TensorDataset",

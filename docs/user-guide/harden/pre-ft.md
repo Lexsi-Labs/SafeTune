@@ -9,9 +9,9 @@
 from safetune.runner import harden
 
 trainer = harden.LoXHardenTrainer(
-    model,                                   # base model to harden
+    model,                                   # the ALIGNED model (it is hardened and fine-tuned)
     tokenizer,
-    aligned_model_path="Qwen/Qwen2.5-0.5B-Instruct",  # aligned reference
+    base_model_path="Qwen/Qwen2.5-0.5B",     # the pre-alignment base it was aligned from
     rank=8,
     extrapolation_factor=0.3,
 )
@@ -21,9 +21,9 @@ trainer = harden.LoXHardenTrainer(
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `model` | `nn.Module` | required | The base model to harden (its weights are the LoX base; modified in-place) |
+| `model` | `nn.Module` | required | The **aligned** model: it is extrapolated in place (`W_aligned + coef * lowrank(W_aligned - W_base)`) and then fine-tuned |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer for the subsequent SFT pass |
-| `aligned_model_path` | `str` | `None` | HF path/ID of the safety-aligned reference model (falls back to the tokenizer's model id) |
+| `base_model_path` | `str` | required | HF path/ID of the pre-alignment base model; raises `ValueError` if missing. `aligned_model_path` is no longer accepted (raises) |
 | `rank` | `int` | `8` | Number of top singular directions of `(W_aligned − W_base)` to extrapolate |
 | `extrapolation_factor` | `float` | `0.3` | Extrapolation strength along the safety subspace |
 
@@ -33,9 +33,9 @@ trainer = harden.LoXHardenTrainer(
 from safetune.runner import harden
 
 trainer = harden.LoXHardenTrainer(
-    model,
+    model,                                   # the aligned model, e.g. Qwen/Qwen2.5-0.5B-Instruct
     tokenizer,
-    aligned_model_path="Qwen/Qwen2.5-0.5B-Instruct",
+    base_model_path="Qwen/Qwen2.5-0.5B",
     rank=8,
     extrapolation_factor=0.3,
 )
@@ -52,7 +52,7 @@ out_path = trainer.train(task_dataset)
 
 ```bibtex
 @article{loxharden2025,
-  title  = {LoX Harden: Pre-FT Safety-Subspace Extrapolation},
+  title  = {LoX: Low-Rank Extrapolation Robustifies LLM Safety Against Fine-tuning},
   author = {Perin, et al.},
   year   = {2025},
   note   = {COLM 2025, arXiv:2506.15606},

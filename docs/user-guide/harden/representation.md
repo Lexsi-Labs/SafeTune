@@ -182,8 +182,8 @@ SAPTrainer(
 |---|---|---|---|
 | `model` | `PreTrainedModel` | `None` | Base model |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
-| `grad_rate` | `float` | `0.1` | Scale of harmful perturbation $\Delta W_{\text{harmful}}$; actual $\varepsilon = \text{grad\_rate} \cdot \|W\|$ |
-| `v_update_step` | `float` | `0.05` | Inner probe step size $\beta$ (bilevel optimization) |
+| `grad_rate` | `float` | `0.1` | Scale of harmful perturbation $\Delta W_{\text{harmful}}$; actual $\varepsilon = \text{grad\_rate} \cdot \|W\|$. The paper's and the official code's value is `2e-5`; this default is 5000× larger |
+| `v_update_step` | `float` | `0.05` | Inner probe step size $\beta$, applied as a plain gradient step (the paper's experiments use AdamW with learning rate $\beta$) |
 | `contrastive_temperature` | `float` | `1.0` | Temperature of the contrastive safety loss $L_{\text{safe}}$ |
 
 The contrastive safety batches (`safety_dataloader`) are passed to `trainer.train(...)`, not the constructor — see the Full example below. They carry the keys `input_ids`, `attention_mask`, `chosen_labels`, `rejected_labels`.
@@ -225,7 +225,7 @@ SurgeryTrainer(
     model: PreTrainedModel | None = None,
     tokenizer: PreTrainedTokenizer | None = None,
     *,
-    sink_lambda: float = 0.01,
+    sink_lambda: float = 300.0,
     **kwargs,
 )
 ```
@@ -236,7 +236,9 @@ SurgeryTrainer(
 |---|---|---|---|
 | `model` | `PreTrainedModel` | `None` | Base model |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
-| `sink_lambda` | `float` | `0.01` | Attention-sink divergence regularizer weight |
+| `sink_lambda` | `float` | `300.0` | Attention-sink divergence regularizer weight (paper Table 8 and the official script use 300; versions before this change defaulted to 0.01, which made the penalty about 1e-5 of the cross-entropy) |
+
+`SurgeryTrainer` needs the attention weights, so it switches the model to eager attention before training. `SurgeryHFTrainer` does not: load the model with `attn_implementation="eager"` or it raises.
 
 The separate harmful batch (`harmful_dataset`) is passed to `trainer.train(...)`, not the constructor — see the Full example below. If absent, the trainer falls back to using the task batch as X_m (documented shortcut).
 
@@ -245,7 +247,7 @@ The separate harmful batch (`harmful_dataset`) is passed to `trainer.train(...)`
 ```python
 from safetune.runner import harden
 
-trainer = harden.SurgeryTrainer(model, tokenizer, sink_lambda=0.01)
+trainer = harden.SurgeryTrainer(model, tokenizer, sink_lambda=300.0)
 trainer.train(ds, harmful_dataset=harmful_ds)
 ```
 

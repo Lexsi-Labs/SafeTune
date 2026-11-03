@@ -20,7 +20,7 @@ from .rational import RationalFormatter
 from .seal_selector import SEALDataSelector, SEALConfig, select_safe_dataset
 from .cst import CSTFormatter, CSTConfig
 from .derta import DeRTaFormatter, DeRTaConfig
-from .lookahead import LookAheadCollator, LookAheadConfig
+from .lookahead import LookAheadConfig
 
 __all__ = [
     "ModelAdapterDescriptor",
@@ -46,6 +46,5 @@ __all__ = [
     "CSTConfig",
     "DeRTaFormatter",
     "DeRTaConfig",
-    "LookAheadCollator",
     "LookAheadConfig",
 ]

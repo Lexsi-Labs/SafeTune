@@ -94,7 +94,7 @@ class SaLoRATrainer(_HardenBase):
         rank: LoRA rank. Default 16.
         safety_rank: safety subspace rank for SVD. Default 16.
         strength: safety projection strength. Default 1.0.
-        task_init: initialize LoRA with task direction. Default True.
+        task_init: initialise the LoRA factors from the SVD of the base weight (paper Eq. 10-12 without its task-feature projection U U^T, which needs fine-tuning-data features and is not implemented). Default True.
         n_iter: number of SVD power iterations. Default 7.
         lora_alpha: LoRA alpha (scaling). Defaults to 2 * rank.
         lora_dropout: LoRA dropout rate. Default 0.05.
@@ -251,12 +251,21 @@ class ConstrainedSFTTrainer(_HardenBase):
 # ── LoXHardenTrainer ─────────────────────────────────────────────────────────
 
 class LoXHardenTrainer(_HardenBase):
-    """LoX-Harden: pre-FT low-rank subspace extrapolation for safety.
+    """LoX-Harden: pre-FT low-rank extrapolation of the aligned model's safety subspace.
+
+    The trained model is the **aligned** model; ``base_model_path`` is the pre-alignment base it
+    was aligned from. Before fine-tuning every weight matrix is replaced by
+    ``W_aligned + extrapolation_factor * lowrank_rank(W_aligned - W_base)`` (VITA-Group/LoX
+    ``safety/LoX.py``; arXiv:2506.15606), then the model is fine-tuned on ``train_dataset``.
 
     Args:
-        rank: LoX rank. Default 8.
-        extrapolation_factor: extrapolation strength. Default 0.3.
-        aligned_model_path: HF path/ID for the aligned reference model.
+        rank: number of top singular directions of ``W_aligned - W_base`` to extrapolate.
+            Default 8 (the paper uses k=6; the official script's default is 0 = full rank).
+        extrapolation_factor: coefficient on the low-rank delta. Default 0.3 (the paper uses
+            1.25 for most models, 0.5 for one Mistral model; the official script's default is 1).
+        base_model_path: HF path/ID of the pre-alignment base model. Required.
+        aligned_model_path: removed; raises ``ValueError``. The model you pass is the aligned
+            one, and the reference is ``base_model_path``.
     """
 
     METHOD = "LoXHarden"
@@ -264,34 +273,38 @@ class LoXHardenTrainer(_HardenBase):
     def __init__(self, model=None, tokenizer=None, *,
                  rank: int = 8,
                  extrapolation_factor: float = 0.3,
+                 base_model_path: str = None,
                  aligned_model_path: str = None,
                  **kwargs):
+        if aligned_model_path is not None:
+            raise ValueError(
+                "LoXHardenTrainer: aligned_model_path is no longer accepted. The model being "
+                "trained is the aligned model; pass the pre-alignment base model as "
+                "base_model_path (LoX extrapolates W_aligned along W_aligned - W_base)."
+            )
         super().__init__(model, tokenizer, **kwargs)
         self.rank = rank
         self.extrapolation_factor = extrapolation_factor
-        self.aligned_model_path = aligned_model_path
+        self.base_model_path = base_model_path
 
     def train(self, train_dataset, out_dir: str = None, **kwargs) -> str:
+        if not self.base_model_path:
+            raise ValueError(
+                "LoXHardenTrainer needs base_model_path: the pre-alignment base the trained "
+                "(aligned) model was aligned from. Without it W_aligned - W_base is undefined "
+                "(it used to default to the training model itself: a zero delta and plain SFT)."
+            )
         out_dir = self._resolve_out_dir(out_dir)
         from safetune.runner.utils.model_utils import load_model_cpu
-        if not self.aligned_model_path:
-            import logging
-            logging.getLogger(__name__).warning(
-                "LoXHardenTrainer: no aligned_model_path given — the aligned "
-                "reference defaults to the training model, so every weight delta "
-                "is zero and LoX is a no-op before plain SFT. Pass "
-                "aligned_model_path=<pre-drift aligned checkpoint>."
-            )
-        aligned_path = (self.aligned_model_path
-                        or getattr(self.tok, "name_or_path", None))
-        aligned_model = load_model_cpu(aligned_path)
+        # Same dtype as the trained weights, so W_aligned - W_base is not rounding noise.
+        base_model = load_model_cpu(self.base_model_path,
+                                    dtype=next(self.model.parameters()).dtype)
         cfg = HARD.LoXHardenConfig(rank=self.rank,
                                    alpha=self.extrapolation_factor)
         device = next(self.model.parameters()).device
-        base_sd = self.model.state_dict()
-        aligned_sd = {k: v.to(device) for k, v in aligned_model.state_dict().items()}
-        model = HARD.apply_lox_harden(self.model, base_sd, aligned_sd, cfg)
-        del aligned_model; free()
+        base_sd = {k: v.to(device) for k, v in base_model.state_dict().items()}
+        model = HARD.apply_lox_harden(self.model, base_sd, self.model.state_dict(), cfg)
+        del base_model, base_sd; free()
         if hasattr(train_dataset, "with_format"):
             train_dataset = train_dataset.with_format("torch")
         tr = Trainer(model=model,

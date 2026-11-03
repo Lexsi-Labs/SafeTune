@@ -89,7 +89,10 @@ def test_the_four_are_registered_harden_methods(algo):
 
 # ── one tiny training run each ──────────────────────────────────────────────
 
-@pytest.mark.parametrize("algo", sorted(TINY_KWARGS))
+# CST (DPO) is the slowest case on CPU runners, so only it gets more time.
+@pytest.mark.parametrize("algo", [
+    pytest.param(a, marks=pytest.mark.timeout(300)) if a == "cst" else a for a in sorted(TINY_KWARGS)
+])
 def test_adapter_trains_and_saves_a_checkpoint(algo, tmp_path):
     model, tok = _model_and_tok()
     trainer = getattr(harden, NAMES[algo])(

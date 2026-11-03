@@ -17,18 +17,26 @@ from torch.utils.data import DataLoader
 # ── DOORTrainer ───────────────────────────────────────────────────────────────
 
 class DOORTrainer(_HardenBase):
-    """DOOR: NPO negative preference + refusal reward joint training.
+    """DOOR (Variant): refusal MLE + NPO on the harmful response, in a self-contained loop.
+
+    Not the paper's full objective: there is no harmful-prefix augmentation of the refusal
+    prompts (arXiv:2503.03710 Sec. 3.1) and no alpha-weighted retain/utility term (Eq. 3;
+    the official ``gd_npo_loss`` has one).
 
     Args:
         beta: DPO/NPO temperature. Default 0.5.
         refusal_w: refusal reward loss weight. Default 1.0.
         unlearn_w: NPO unlearn loss weight. Default 1.0.
-        base_model_path: reference model path for NPO log-ratio.
+        base_model_path: reference model path for the NPO log-ratio. Defaults to the tokenizer's
+            ``name_or_path``, i.e. the initial policy being trained, as in the official code
+            (``train.py`` loads ``ref_model`` from the same path as the trained model). It is not the
+            pre-alignment base, so ``safetune train --base`` is not forwarded to it.
         max_grad_norm: gradient clipping norm. Default 1.0.
     """
 
     METHOD = "DOOR"
     HF_TRAINER = HARD.SafetyDOORTrainer
+    CLI_FORWARD_BASE = False     # the NPO reference is the initial policy, not the pre-alignment base
 
     def __init__(self, model=None, tokenizer=None, *,
                  beta: float = 0.5,
@@ -49,16 +57,16 @@ class DOORTrainer(_HardenBase):
         import torch.nn.functional as F
         from safetune.harden.door import _get_sequence_log_probs
 
-        # DOOR trains purely on refusal / contamination pairs (NPO unlearning +
-        # refusal reward); it has no task-SFT term, so a user-supplied
-        # ``train_dataset`` is not incorporated. Warn rather than silently
-        # discard it so the caller isn't misled into thinking their task data
-        # shaped the run.
+        # This loop trains only on refusal / contamination pairs (refusal MLE + NPO).
+        # It implements no retain/utility term (the paper's Eq. 3 and the official
+        # ``gd_npo_loss`` have one), so a user-supplied ``train_dataset`` is not
+        # incorporated. Warn rather than silently discard it so the caller isn't
+        # misled into thinking their task data shaped the run.
         if train_dataset is not None:
             logger.warning(
-                "DOORTrainer: train_dataset is ignored — DOOR trains only on "
-                "refusal/contamination pairs (NPO unlearning + refusal reward) "
-                "and has no task-SFT term. Pass contamination_pairs/refusal_pairs "
+                "DOORTrainer: train_dataset is ignored — this loop trains only on "
+                "refusal/contamination pairs (refusal MLE + NPO) and implements no "
+                "retain/utility term. Pass contamination_pairs/refusal_pairs "
                 "to control the training data."
             )
 
@@ -149,7 +157,8 @@ class RepNoiseTrainer(_HardenBase):
     Args:
         noise_alpha: ascent weight ``alpha`` on harmful CE -> ``repnoise_beta1``.
             Default 1.0.
-        noise_beta: MMD-noise weight ``beta`` -> ``repnoise_beta3``. Default 0.1.
+        noise_beta: MMD-noise weight ``beta`` -> ``repnoise_beta3``. Default 0.001 (the paper's
+            and the official value; versions before this change defaulted to 0.1).
         noise_gamma: retain (benign CE) weight -> ``repnoise_beta2``. Default 1.0.
     """
 
@@ -158,7 +167,7 @@ class RepNoiseTrainer(_HardenBase):
 
     def __init__(self, model=None, tokenizer=None, *,
                  noise_alpha: float = 1.0,
-                 noise_beta: float = 0.1,
+                 noise_beta: float = 0.001,
                  noise_gamma: float = 1.0,
                  **kwargs):
         super().__init__(model, tokenizer, **kwargs)

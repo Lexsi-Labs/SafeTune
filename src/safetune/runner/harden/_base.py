@@ -327,6 +327,10 @@ class _HardenBase:
     def _save_merged(self, model, out_dir: str) -> str:
         """Merge LoRA adapter (if present) and save checkpoint; return the path."""
         from safetune.runner.utils.model_utils import save_checkpoint
+        # SaLoRA applies its fixed safety module C in a forward hook that a merge would drop:
+        # fold it into lora_B first (B <- C B, paper Sec. 4.3). No-op for every other method.
+        from safetune.harden.salora import fold_safety_module
+        fold_safety_module(model)
         merged = model.merge_and_unload() if hasattr(model, "merge_and_unload") else model
         return save_checkpoint(merged, self.tok, os.path.basename(out_dir),
                                out_dir=os.path.dirname(out_dir),

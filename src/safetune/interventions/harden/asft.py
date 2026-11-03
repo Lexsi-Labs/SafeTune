@@ -135,18 +135,21 @@ class AsFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
         an aligned/base state dict produced from the un-adapted model.
         """
         name = lora_param_name
-        # Strip the PEFT lora_A sub-path, keep up to (and including) the
-        # underlying linear module, then re-append ``.weight``.
         marker = ".lora_A"
         idx = name.find(marker)
         if idx == -1:
             return None
         module_path = name[:idx]
-        # PEFT prefixes the wrapped model with "base_model.model."; the plain
-        # state dict typically does not. Try the stripped form first.
-        candidates = [module_path + ".weight"]
-        if module_path.startswith("base_model.model."):
-            candidates.append(module_path[len("base_model.model."):] + ".weight")
+        # PEFT prefixes the wrapped model with "base_model.model."; a plain state
+        # dict does not. A LoRA-wrapped linear stores its weight as
+        # ``<module>.base_layer.weight``; an unwrapped one as ``<module>.weight``.
+        stripped = (module_path[len("base_model.model."):]
+                    if module_path.startswith("base_model.model.") else module_path)
+        candidates = []
+        for path in (stripped, module_path):
+            for suffix in (".weight", ".base_layer.weight"):
+                if path + suffix not in candidates:
+                    candidates.append(path + suffix)
         return candidates  # type: ignore[return-value]
 
     def _build_proj_matrices(self, model: Any) -> Dict[str, Any]:
@@ -158,6 +161,9 @@ class AsFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
         import torch
 
         proj: Dict[str, Any] = {}
+        n_zero = 0
+        zero_names = []
+        missing_names = []
         if not self._asft_ready:
             return proj
         assert self._aligned_sd is not None and self._base_sd is not None
@@ -169,31 +175,43 @@ class AsFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
             candidates = self._module_base_name(name)
             if not candidates:
                 continue
-            weight_name = next(
-                (c for c in candidates
-                 if c in self._aligned_sd and c in self._base_sd),
-                None,
-            )
-            if weight_name is None:
+            a_name = next((c for c in candidates if c in self._aligned_sd), None)
+            b_name = next((c for c in candidates if c in self._base_sd), None)
+            if a_name is None or b_name is None:
+                missing_names.append(name)
                 continue
-            
             # Cast to float32 for stable norm calculation
-            d = (self._aligned_sd[weight_name].float()
-                 - self._base_sd[weight_name].float())
-            
+            d = (self._aligned_sd[a_name].float() - self._base_sd[b_name].float())
             if d.dim() != 2:
                 continue
             norm = d.norm()
             if norm.item() <= 0:
+                n_zero += 1
+                zero_names.append(name)
                 continue
-            
             # C = (d @ d.T) / ||d||  -- AsFT_finetuning.py:86
             c = torch.mm(d, d.t()) / norm
             identity = torch.eye(c.shape[0], device=c.device, dtype=c.dtype)
             
             # Precompute and store (I - C) to save training steps
             proj[name] = (identity - c).detach()
-            
+
+        if not proj:
+            raise ValueError(
+                "AsFT: no usable alignment direction for any LoRA module "
+                f"({n_zero} had W_aligned == W_base, the rest matched no weight in both "
+                "state dicts). The trained model must be the aligned model and base_model_path "
+                "the base it was tuned from; identical weights give a zero direction "
+                "(C = d d^T / ||d|| would be NaN)."
+            )
+        if n_zero or missing_names:
+            logger.warning(
+                "AsFT: regularising %d LoRA modules, skipped %d with a zero alignment "
+                "direction (W_aligned == W_base) and %d with no matching weight in the "
+                "aligned or base state dict, e.g. %s.",
+                len(proj), n_zero, len(missing_names),
+                ", ".join(zero_names[:3] + missing_names[:3]),
+            )
         return proj
 
     # ------------------------------------------------------------------ #

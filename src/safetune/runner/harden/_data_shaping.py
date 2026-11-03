@@ -72,7 +72,11 @@ class LisaTrainer(_HardenBase):
 # ── SPPFTTrainer ──────────────────────────────────────────────────────────────
 
 class SPPFTTrainer(_HardenBase):
-    """SPPFT: self-play prompt fine-tuning."""
+    """SPPFT: Safely Partial-Parameter Fine-Tuning (Li et al., arXiv:2408.17003).
+
+    Freezes a contiguous block of middle "safety layers" while the rest is fine-tuned.
+    ``sppft_mode="scale"`` is not supported and falls back to ``"freeze"``.
+    """
 
     METHOD = "SPPFT"
     HF_TRAINER = HARD.SPPFTHFTrainer
@@ -97,8 +101,11 @@ class LookAheadTrainer(_HardenBase):
     """LookAhead: virtual-token prefix safety lookahead.
 
     Args:
-        prefix_mode: ``"virtual"`` or ``"token"``. Default ``"virtual"``.
-        prefix_length: number of prefix tokens. Default 6.
+        prefix_mode: ``"virtual"`` (a fixed phrase P, supervised as the start of the answer)
+            or ``"real"`` (the first ``prefix_length`` answer tokens). Anything else raises.
+            Default ``"virtual"``.
+        prefix_length: number of previewed answer tokens in ``"real"`` mode, clamped to the
+            answer length. Default 6.
     """
 
     METHOD = "LookAhead"
@@ -150,6 +157,26 @@ class STARDSSTrainer(_HardenBase):
 
     def train(self, train_dataset, out_dir: str = None, **kwargs) -> str:
         from datasets import Dataset
+        cols = getattr(train_dataset, "column_names", None)
+        if cols is None:
+            cols = list(train_dataset[0].keys())
+        if "kind" not in cols:
+            raise ValueError(
+                "STARDSSTrainer needs a `kind` column ('benign' or 'harmful') on every row of "
+                "train_dataset: the runner sets V_safe = 1 for benign rows and 0 for harmful rows. "
+                f"Without it every row would get V_safe = 0 and the loss would be KL to an "
+                f"unchanged reference (zero loss, zero gradient). Columns found: {sorted(cols)}. "
+                "Datasets with a `kind`, `is_safe` or `safe` column get it from "
+                "safetune.runner.utils.data_utils.tokenize_dataset."
+            )
+        kinds = {r.get("kind") for r in train_dataset}
+        if not kinds <= {"benign", "harmful"} or "benign" not in kinds:
+            raise ValueError(
+                "STARDSSTrainer needs `kind` to be 'benign' or 'harmful', with at least one "
+                f"'benign' row; found {sorted(map(str, kinds))}. Rows that are not 'benign' get "
+                "V_safe = 0, so with no benign row the loss is KL to an unchanged reference and "
+                "nothing trains."
+            )
         out_dir = self._resolve_out_dir(out_dir)
         model = self._lora_base()
         args = self._configure_args(
@@ -178,7 +205,12 @@ class STARDSSTrainer(_HardenBase):
 # ── DeRTaTrainer ──────────────────────────────────────────────────────────────
 
 class DeRTaTrainer(_HardenBase):
-    """DeRTa: per-token safe/unsafe token classification during training."""
+    """DeRTa: Decoupled Refusal Training (Yuan et al., arXiv:2407.09121).
+
+    MLE on a safe response behind a random-length harmful prefix, plus Reinforced
+    Transition Optimization: every token of a harmful response is trained to predict
+    the refusal token ("Sorry").
+    """
 
     METHOD = "DeRTa"
     HF_TRAINER = HARD.DeRTaHFTrainer

@@ -17,10 +17,12 @@ gradient constraint. For every linear layer it inspects the *delta parameters*
 subject to a global safety-loss budget controlled by a single strength
 hyper-parameter ``s``.
 
-⚠️ FIDELITY (🟡 simplified-correct): the per-entry importance / safety-loss
-surrogate, the OBS error-compensation column sweep, ``importance_drop=0.15``
-(revert the highest-importance entries to aligned), ``scale=rows/4096`` and the
-damping all faithfully reproduce upstream ``adjust_delta``. The ONE deviation:
+⚠️ FIDELITY (🟡 simplified-correct): with a Hessian, the per-entry importance /
+safety-loss surrogate, the plain ``argsort`` order, the OBS error-compensation
+column sweep, ``importance_drop=0.15`` (the highest-importance entries are
+reverted to aligned), ``scale=rows/4096`` and the damping reproduce upstream
+``adjust_delta``. Without a Hessian (data-free, H = I) every importance ties and
+we break ties by smaller safety loss first; upstream has no data-free mode. The main deviation:
 we build a single **global** keep-mask + safety-loss budget over the whole
 weight matrix, whereas upstream selects **per column-block** (``blocksize=2048``,
 so a 4096-wide layer gets its ``s/2`` budget per block × 2 blocks ≈ ``s``). Net
@@ -42,11 +44,12 @@ The selection is the SparseGPT / Optimal-Brain-Surgeon machinery
     - ``safety_loss`` = ``(W_sft - W_aligned)**2 / d**2`` -- OBS surrogate of
       the safety degradation caused by swapping in each delta entry.
 
-* The top ``importance_drop`` fraction of entries by ``importance`` are
-  excluded from consideration (their fine-tuned value is forced kept -- those
-  deltas are too utility-critical to revert). The remaining entries are sorted
-  by ``importance`` and greedily admitted (by cumulative ``safety_loss``) while
-  the running total stays under the budget
+* The top ``importance_drop`` fraction of entries by ``importance``
+  are left out of the selection, so they are **reverted to the aligned weight**
+  (upstream ``sorted_indices[0:-int(0.15 * numel)]`` leaves their mask False).
+  The remaining entries are sorted by ``importance`` (ascending) and greedily
+  admitted (by cumulative ``safety_loss``) while the running total stays under
+  the budget
   ``loss_constraint = importance.mean() * s * scale``.
 * Admitted entries take the **fine-tuned** value; everything else is reset to
   the **aligned** value. After each sub-block an OBS error-compensation update
@@ -127,7 +130,7 @@ def apply_safe_delta(
             magnitude of the delta -- a faithful budgeted reduction of the
             algorithm in the data-free setting.
         importance_drop: fraction of the highest-importance entries that are
-            never reverted (paper: ``0.15``).
+            left out of the selection and so reverted to aligned (upstream: ``0.15``).
         percdamp: Hessian damping fraction (paper: ``0.01``).
         ref_columns: reference layer width used for the ``scale`` and ``s/2``
             normalisation in the paper (``4096`` for Llama-2-7B).
@@ -156,6 +159,12 @@ def apply_safe_delta(
     # theta_sft: from `unsafe` if supplied, else from `model` itself.
     sft_sd = unsafe.state_dict() if unsafe is not None else model.state_dict()
     hess = dict(hessian_inputs or {})
+    if not hess:
+        logger.warning(
+            "apply_safe_delta: no hessian_inputs given, so Safe Delta runs data-free "
+            "(H = I) and keeps the smallest |delta| entries. The paper builds H from a "
+            "safety dataset."
+        )
 
     def _matches(name: str) -> bool:
         return (not filt) or any(f in name for f in filt)
@@ -250,10 +259,19 @@ def _adjust_delta(
     loss_flat = safety_loss.flatten()
     numel = imp_flat.numel()
 
-    sorted_indices = torch.argsort(imp_flat)
+    if hessian is None:
+        # Data-free: every importance is equal, and a plain argsort would pick the kept
+        # entries by tie order. Break ties by smaller safety loss (smaller |delta|) first.
+        by_loss = torch.argsort(loss_flat)
+        sorted_indices = by_loss[torch.argsort(imp_flat[by_loss], stable=True)]
+    else:
+        # Upstream: torch.argsort(tmp.flatten()) (llama2/safedelta/safedelta_runner.py:129
+        # @5440b6f). Importance is per column, so entries of a column tie even with a
+        # Hessian; keep upstream's order there.
+        sorted_indices = torch.argsort(imp_flat)
     drop = int(importance_drop * numel)
     if drop > 0:
-        sorted_indices = sorted_indices[:-drop]   # never revert top-importance entries
+        sorted_indices = sorted_indices[:-drop]   # top-importance entries stay out of the mask, so they revert to aligned
     sorted_loss = loss_flat[sorted_indices]
 
     cumulative = torch.cumsum(sorted_loss, dim=0)

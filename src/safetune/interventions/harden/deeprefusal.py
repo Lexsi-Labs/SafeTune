@@ -1,7 +1,7 @@
 """
-DeepRefusal Trainer — faithful LoRA fine-tuning implementation.
+DeepRefusal Trainer — LoRA fine-tuning with probabilistic refusal-direction ablation (Variant).
 
-Faithful implementation of the DeepRefusal algorithm from:
+Implementation of the DeepRefusal objective from (a Variant, see below):
 
     "Beyond Surface Alignment: Rebuilding LLMs Safety Mechanism via
     Probabilistically Ablating Refusal Direction"
@@ -19,7 +19,7 @@ projected out, mimicking a direction-erasure jailbreak.
 1. **Refusal-direction ablation hooks** (Section 3.2 of the paper).
    At each forward pass, a random subset of decoder layers is chosen.  For each
    selected layer, the unit refusal direction ``d̂ = d / ‖d‖`` is projected out
-   of the hidden states at response-token positions with probability
+   of the hidden states at every token position (prompt and response) with probability
    ``ablation_prob``::
 
        h_l  ←  h_l - (h_l · d̂) * d̂
@@ -46,11 +46,20 @@ projected out, mimicking a direction-erasure jailbreak.
    updated; the base model weights are frozen.  After training the adapter is
    optionally merged into the base model (``merge_after_training=True``).
 
+Deviations from the paper / official code (hence a Variant)
+-----------------------------------------------------------
+* The paper gates every layer (``Q_l ~ Bernoulli(p)``) and every token
+  (``M_{l,t} ~ Bernoulli(p)``) at the layer input, attention and MLP.  Here a
+  random subset of layers is picked per step and each is ablated for the whole
+  sequence at its output.
+* The paper's harmful data is a harmful prefix (k ~ U[20, 25] tokens) followed
+  by a refusal; the runner's default harmful set is BeaverTails safe responses.
+
 Relation to ``safetune.recover.deeprefusal``
 --------------------------------------------
 :func:`safetune.recover.deeprefusal.apply_deeprefusal` is a *training-free*
 weight edit (a SafeTune-original heuristic) that pre-dates this module.  The
-present :class:`DeepRefusalTrainer` is the *faithful* implementation of the
+present :class:`DeepRefusalTrainer` is the closer implementation of the
 published paper and requires gradient updates, a training dataset, and (by
 default) peft.  The two share only the high-level goal of hardening refusal
 against direction-based attacks; the mechanisms are entirely different.

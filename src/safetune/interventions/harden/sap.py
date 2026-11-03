@@ -68,16 +68,21 @@ if _TRAINER_IMPORT_ERROR is None:
     class SAPConfig(TrainingArguments):  # type: ignore[misc]
         """``TrainingArguments`` with SAP hyperparameters.
 
-        Defaults follow the paper's reported configuration (Section V-A2 and
-        Algorithm 1 of arXiv:2505.16737):
+        Several defaults differ from the paper's reported configuration (Section V-A2,
+        arXiv:2505.16737) and from the official code (ChengcanWu/SAP, ``SAPcode``):
 
-        * ``grad_rate`` — relative scale of the harmful perturbation ``ΔW_harmful``;
-          the actual ``ε`` is ``grad_rate · ‖W‖`` (matches ``SAPcode/train.py``,
-          which scales the normalized contrastive gradient by ``grad_rate * lora_norm``).
-        * ``v_update_step`` — inner probe step size ``β`` (paper default ``5e-2``).
-        * ``probe_layers`` — indices of layers carrying the probe ``v_j``.  ``None``
-          selects the contiguous middle block ``[T//4, 3T//4)`` (paper default
-          ``v_[11:20]`` for a 32-layer model).
+        * ``grad_rate`` — default ``0.1``. The harmful perturbation is the *normalized*
+          contrastive gradient scaled by ``grad_rate · ‖W‖`` (``‖W‖`` = norm of the
+          perturbed parameters), as in ``SAPcode/train.py``. The paper's ε and the
+          official ``grad_rate`` are ``2e-5``, i.e. 5000× smaller. With the probe update
+          below, ε = 2e-5 leaves ‖V_safe‖ ≈ 2e-6 and training indistinguishable from plain
+          SFT, so the default is not the paper's value.
+        * ``v_update_step`` — ``β = 5e-2`` as in the paper, but applied here as a plain
+          gradient step ``V_safe = β·∇_V L_su`` (Algorithm 1, line 5). The paper's
+          experiments (and the official code) update ``V`` with AdamW at learning rate β.
+        * ``probe_layers`` — indices of layers carrying the probe ``v_j``. ``None``
+          selects the middle half ``[T//4, 3T//4)``; the paper uses layers 11–20 of a
+          32-layer model and the official script uses layers 3 and 9.
         """
 
         grad_rate: float = 0.1

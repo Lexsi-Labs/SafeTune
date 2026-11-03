@@ -78,8 +78,10 @@ Differences from the official repo (documented for honesty)
   ``L_ul`` is reproduced faithfully.
 * If no separate ``benign_dataset`` / ``alignment_dataset`` are supplied, the
   benign batch falls back to the standard ``train_dataset`` batch and the
-  alignment batch falls back to the harmful (refusal) set, so the public
-  single-dataset API keeps working.
+  alignment batch falls back to the *harmful* batch (``D_adv``, harmful
+  responses, NOT a refusal set), so ``L_up`` then trains on harmful data and
+  works against ``L_ul``. Pass ``alignment_dataset`` (harmful prompts with
+  refusal responses) for the paper's ``D_aln``; the SafeTune runner always does.
 
 Usage::
 
@@ -338,7 +340,8 @@ class SEAMHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
     Args:
         harmful_dataset:  ``D_adv`` — adversarial / harmful examples (required).
         alignment_dataset: ``D_aln`` — harmful-prompt / refusal pairs for the
-            utility term ``L_up``.  Defaults to ``harmful_dataset`` when None.
+            utility term ``L_up``.  When None the *harmful* batch is used (harmful
+            responses, not refusals), which is not the paper's ``D_aln``.
         benign_dataset:   ``D_bgn`` — benign examples whose gradient is coupled
             against the harmful gradient.  Defaults to the ``train_dataset``
             batch when None.

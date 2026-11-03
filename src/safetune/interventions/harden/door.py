@@ -1,12 +1,16 @@
 """
-DOOR Trainer adapter — faithful standalone implementation.
+DOOR Trainer adapter (Variant of the paper's objective).
 
-Faithful implementation of the DOOR / W-DOOR objective from:
+Implements the refusal-MLE + NPO terms of DOOR / W-DOOR from:
 
     "Improving LLM Safety Alignment with Dual-Objective Optimization"
     Zhao, Cai, Shi, Huang, Lin, Mei, Song. ICML 2025. arXiv:2503.03710.
     Reference code: https://github.com/wicai24/DOOR-Alignment
       (``utils/loss.py`` -> ``gd_npo_loss`` for DOOR, ``wgdnpo_loss`` for W-DOOR)
+
+Not implemented here: the harmful-prefix augmentation of the refusal prompts (paper Sec. 3.1)
+and the alpha-weighted retain/utility term of Eq. 3 (``gd_npo_loss`` has it). The batch must
+carry the refusal and harmful fields; a missing field or a missing reference policy raises.
 
 The reference implementation (``utils/loss.py`` + a plain ``Trainer`` subclass)
 uses **DOOR alone** as the training objective — not DPO + DOOR. SafeTune
@@ -96,6 +100,13 @@ if _TRL_IMPORT_ERROR is None:
 else:  # pragma: no cover
     class DOORConfig(object):  # type: ignore[assignment]
         pass
+
+
+_NO_REFERENCE_MSG = (
+    "SafetyDOORTrainer needs a reference policy for the NPO / W-DOOR terms: pass ref_model= "
+    "or train a PEFT model (the adapter is disabled to get the reference). Without one the "
+    "log-ratio would be computed against log pi_ref = 0, which is a different loss."
+)
 
 
 def _get_sequence_log_probs(logits: Any, labels: Any) -> Any:
@@ -194,9 +205,7 @@ class SafetyDOORTrainer(DPOTrainer if _TRL_IMPORT_ERROR is None else object):  #
                 ref_out = model(harmful_ids, attention_mask=harmful_mask)
                 logp_ref = _get_sequence_log_probs(ref_out.logits, harmful_labels)
         else:
-            # No reference model available -> reference-free fallback
-            # (NPO reduces to a sigmoid of the policy log-prob alone).
-            logp_ref = torch.zeros_like(logp_main)
+            raise ValueError(_NO_REFERENCE_MSG)
 
         beta = self._door_beta
         npo = -F.logsigmoid(-beta * (logp_main - logp_ref)) * (2.0 / beta)
@@ -238,7 +247,7 @@ class SafetyDOORTrainer(DPOTrainer if _TRL_IMPORT_ERROR is None else object):  #
                     ref_out = model(refusal_ids, attention_mask=refusal_mask)
                     token_logp_ref = _get_token_log_probs(ref_out.logits, refusal_labels)
             else:
-                token_logp_ref = torch.zeros_like(token_logp_dpo)
+                raise ValueError(_NO_REFERENCE_MSG)
 
             # Per-token reward from the proxy reward model.
             reward = token_logp_dpo - token_logp_ref
@@ -278,10 +287,12 @@ class SafetyDOORTrainer(DPOTrainer if _TRL_IMPORT_ERROR is None else object):  #
             # ``gd_npo_loss`` (refusal MLE + NPO unlearning). The DPO parent
             # loss is intentionally not called here.
             if not self._has_door_fields(inputs):
-                # Fallback: no DOOR fields in batch — return a zero loss.
-                dummy = next(iter(model.parameters()))
-                loss = dummy.sum() * 0.0
-                return (loss, None) if return_outputs else loss
+                raise ValueError(
+                    "SafetyDOORTrainer (door_pure_mode=True) needs the batch keys "
+                    "refusal_input_ids, refusal_labels, harmful_input_ids and harmful_labels "
+                    f"(optionally *_attention_mask); got {sorted(inputs) if isinstance(inputs, dict) else type(inputs)}. "
+                    "A batch without them used to give a zero loss and no training."
+                )
             door_term = self._compute_door_term(model, inputs)
             return (door_term, None) if return_outputs else door_term
 

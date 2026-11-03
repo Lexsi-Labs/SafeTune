@@ -1,32 +1,26 @@
 """
-SEAL — Safety-Enhanced Alignment via data selection (Shen et al., 2024,
-arXiv:2410.07471).
+SEAL-inspired gradient-cosine importance weighting (NOT the paper's method).
 
-SEAL protects safety during fine-tuning through bilevel data selection:
-an inner loop identifies which training examples are most safety-sensitive
-(those whose gradient conflicts most with the alignment gradient), and an
-outer loop up-weights those examples during SFT.
+SEAL (Shen et al., 2024, arXiv:2410.07471) learns a data ranker by penalty-based bilevel
+optimisation (Algorithms 1 and 2 of the paper; official code https://github.com/hanshen95/SEAL,
+``seal/trainer/sft_selector_trainer.py``): a per-sample ranker ``omega`` weights the fine-tuning
+loss in the lower level, is updated with the upper-level safety loss, and the top-ranked data is
+then selected for fine-tuning. The paper has no gradient-cosine scoring (its Appendix B holds the
+Pythia-2.8B results, the quality of the selected data and example outputs).
 
-Simplified faithful implementation for the SafeTune library:
+This trainer is a different, cheaper heuristic that SafeTune ships under the SEAL name:
 
-The full bilevel meta-learning loop (differentiating through the inner
-training step) is computationally prohibitive at 3B-8B scale. This
-implementation uses the tractable SEAL approximation from the paper's
-Appendix B: gradient-cosine scoring to identify safety-sensitive examples,
-followed by importance-weighted SFT.
+1. compute the alignment gradient ``g_align`` on a safety batch;
+2. for every example ``i`` of the training batch compute its gradient ``g_i``;
+3. score ``s_i = +cosine(g_i, g_align)``: examples whose gradient AGREES with the alignment
+   gradient get the larger weight (examples that conflict with it are down-weighted);
+4. ``w_i = B * softmax(s_i / temperature)`` over the batch and train with ``mean_i(w_i * L_i)``.
 
-Algorithm:
-1. Compute the alignment gradient g_align on a safety reference batch.
-2. For each training example i, compute its task gradient g_i.
-3. Score: s_i = -cosine(g_i, g_align). High score = high conflict with safety.
-4. Importance weights: w_i = softmax(s_i / temperature).
-5. Train with weighted SFT loss: L = sum_i w_i * L_i.
-
-This is the SEAL "gradient conflict" data selector from §3.2 of the paper.
-The weights are recomputed every `seal_rescore_every` steps.
-
-Paper: "SEAL: Safety-Enhanced Aligned LLM Fine-Tuning via Bilevel Data Selection"
-Shen et al., 2024, arXiv:2410.07471.
+The scores are positional per batch, so every batch is scored on its own examples (one safety
+forward/backward and one per-example forward/backward per example, at every step).
+A second heuristic of the same kind, ``SEALDataSelector``, lives in
+``safetune.core.data_compiler.seal_selector`` (hard-threshold filtering by gradient alignment);
+it is exported but not used by this trainer.
 """
 from __future__ import annotations
 
@@ -55,15 +49,17 @@ if _TRAINER_IMPORT_ERROR is None:
 
         Attributes:
             seal_temperature: Softmax temperature for importance weights.
-                Lower = more aggressive up-weighting of conflicting examples.
+                Lower = more aggressive up-weighting of the examples that
+                agree with the alignment gradient.
                 Default: 1.0.
-            seal_rescore_every: How often (steps) to recompute gradient-conflict
-                scores. Scoring is expensive; default 10 amortises the cost.
+            seal_rescore_every: Deprecated and ignored (examples are scored at every step).
+                The cost per step is one safety forward/backward plus one per-example
+                forward/backward for every example in the batch, on top of the weighted loss.
             seal_top_k_ratio: Fraction of examples to up-weight (set weights
                 to 1.0 for bottom examples). Default 1.0 = weight all.
         """
         seal_temperature: float = 1.0
-        seal_rescore_every: int = 10
+        seal_rescore_every: int = 1
         seal_top_k_ratio: float = 1.0
 else:  # pragma: no cover
     class SEALConfig(object):  # type: ignore[assignment]
@@ -118,8 +114,15 @@ class SEALHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
         super().__init__(*args, **kwargs)
 
         self._seal_temperature = float(getattr(self.args, "seal_temperature", 1.0))
-        self._seal_rescore_every = max(
-            1, int(getattr(self.args, "seal_rescore_every", 10)))
+        _every = int(getattr(self.args, "seal_rescore_every", 1))
+        if _every != 1:
+            import warnings
+            warnings.warn(
+                "SEALConfig.seal_rescore_every is deprecated and ignored: the importance weights "
+                "are positional per batch, so they must be computed on the batch they are applied "
+                "to. Examples are now scored at every step.", DeprecationWarning, stacklevel=2)
+            logger.warning("SEALHFTrainer: seal_rescore_every=%d ignored; scoring every step.", _every)
+        self._seal_rescore_every = 1
         self._seal_top_k_ratio = float(getattr(self.args, "seal_top_k_ratio", 1.0))
 
         from itertools import cycle

@@ -2,6 +2,13 @@
 TAR: Tamper-Resistant Safeguards for Open-Weight LLMs.
 rishub-tamirisa/tamper-resistance (ICLR 2025)
 
+**Second TAR implementation.** The Harden pillar's ``safetune.harden.tar.tar_outer_loss`` is the
+first-order (FO-MAML) version the official code uses and the one ``TARTrainer`` runs. This
+``TARWrapper`` is an older, differently specified sketch (it unrolls plain SGD on a functional
+parameter overlay and backpropagates through it). Its only user is the Steer ``TARModel``, a
+documented pass-through that holds it as ``_impl`` and forwards ``train_step`` to ``tar_outer_loss``.
+It is kept for that reason; do not use it for training.
+
 Protects models against malicious weight modifications by training
 safeguards that withstand significant fine-tuning attacks.  The core
 idea is meta-learning: during safety training, simulate N steps of

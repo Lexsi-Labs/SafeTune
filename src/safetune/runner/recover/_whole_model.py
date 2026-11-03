@@ -5,11 +5,12 @@ import safetune.recover as R
 # ── SOMFTrainer ───────────────────────────────────────────────────────────────
 
 class SOMFTrainer(_RecoverBase):
-    """SOMF: Sign-Overlapping Magnitude Fusion.
+    """SOMF: Subspace-Oriented Model Fusion.
 
     Args:
         aligned_model: aligned reference.
-        base_model: base model.
+        base_model: optional and unused (the task vector is taken relative to the aligned
+            model); kept so existing calls still work.
         mask_threshold: SOMF mask threshold. Default 0.9.
     """
 

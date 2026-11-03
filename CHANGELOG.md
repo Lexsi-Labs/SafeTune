@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that set, or a task whose function shares a builtin's name, fails with a warning. The evaluator
   is bounded in work and size, and refuses colliding hashes before it builds a set.
 
+### Fixed
+
+- Audit fixes across the harden, recover and unlearn methods (CST, EMA, SafeGrad, ASRT, MART, LISA,
+  ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
+  Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
+  by Deeraj.
+
 ### Changed
 
 - Code rewards: a function under test must return plain builtin data (numbers, strings, bytes,

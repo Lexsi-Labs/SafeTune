@@ -168,8 +168,16 @@ STARDSSTrainer(
 )
 ```
 
-The `train_dataset` (which must carry a per-token `safety_weights` column) is
-passed to `trainer.train(train_dataset)`, not to the constructor.
+`train_dataset` is passed to `trainer.train(train_dataset)`, not to the constructor, and
+**must have a `kind` column** (`"benign"` or `"harmful"`); `train` raises a `ValueError`
+without it. The runner builds the per-token `safety_weights` column from `kind` (below).
+`HARD.STARDSSHFTrainer` itself takes a `safety_weights` column directly.
+
+**What the runner implements.** V_safe is a per-row binary label (1.0 for benign rows, 0.0
+for harmful rows). That is the paper's *static* safety-shaping baseline combined with the
+KL term of Eq. 3. The STAR score (guardrail logits on partial responses, chunk by chunk;
+paper Sec. 4) is not computed anywhere in SafeTune, so this is a Variant of ⋆DSS, not the
+method with the STAR signal. Official code: https://github.com/poloclub/star-dss.
 
 ### STARDSSConfig fields
 
@@ -188,7 +196,7 @@ so safe tokens are imitated and unsafe tokens are pushed toward the reference.
 from safetune.runner import harden
 
 # The runner assigns V_safe = 1.0 to benign rows and 0.0 to harmful rows
-# (from each example's `kind` field) and builds the `safety_weights` column.
+# (from each example's required `kind` field) and builds the `safety_weights` column.
 trainer = harden.STARDSSTrainer(model, tokenizer, use_kl_penalty=True, kl_scale=1.0)
 trainer.train(ds)
 ```
@@ -246,7 +254,7 @@ keyword argument, e.g. `harden.SPPFTTrainer(model, tokenizer, safety_layer_indic
 | `safety_layer_indices` | `list[int]` | `[]` | Explicit safety-layer indices; when non-empty, these layers are frozen verbatim |
 | `sppft_begin_num` | `int` | `4` | Exclusive lower bound of the contiguous middle-layer "safety" range (authors' 32-layer reference frame) |
 | `sppft_end_num` | `int` | `15` | Exclusive upper bound of the contiguous middle-layer range |
-| `sppft_mode` | `str` | `"freeze"` | `"freeze"` (paper default — freeze safety-layer params) or `"scale"` (reduce their LR) |
+| `sppft_mode` | `str` | `"freeze"` | `"freeze"` (paper default — freeze safety-layer params). `"scale"` is not supported: it falls back to `"freeze"` with a warning |
 | `num_safety_layers` | `int` | `8` | Width hint for the middle-layer range when model depth can't be inferred |
 
 By default SPPFT freezes the gradients of a contiguous block of middle "safety
@@ -289,9 +297,11 @@ The `SPPFTConfig` fields above can be passed as keyword arguments; the
 data-centric: from each `(prompt, safe_response, unsafe_response)` triple the
 formatter builds two DPO pairs under opposite system prompts (a safe prompt where
 the safe response is chosen, and an uncensored prompt where the unsafe response is
-chosen), so behavior is controllable via the system prompt at inference. Pass the
-triples via `raw_examples` for automatic formatting, or pre-format and pass
-`train_dataset` directly.
+chosen), so behavior is controllable via the system prompt at inference. The system
+prompt is part of the DPO `prompt` (a `[system, user]` message list rendered with the
+tokenizer's chat template; a tokenizer without a chat template gets a plain-text
+prompt instead). Pass the triples via `raw_examples` for automatic formatting, or
+pre-format and pass `train_dataset` directly.
 
 ### Signature
 

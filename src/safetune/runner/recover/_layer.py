@@ -72,7 +72,8 @@ class SafeLoRATrainer(_RecoverBase):
 
     Args:
         aligned_state_dict (dict): state dict of the aligned model.
-        base_state_dict (dict): state dict of the base model.
+        base_state_dict (dict): state dict of the base model (required for a non-PEFT model).
+        base_model / aligned_model: models to take the two state dicts from instead.
         alpha: merge coefficient. Default 0.5.
         threshold: safety subspace threshold. Default 0.5.
     """
@@ -80,8 +81,15 @@ class SafeLoRATrainer(_RecoverBase):
     METHOD = "SafeLoRATrainer"
 
     def __init__(self, model=None, *, aligned_state_dict=None, base_state_dict=None,
+                 base_model=None, aligned_model=None,
                  alpha: float = 0.5, threshold: float = 0.5, **kwargs):
         super().__init__(model, **kwargs)
+        # ``base_model`` / ``aligned_model`` (what ``safetune patch --base/--aligned``
+        # passes) supply the state dicts when these are not given explicitly.
+        if base_state_dict is None and base_model is not None:
+            base_state_dict = base_model.state_dict()
+        if aligned_state_dict is None and aligned_model is not None:
+            aligned_state_dict = aligned_model.state_dict()
         self.aligned_state_dict = aligned_state_dict
         self.base_state_dict = base_state_dict
         self.alpha = alpha

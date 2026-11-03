@@ -14,9 +14,11 @@ distribution and the forget-answer distribution, using the variational
 
     D_f(P_good ‖ P_forget) ≥ E_good[ g(T) ] − E_forget[ f*(g(T)) ]
 
-where ``T`` is realised through the model's per-answer log-likelihood, ``g`` is
+where ``T`` is the model's average next-token probability over the answer tokens
+(no logarithm; see SCALE below), ``g`` is
 the divergence's output activation and ``f*`` is the convex conjugate.  Training
-*minimises* the negated lower bound, which (i) pushes the **template/good**
+*minimises* the negated lower bound, which for the divergences that go the intended
+way (see ``FLATConfig.divergence``) (i) pushes the **template/good**
 answer's likelihood **up** and (ii) pushes the **forget** answer's likelihood
 **down** — with the per-term weighting set by the chosen divergence rather than
 a hand-tuned coefficient.  Unlike DPO/NPO, FLAT is reference-free: no frozen
@@ -32,11 +34,11 @@ For safety unlearning:
   * an optional **retain** CE term (``flat_retain``) on benign data anchors
     general capability, mirroring the GradDiff retain branch.
 
-NOTE ON SCALE: the official code sums the per-answer log-likelihood; we use the
-*mean per answer token* (a per-sequence average NLL) instead, which keeps the
-divergence arguments in an O(1) range so the ``exp``/``sqrt`` conjugates stay
-numerically stable across answer lengths.  The optimisation direction is
-identical.
+SCALE: as in the paper (Sec. 3.2) and the official code, ``g`` and ``f*`` take
+the *average next-token probability* over the answer tokens (no logarithm), so
+their arguments lie in ``[0, 1]`` and the conjugates are bounded. Using a
+log-likelihood instead would weight each token by ``1/p`` and make the forget
+term behave like unbounded gradient ascent.
 """
 from __future__ import annotations
 
@@ -51,6 +53,14 @@ import torch.nn.functional as F
 logger = logging.getLogger(__name__)
 
 _VARIANTS = ("flat", "flat_retain")
+
+# Divergences that moved the wrong way in the tiny-model direction check
+# (tests/audit/test_U05_flat_direction.py). Same signs as the official code.
+_WRONG_DIRECTION = {
+    "reverse_kl": "raised the harmful-answer likelihood and lowered the refusal's",
+    "squared_hellinger": "raised the harmful-answer likelihood and lowered the refusal's",
+    "neyman": "drove both the harmful-answer and the refusal likelihood to zero",
+}
 
 # Canonical divergence names (official code labels mapped to snake_case keys).
 _DIVERGENCES = (
@@ -75,14 +85,16 @@ class FLATConfig:
             capability (recommended).
         divergence: which f-divergence to maximise between the template-answer
             and forget-answer distributions.  One of :data:`_DIVERGENCES`
-            (the full menu from the official release).  ``"kl"`` (the default),
-            ``"jensen_shannon"``, ``"total_variation"`` and ``"jeffrey"`` are
-            the validated, directionally-stable choices (template likelihood
-            up, forget likelihood down across operating regimes).  The
-            remaining conjugates (``reverse_kl``, ``pearson``, ``neyman``,
-            ``squared_hellinger``) reproduce the paper's menu but have
-            restricted valid regimes and can change sign for some
-            answer-length / likelihood ranges — prefer the validated set.
+            (the full menu from the official release; the paper itself reports
+            only ``kl``, ``jensen_shannon``, ``pearson`` and ``total_variation``
+            and finds ``kl`` the most consistent).  In a direction check on a
+            tiny random model (60 steps, 1 harmful/1 refusal pair; see
+            ``docs/user-guide/unlearn/flat.md``) ``kl``, ``jeffrey``, ``pearson``,
+            ``jensen_shannon`` and ``total_variation`` raised the refusal
+            likelihood and lowered the harmful one; ``reverse_kl`` and
+            ``squared_hellinger`` did the opposite and ``neyman`` drove both to
+            zero.  The official formulas have the same signs, so the loss is
+            unchanged and :func:`flat_unlearn` logs a warning for those three.
         epochs: passes over the (forget, good[, retain]) iterables.
         lr: AdamW learning rate.  ``1e-5`` matches TOFU / NPO defaults.
         weight_decay: AdamW weight decay.  ``0.01`` matches TOFU defaults.
@@ -154,8 +166,9 @@ def _g_fstar(divergence: str) -> Tuple[Callable, Callable]:
         fstar = lambda x: -torch.mean(x * x / 4.0 + x)
     elif divergence == "neyman":
         g = lambda x: -torch.mean(1.0 - torch.exp(x))
-        # 1 - x ≥ 1 here (x ≤ 0), so the sqrt domain is safe.
-        fstar = lambda x: -torch.mean(2.0 - 2.0 * torch.sqrt(1.0 - x))
+        # x is a mean token probability in [0, 1], so 1 - x reaches 0 and the sqrt
+        # gradient is infinite there; clamp it (the official code has no clamp).
+        fstar = lambda x: -torch.mean(2.0 - 2.0 * torch.sqrt(torch.clamp(1.0 - x, min=1e-6)))
     elif divergence == "jensen_shannon":
         _log2 = torch.log(torch.tensor(2.0))
         # -log(1+exp(-x)) = -softplus(-x); x + log(1+exp(-x)) = x + softplus(-x)
@@ -169,8 +182,8 @@ def _g_fstar(divergence: str) -> Tuple[Callable, Callable]:
     return g, fstar
 
 
-def _seq_mean_nll(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-    """Per-sequence mean negative log-likelihood over the answer tokens.
+def _seq_mean_prob(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    """Per-sequence mean next-token probability over the answer tokens.
 
     Args:
         logits: ``(batch, seq_len, vocab)`` model output logits.
@@ -178,8 +191,9 @@ def _seq_mean_nll(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
             pad) positions — the standard HF causal-LM convention.
 
     Returns:
-        ``(batch,)`` tensor of mean per-token NLL over each sequence's valid
-        (answer) tokens.  Sequences with no valid token contribute ``0``.
+        ``(batch,)`` tensor of the mean probability of the correct next token
+        over each sequence's valid (answer) tokens (the paper's
+        ``P(x, y; theta)``).  Sequences with no valid token contribute ``0``.
     """
     shift_logits = logits[..., :-1, :].contiguous()      # (B, L-1, V)
     shift_labels = labels[..., 1:].contiguous()          # (B, L-1)
@@ -188,10 +202,10 @@ def _seq_mean_nll(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     logp = F.log_softmax(shift_logits, dim=-1)
     gather_idx = shift_labels.clamp(min=0).unsqueeze(-1)  # (B, L-1, 1)
     tok_logp = logp.gather(-1, gather_idx).squeeze(-1)    # (B, L-1)
-    nll_tok = -tok_logp * mask                            # zero on masked
+    prob_tok = tok_logp.exp() * mask                      # zero on masked
 
     denom = mask.sum(dim=-1).clamp(min=1.0)               # (B,)
-    return nll_tok.sum(dim=-1) / denom                    # (B,)
+    return prob_tok.sum(dim=-1) / denom                   # (B,)
 
 
 def flat_fdiv_loss(
@@ -220,15 +234,13 @@ def flat_fdiv_loss(
     divergence = _normalize_divergence(divergence)
     g, fstar = _g_fstar(divergence)
 
-    nll_good = _seq_mean_nll(good_logits, good_labels)        # (B,)
-    nll_forget = _seq_mean_nll(forget_logits, forget_labels)  # (B,)
+    p_good = _seq_mean_prob(good_logits, good_labels)        # (B,)  P(x_f, y_e)
+    p_forget = _seq_mean_prob(forget_logits, forget_labels)  # (B,)  P(x_f, y_f)
 
-    # Official convention: feed the negated NLL into g/f*.
-    prob_reg = -nll_good      # template-answer term
-    prob_peer = -nll_forget   # forget-answer term
-
-    loss_regular = g(prob_reg)
-    loss_peer = fstar(prob_peer)
+    # L_FLAT = -( g*(P_good) - f*(g*(P_forget)) ); ``g`` / ``fstar`` already carry
+    # the leading minus of the official ``get_contrastive_loss``.
+    loss_regular = g(p_good)       # template-answer term
+    loss_peer = fstar(p_forget)    # forget-answer term
     return loss_regular - loss_peer
 
 
@@ -281,6 +293,13 @@ def flat_unlearn(
         The updated model (same object, mutated in place).
     """
     cfg = config or FLATConfig()
+    if cfg.divergence in _WRONG_DIRECTION:
+        logger.warning(
+            "flat_unlearn: divergence %r %s on a tiny random model (direction check; the "
+            "official formula has the same sign). Prefer kl, jensen_shannon, "
+            "total_variation, jeffrey or pearson.",
+            cfg.divergence, _WRONG_DIRECTION[cfg.divergence],
+        )
     if good_batches is None:
         raise ValueError(
             "flat_unlearn requires `good_batches` — FLAT pairs each forget "

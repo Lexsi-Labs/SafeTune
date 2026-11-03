@@ -61,10 +61,11 @@ Implementation notes:
   at construction or call :meth:`bind_trainer` before ``trainer.train()``.
   If neither is done the callback still red-teams and buffers, but logs a
   warning instead of silently losing the discovered examples.
-* If ``train_dataset`` is a ``datasets.Dataset`` the rows are appended via
-  ``concatenate_datasets`` (single rebuild); if it is a list of dicts they
-  are extended in place. Other types are logged and the buffer is kept
-  intact rather than dropped.
+* If ``train_dataset`` is a ``datasets.Dataset`` it is wrapped, when the trainer is bound, in a
+  growable view that the DataLoader keeps reading, and the rows are added to that view
+  (no ``concatenate_datasets`` rebuild); if it is a list of dicts they are extended in
+  place. Other types, and rows missing a column of the train set, are logged and the
+  buffer is kept intact rather than dropped.
 """
 from __future__ import annotations
 
@@ -110,6 +111,29 @@ class ASRTConfig:
     early_stop_at_zero_asr: bool = False
 
 
+class _GrowingDataset:
+    """A ``datasets.Dataset`` plus rows appended later.
+
+    HF's Trainer builds its DataLoader once, from the dataset it holds when
+    ``train()`` starts, and re-iterates that loader every epoch. A dataset that
+    is replaced afterwards is never read again; one that grows in place is
+    (the sampler asks for ``len`` at the start of each epoch). With
+    ``dataloader_persistent_workers=True`` the workers keep their first copy, so
+    nothing is appended and the rows stay in the buffer.
+    """
+
+    def __init__(self, base: Any) -> None:
+        self.base = base
+        self.extra: List[Dict[str, Any]] = []
+
+    def __len__(self) -> int:
+        return len(self.base) + len(self.extra)
+
+    def __getitem__(self, i: int) -> Any:
+        n = len(self.base)
+        return self.base[i] if i < n else self.extra[i - n]
+
+
 class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # type: ignore[misc]
     """Trainer callback that red-teams the model during training.
 
@@ -138,7 +162,12 @@ class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # 
     and are therefore only trained on by *subsequent* epochs. With a
     single-epoch fine-tuning recipe the discovered examples are appended but
     never trained on -- use ``num_train_epochs >= 2`` for ASRT to have an
-    effect on the model.
+    effect on the model. The total step count is fixed when training starts, so
+    epochs after the first see only a share of the appended rows.
+
+    With ``remove_unused_columns=False``, an extra string column in the train set (one
+    the contrastive rows do not have) can hold the appended rows back: they stay
+    buffered and a warning is logged.
     """
 
     def __init__(
@@ -193,6 +222,7 @@ class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # 
         self._contrastive_builder = contrastive_builder or self._default_contrastive_builder
         self._zero_asr_seen = False
         self._trainer = trainer
+        self._adopt_dataset(trainer)
         self._warned_no_trainer = False
 
     def bind_trainer(self, trainer: Any) -> "ASRTCallback":
@@ -202,10 +232,26 @@ class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # 
         to ``__init__``. Returns ``self`` for chaining.
         """
         self._trainer = trainer
+        self._adopt_dataset(trainer)
         return self
 
+    @staticmethod
+    def _adopt_dataset(trainer: Any) -> None:
+        """Make a ``datasets.Dataset`` train set growable (see ``_GrowingDataset``)."""
+        ds = getattr(trainer, "train_dataset", None)
+        if ds is not None and hasattr(ds, "add_item") and not isinstance(ds, _GrowingDataset):
+            # The Trainer drops unused columns only from a datasets.Dataset, which
+            # the wrapper no longer is, so do it here.
+            if getattr(trainer.args, "remove_unused_columns", False):
+                ds = trainer._remove_unused_columns(ds, description="training")
+            trainer.train_dataset = _GrowingDataset(ds)
+
     def _default_contrastive_builder(self, prompt: str) -> Dict[str, Any]:
-        """Build one (prompt, refusal) row in HF-Trainer-compatible shape."""
+        """Build one untokenized (prompt, refusal) row.
+
+        It is appended only to a train set with ``prompt``/``completion`` columns; for a
+        tokenized train set pass a ``contrastive_builder`` that tokenizes.
+        """
         return {
             "prompt": prompt,
             "completion": self.config.refusal_target,
@@ -296,30 +342,41 @@ class ASRTCallback(TrainerCallback if _TC_IMPORT_ERROR is None else object):  # 
         ds = trainer.train_dataset
         if ds is None:
             return 0
+        # A persistent worker keeps the dataset copy it got at the start, so the
+        # sampler would ask it for indices it does not have (IndexError).
+        a = getattr(trainer, "args", None)
+        if getattr(a, "dataloader_persistent_workers", False) and getattr(a, "dataloader_num_workers", 0):
+            logger.warning(
+                "ASRT: dataloader_persistent_workers=True; DataLoader workers do not see "
+                "appended rows, so %d contrastive rows are kept in the buffer. Set it to "
+                "False to train on them.",
+                len(self._buffer),
+            )
+            return 0
+        # Rows the collator cannot take (e.g. the default builder's prompt/completion
+        # rows on a tokenized train set) would crash the next epoch: keep them instead.
+        if isinstance(ds, _GrowingDataset):
+            cols = set(getattr(ds.base, "column_names", None) or ())
+        else:
+            cols = set(ds[0]) if isinstance(ds, list) and ds and isinstance(ds[0], dict) else set()
+        missing = sorted({c for r in self._buffer for c in cols - set(r)})
+        if missing:
+            logger.warning(
+                "ASRT: %d contrastive rows lack the train_dataset columns %s; buffer kept "
+                "intact. Pass a contrastive_builder that returns rows like the train set "
+                "(e.g. tokenized).",
+                len(self._buffer), missing,
+            )
+            return 0
         if isinstance(ds, list):
             # Plain list of dict rows: extend in place.
             count = len(self._buffer)
             ds.extend(self._buffer)
             self._buffer.clear()
             return count
-        if hasattr(ds, "add_item"):
-            # HuggingFace ``datasets.Dataset``: build the new rows into a
-            # single Dataset and concatenate once (O(n), not O(n^2)), and
-            # only clear the buffer if the rebuild fully succeeds so a
-            # failure does not silently drop discovered examples.
-            try:
-                from datasets import Dataset, concatenate_datasets
-
-                addition = Dataset.from_list(list(self._buffer))
-                trainer.train_dataset = concatenate_datasets([ds, addition])
-            except Exception as e:  # pragma: no cover - depends on schema
-                logger.warning(
-                    "ASRT: failed to append %d rows to datasets.Dataset "
-                    "(%s); buffer kept intact.",
-                    len(self._buffer), e,
-                )
-                return 0
+        if isinstance(ds, _GrowingDataset):
             count = len(self._buffer)
+            ds.extra.extend(self._buffer)
             self._buffer.clear()
             return count
         logger.warning(

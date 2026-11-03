@@ -48,6 +48,12 @@ class EMAOptimizerWrapper:
             decay: The exponential decay rate (typically 0.99 to 0.999). 
                    Higher values mean the EMA changes slower.
             device: Device to store EMA weights on. Defaults to CPU to save GPU memory.
+
+        The shadow of a bf16/fp16 parameter is kept in float32 (a half-precision shadow
+        would round away the small per-step increments), which costs 4 bytes per tracked
+        parameter. float32 and float64 parameters keep their own dtype, so a float64
+        shadow is not rounded to float32. ``apply_ema_weights`` casts the shadow back to
+        the parameter dtype.
         """
         self.decay = decay
         self.device = device if device is not None else torch.device("cpu")
@@ -58,7 +64,13 @@ class EMAOptimizerWrapper:
         # Initialize shadow parameters
         for name, param in model.named_parameters():
             if param.requires_grad:
-                self.shadow_params[name] = param.data.clone().to(self.device)
+                self.shadow_params[name] = param.data.detach().to(
+                    self.device, dtype=self._shadow_dtype(param.dtype), copy=True)
+
+    @staticmethod
+    def _shadow_dtype(param_dtype: torch.dtype) -> torch.dtype:
+        """float32 for dtypes narrower than float32 (fp16, bf16); the parameter dtype otherwise."""
+        return torch.float32 if param_dtype in (torch.float16, torch.bfloat16) else param_dtype
 
     def step(self, model: torch.nn.Module) -> None:
         """
@@ -72,7 +84,7 @@ class EMAOptimizerWrapper:
                     shadow = self.shadow_params[name]
                     
                     # Ensure param is on the same device as shadow before calculation
-                    current_param = param.data.to(self.device)
+                    current_param = param.data.to(self.device, dtype=shadow.dtype)
                     shadow.sub_((1.0 - self.decay) * (shadow - current_param))
 
     def apply_ema_weights(self, model: torch.nn.Module) -> None:
@@ -85,4 +97,4 @@ class EMAOptimizerWrapper:
             for name, param in model.named_parameters():
                 if param.requires_grad and name in self.shadow_params:
                     # Move shadow back to the parameter's native device and overwrite
-                    param.data.copy_(self.shadow_params[name].to(param.device))
+                    param.data.copy_(self.shadow_params[name].to(param.device, dtype=param.dtype))

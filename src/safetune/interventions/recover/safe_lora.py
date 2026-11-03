@@ -153,7 +153,10 @@ def _project_state_dict_model(model, aligned_sd, base_sd, target_modules, thresh
         proj = _compute_projection(aligned_sd[ak], base_sd[bk], target_device)
         if proj is None: continue
         with torch.no_grad():
-            base_2d = _to_2d(base_sd[bk].to(target_device).float())
+            # The update Safe LoRA projects is the drift from the aligned model the
+            # fine-tune started from (the merged LoRA delta), not ft - base: that
+            # would also contain the safety vector aligned - base.
+            base_2d = _to_2d(aligned_sd[ak].to(target_device).float())
             cur_2d = _to_2d(param.detach().float())
             if base_2d.shape != cur_2d.shape or proj.shape[0] != cur_2d.shape[0]: 
                 del proj
@@ -177,7 +180,7 @@ def _project_state_dict_model(model, aligned_sd, base_sd, target_modules, thresh
             proj = _compute_projection(aligned_sd[rec["ak"]], base_sd[rec["bk"]], rec["target_device"])
             if proj is None: continue
             with torch.no_grad():
-                base_2d = _to_2d(base_sd[rec["bk"]].to(rec["target_device"]).float())
+                base_2d = _to_2d(aligned_sd[rec["ak"]].to(rec["target_device"]).float())
                 cur_2d = _to_2d(param.detach().float())
                 delta = cur_2d - base_2d
                 proj_delta = torch.mm(proj, delta)
@@ -232,7 +235,12 @@ def apply_safe_lora(
         if is_peft:
             base_sd = {k: v.detach().clone().cpu() for k, v in model.state_dict().items() if "lora_" not in k}
         else:
-            base_sd = {n: p.detach().clone().cpu() for n, p in model.named_parameters()}
+            # The model's own weights are the fine-tuned ones; using them as the base
+            # would make the delta ft - aligned and move the weights silently.
+            raise ValueError(
+                "apply_safe_lora: base_state_dict (or base_state_dict_path) is required "
+                "for a non-PEFT model; the model's own weights cannot stand in for the base."
+            )
 
     # 2. Load aligned_sd safely
     aligned_sd = None
