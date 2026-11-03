@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
   by Deeraj.
+- `math_correctness` counts each equation once. It also counted the equation's left side as a bare
+  expression, which always evaluates, so a wrong equation such as `2 + 2 = 5` scored 0.5 instead of 0.
 
 ### Changed
 
