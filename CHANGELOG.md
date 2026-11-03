@@ -58,7 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
   by Deeraj.
 - `honesty` matches its dishonesty terms at a word start. `lie` matched inside `believe`, `client`
-  and `earlier`, so an honest answer that used one of those words scored 0.
+  and `earlier`, so an honest answer that used one of those words scored 0. The terms `fake`,
+  `deceive` and `trick` are matched at a word start too, so `trick` no longer fires inside `Patrick`.
 - `math_correctness` counts each equation once. It also counted the equation's left side as a bare
   expression, which always evaluates, so a wrong equation such as `2 + 2 = 5` scored 0.5 instead of 0.
 - `apply_safe_lora(aligned_adapter_path=...)` scales the aligned adapter the way PEFT does:
