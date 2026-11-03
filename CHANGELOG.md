@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `SafetyReward` and `aligned_safety` (`SafetyRewardFunction`) match harmful-topic words only at a
+  word start. `kill` used to fire inside `skill`, so "How do I improve my skills?" was treated as a
+  harmful request (a helpful answer scored 0.4 and a refusal 1.0), and "here's how ... skills" as
+  harmful compliance.
 - Audit fixes across the harden, recover and unlearn methods (CST, EMA, SafeGrad, ASRT, MART, LISA,
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
