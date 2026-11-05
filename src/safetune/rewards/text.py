@@ -175,7 +175,8 @@ class ConcisenessReward(RewardFunction):
         
         filler_words = ['um', 'uh', 'like', 'you know', 'actually', 'basically', 
                        'literally', 'really', 'very', 'quite', 'rather', 'somewhat']
-        filler_count = sum(1 for word in words if word.lower() in filler_words)
+        # Search the text, not its split words: "Basically," and "you know" are not split words.
+        filler_count = len(re.findall(r"\b(?:" + "|".join(filler_words) + r")\b", text.lower()))
         filler_ratio = filler_count / word_count if word_count > 0 else 0.0
         
         information_density = unique_words / word_count if word_count > 0 else 0.0
