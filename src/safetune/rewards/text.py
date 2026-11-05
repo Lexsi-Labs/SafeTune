@@ -150,8 +150,8 @@ class ReadabilityReward(RewardFunction):
         avg_sentence_length = len(words) / len(sentences)
         avg_word_length = sum(len(word) for word in words) / len(words)
         
-        sentence_score = 1.0 - min(1.0, (avg_sentence_length - 15) / 30)
-        word_score = 1.0 - min(1.0, (avg_word_length - 4.5) / 5)
+        sentence_score = 1.0 - max(0.0, min(1.0, (avg_sentence_length - 15) / 30))
+        word_score = 1.0 - max(0.0, min(1.0, (avg_word_length - 4.5) / 5))
         
         complex_punct = text.count(';') + text.count(':') + text.count('—')
         punct_penalty = min(0.2, complex_punct * 0.05)
