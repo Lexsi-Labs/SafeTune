@@ -149,8 +149,9 @@ class TemporalConsistencyReward(RewardFunction):
         score = 1.0
         pairs = [('yesterday', 'tomorrow'), ('past', 'future'), ('before', 'after')]
         for p, f in pairs:
-            if p in prev_text and f in text_lower: score -= 0.3
-            if f in prev_text and p in text_lower: score -= 0.3
+            past_word, future_word = rf"\b{p}\b", rf"\b{f}\b"
+            if re.search(past_word, prev_text) and re.search(future_word, text_lower): score -= 0.3
+            if re.search(future_word, prev_text) and re.search(past_word, text_lower): score -= 0.3
         return max(0.0, score)
 
 
