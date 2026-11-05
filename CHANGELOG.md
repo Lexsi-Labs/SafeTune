@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `LogicalConsistencyReward` matches its contradiction pairs as whole words, so `small` and
+  `nonetheless` no longer count as an `all`/`none` contradiction (@ANDROIDHASSAN).
 - Audit fixes across the harden, recover and unlearn methods (CST, EMA, SafeGrad, ASRT, MART, LISA,
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
