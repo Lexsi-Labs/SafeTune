@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `enthusiastic` no longer earn the `or`, `so` and `thus` bonuses (@ANDROIDHASSAN).
 - `ReadabilityReward` caps its sentence and word scores at 1, so a very short sentence can no longer
   cancel out long words or the punctuation penalty (@ANDROIDHASSAN).
+- `TemporalConsistencyReward` matches its past/future pairs as whole words, so `pasta` and
+  `afternoon` no longer count as `past` and `after` (@ANDROIDHASSAN).
 - Audit fixes across the harden, recover and unlearn methods (CST, EMA, SafeGrad, ASRT, MART, LISA,
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
