@@ -50,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `earlier`, so an honest answer that used one of those words scored 0.
 - `math_correctness` counts each equation once. It also counted the equation's left side as a bare
   expression, which always evaluates, so a wrong equation such as `2 + 2 = 5` scored 0.5 instead of 0.
+- `apply_safe_lora(aligned_adapter_path=...)` scales the aligned adapter the way PEFT does:
+  `lora_alpha / sqrt(r)` with `use_rslora`, and the per-module rank and `alpha_pattern`. It always
+  used `lora_alpha / r`, so for an rsLoRA adapter with r=32 and alpha=64 the safety vector, and the
+  projection built from it, came out 5.66x too small.
 
 ### Changed
 
