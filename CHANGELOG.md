@@ -62,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It cut from the right, so the logit diff was read in the middle of the prompt instead of at its
   end. With a chat template whose preamble is longer than the cap (Tiny Aya's is ~366 tokens, the
   default cap is 64), the harmful and harmless prompts became the same tokens and every score was 0.
+- `apply_oneshot_safety_patch` is labelled Variant, not Faithful. The cited paper (arXiv:2601.01887)
+  fine-tunes all weights on one example chosen by bi-level data selection, for 10 epochs at lr 2e-5,
+  and has no saliency mask. The docstring no longer calls `top_fraction=0.05`, `lr=1e-4` and
+  `num_steps=1` the paper's settings, and the References entry no longer describes OBS pruning.
 
 ### Changed
 

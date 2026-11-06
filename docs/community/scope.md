@@ -54,7 +54,7 @@ The Faithful methods, by pillar:
   `apply_lssf`, `apply_antidote`, `apply_pke`, `apply_safereact`,
   `tracin_influence`, `apply_mscp`, `apply_wise_ft`,
   `apply_safety_vector_restore`, `apply_grad_selective_recover`,
-  `apply_oneshot_safety_patch`, `apply_antidote_v2`, `apply_repnoise_recover`.
+  `apply_antidote_v2`, `apply_repnoise_recover`.
 - **Unlearn:** `RMU`, `NPO`, `Gradient-Ascent / GradDiff`,
   `flat_unlearn`.
 - **Harden:** `CSTTrainer`, `EMACallback`, `SafeGradTrainer`, `SPPFTTrainer`,
@@ -77,9 +77,9 @@ The Faithful methods, by pillar:
 - **Runtime:** the full guardrail family — `SafetyMiddleware`, `InputSanitizer`,
   `OutputVerifier`, `CoSAlignFormatter`, etc.
 
-## Not Faithful — the 13 Variants
+## Not Faithful — the 14 Variants
 
-The 13 remaining Variant methods run correctly but must not be cited as the named
+The 14 remaining Variant methods run correctly but must not be cited as the named
 method:
 
 - **`deeprefusal`** (Harden) — incompatible API with the published paper;
@@ -113,6 +113,11 @@ method:
   preference-optimisation method, not an unlearning method.
 - **`somf_merge`** (Recover) — magnitude-mask default vs. the paper's learned
   DPO/Concrete mask.
+- **`apply_oneshot_safety_patch`** (Recover) updates only the top-`top_fraction`
+  coordinates by gradient saliency, with a few Adam steps on one plain-text
+  (harmful prompt, safe response) pair. The paper (arXiv:2601.01887) fine-tunes
+  all weights on one chat-format example chosen by bi-level data selection, for
+  10 epochs at lr 2e-5, with no saliency mask.
 - **`identify_safety_neurons` activation-mode** (Interpret) — one-model
   contrast vs. cross-model set-difference metric; use weight mode for a
   Faithful result.
