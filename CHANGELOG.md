@@ -28,10 +28,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `SafetyReward` and `aligned_safety` (`SafetyRewardFunction`) match harmful-topic words only at a
+  word start. `kill` used to fire inside `skill`, so "How do I improve my skills?" was treated as a
+  harmful request (a helpful answer scored 0.4 and a refusal 1.0), and "here's how ... skills" as
+  harmful compliance.
+- `LogicalConsistencyReward` matches its contradiction pairs as whole words, so `small` and
+  `nonetheless` no longer count as an `all`/`none` contradiction (@ANDROIDHASSAN).
+- `FluencyReward` matches transitions and connectors as whole words, so `words`, `some` and
+  `enthusiastic` no longer earn the `or`, `so` and `thus` bonuses (@ANDROIDHASSAN).
+- `ReadabilityReward` caps its sentence and word scores at 1, so a very short sentence can no longer
+  cancel out long words or the punctuation penalty (@ANDROIDHASSAN).
+- `TemporalConsistencyReward` matches its past/future pairs as whole words, so `pasta` and
+  `afternoon` no longer count as `past` and `after` (@ANDROIDHASSAN).
+- `ConcisenessReward` counts a filler next to punctuation (`Basically,`) and the two-word
+  `you know`, which it listed but could never match (@ANDROIDHASSAN).
 - Audit fixes across the harden, recover and unlearn methods (CST, EMA, SafeGrad, ASRT, MART, LISA,
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
   by Deeraj.
+- `honesty` matches its dishonesty terms at a word start. `lie` matched inside `believe`, `client`
+  and `earlier`, so an honest answer that used one of those words scored 0.
+- `math_correctness` counts each equation once. It also counted the equation's left side as a bare
+  expression, which always evaluates, so a wrong equation such as `2 + 2 = 5` scored 0.5 instead of 0.
 
 ### Changed
 
