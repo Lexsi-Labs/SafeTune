@@ -36,7 +36,7 @@ print(circuit.safety_units.unit_ids[:5])
 | `top_k_edges` | `int` | `100` | Number of edges to keep |
 | `ig_steps` | `int` | `5` | Integration steps for EAP-IG |
 | `batch_size` | `int` | `8` | Batch size |
-| `max_seq_len` | `int` | `64` | Max sequence length |
+| `max_seq_len` | `int` | `64` | Max prompt length in tokens; a longer prompt keeps its last `max_seq_len` tokens and a warning is logged |
 
 ## When to use
 

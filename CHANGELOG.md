@@ -58,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the paper (Eq. 2), not on `W_ft - W_base`. That difference also holds the safety vector, which
   raised the cosine, so a layer whose update had left the safety subspace could be kept instead of
   merged. The merge itself is unchanged.
+- `eap_safety_circuit` cuts a prompt longer than `max_seq_len` from the left and logs a warning.
+  It cut from the right, so the logit diff was read in the middle of the prompt instead of at its
+  end. With a chat template whose preamble is longer than the cap (Tiny Aya's is ~366 tokens, the
+  default cap is 64), the harmful and harmless prompts became the same tokens and every score was 0.
 
 ### Changed
 
