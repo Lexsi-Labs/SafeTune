@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
   by Deeraj.
+- `apply_safemerge` measures each layer's cosine on the fine-tuning update `W_ft - W_aligned`, as
+  in the paper (Eq. 2), not on `W_ft - W_base`. That difference also holds the safety vector, which
+  raised the cosine, so a layer whose update had left the safety subspace could be kept instead of
+  merged. The merge itself is unchanged.
 
 ### Changed
 
