@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
   by Deeraj.
+- `apply_safe_lora(aligned_adapter_path=...)` scales the aligned adapter the way PEFT does:
+  `lora_alpha / sqrt(r)` with `use_rslora`, and the per-module rank and `alpha_pattern`. It always
+  used `lora_alpha / r`, so for an rsLoRA adapter with r=32 and alpha=64 the safety vector, and the
+  projection built from it, came out 5.66x too small.
 
 ### Changed
 
