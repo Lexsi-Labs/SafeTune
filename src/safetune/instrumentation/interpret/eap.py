@@ -111,7 +111,9 @@ class EAPSafetyCircuitConfig:
             values around 5–10.
         batch_size: number of contrast pairs processed per forward/backward
             pass.
-        max_seq_len: tokenizer truncation length for prompts.
+        max_seq_len: tokenizer truncation length for prompts. A longer prompt
+            keeps its last ``max_seq_len`` tokens (the metric is read at the
+            final token) and a warning is logged.
         device: ``"cpu"``, ``"cuda"``, or ``None`` to auto-select.
         dtype: torch dtype name for model weights (``"float32"`` on CPU).
         output_dir: where to dump raw outputs (scores JSON, contrast pairs).
@@ -503,13 +505,20 @@ def _logit_diff_metric(
 def _tokenize_batch(tokenizer: Any, prompts: List[str], cfg: EAPSafetyCircuitConfig, device: str):
     import torch
 
-    enc = tokenizer(
-        prompts,
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-        max_length=cfg.max_seq_len,
-    )
+    # Cut long prompts from the left: the metric is read at the final token, and
+    # a chat template's system preamble alone can be longer than max_seq_len.
+    truncation_side = tokenizer.truncation_side
+    tokenizer.truncation_side = "left"
+    try:
+        enc = tokenizer(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=cfg.max_seq_len,
+        )
+    finally:
+        tokenizer.truncation_side = truncation_side
     enc = {k: v.to(device) for k, v in enc.items()}
     mask = enc["attention_mask"]
     last_idx = mask.sum(dim=1) - 1  # final real token per example
@@ -663,6 +672,15 @@ def _run_eap(
 
     total: Dict[str, float] = {node.name: 0.0 for node in nodes}
     n_pairs = len(harmful_prompts)
+
+    prompts = harmful_prompts + harmless_prompts
+    n_long = sum(len(ids) > cfg.max_seq_len for ids in tokenizer(prompts)["input_ids"])
+    if n_long:
+        logger.warning(
+            "eap_safety_circuit: %d of %d prompts are longer than max_seq_len=%d; "
+            "only their last %d tokens are used. Raise max_seq_len to keep them whole.",
+            n_long, len(prompts), cfg.max_seq_len, cfg.max_seq_len,
+        )
 
     with _ActivationCapture(nodes) as capture:
         for start in range(0, n_pairs, cfg.batch_size):
