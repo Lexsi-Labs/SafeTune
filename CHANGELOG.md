@@ -54,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `lora_alpha / sqrt(r)` with `use_rslora`, and the per-module rank and `alpha_pattern`. It always
   used `lora_alpha / r`, so for an rsLoRA adapter with r=32 and alpha=64 the safety vector, and the
   projection built from it, came out 5.66x too small.
+- `apply_safemerge` measures each layer's cosine on the fine-tuning update `W_ft - W_aligned`, as
+  in the paper (Eq. 2), not on `W_ft - W_base`. That difference also holds the safety vector, which
+  raised the cosine, so a layer whose update had left the safety subspace could be kept instead of
+  merged. The merge itself is unchanged.
 
 ### Changed
 

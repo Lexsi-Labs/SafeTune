@@ -14,9 +14,10 @@ repo):
 
    (``compute_safelora_projection_matrices``: ``C = vec @ vec.T / fro_norm``.)
 
-2. For each fine-tuned layer, take its update ``ΔW_f^i = W_ft^i - W_base^i``,
-   project it through ``C^i`` and measure the cosine similarity between the
-   raw update and its projection onto the safety subspace::
+2. For each fine-tuned layer, take its update ``ΔW_f^i = W_ft^i - W_aligned^i``
+   (the LoRA update the task fine-tune added to the aligned model, paper
+   Eq. 2), project it through ``C^i`` and measure the cosine similarity
+   between the raw update and its projection onto the safety subspace::
 
        ρ^i = cos( ΔW_f^i ,  C^i ΔW_f^i )
 
@@ -25,9 +26,9 @@ repo):
 3. A layer is *unsafe* when ``ρ^i < τ``; only unsafe layers are **merged**
    (linearly interpolated) with the safe model — safe layers keep the
    fine-tuned weights untouched. The merge for unsafe layers is, on the
-   *deltas*::
+   *deltas* from the base::
 
-       ΔW_merge^i = (1-α)·ΔW_f^i + α·ΔW_s^i ,   ΔW_s^i = W_aligned^i - W_base^i
+       ΔW_merge^i = (1-α)·(W_ft^i - W_base^i) + α·ΔW_s^i ,   ΔW_s^i = W_aligned^i - W_base^i
 
    which, added back onto ``W_base^i``, equals the weight-space form
    ``(1-α)·W_ft^i + α·W_aligned^i``. ``"dare_linear"`` additionally drops a
@@ -151,7 +152,9 @@ def apply_safemerge(
         delta_task = w_ft.float() - w_base_device.float()
         delta_safety = w_aligned_device.float() - w_base_device.float() # Define delta_safety
 
-        rho = _projection_cosine(delta_safety, delta_task)
+        # rho is measured on the fine-tuning update alone. ft - base also holds the
+        # safety vector V, and C V stays in the safety subspace, so it would push rho up.
+        rho = _projection_cosine(delta_safety, w_ft.float() - w_aligned_device.float())
         if rho is None:
             continue
             
