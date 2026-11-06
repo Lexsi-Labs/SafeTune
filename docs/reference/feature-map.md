@@ -59,7 +59,7 @@ Two changes affect how you call the fixed methods:
 | apply_wise_ft | Faithful |
 | apply_safety_vector_restore | Faithful |
 | apply_grad_selective_recover | Faithful |
-| apply_oneshot_safety_patch | Faithful |
+| apply_oneshot_safety_patch | Variant |
 | apply_antidote_v2 | Faithful |
 | apply_repnoise_recover | Faithful |
 

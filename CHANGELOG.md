@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
   by Deeraj.
+- `apply_oneshot_safety_patch` is labelled Variant, not Faithful. The cited paper (arXiv:2601.01887)
+  fine-tunes all weights on one example chosen by bi-level data selection, for 10 epochs at lr 2e-5,
+  and has no saliency mask. The docstring no longer calls `top_fraction=0.05`, `lr=1e-4` and
+  `num_steps=1` the paper's settings, and the References entry no longer describes OBS pruning.
 
 ### Changed
 

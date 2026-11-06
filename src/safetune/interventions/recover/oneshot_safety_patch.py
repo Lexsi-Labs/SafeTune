@@ -1,9 +1,16 @@
-"""One-shot safety patch (arXiv:2601.01887, Jan 2026).
+"""One-shot safety patch, after arXiv:2601.01887 (Jan 2026).
 
 Minimal-data, minimal-compute targeted safety recovery.
 
-Algorithm (paper Sec. 3)
-------------------------
+This is a SafeTune variant, not the paper's algorithm. The paper ("Safety at
+One Shot", Zhang et al.) picks one safety example from a candidate set by
+bi-level data selection and fine-tunes all weights on it in chat format with
+the plain SFT loss, for 10 epochs at learning rate 2e-5 (Sec. 3.1). It has no
+saliency mask. This function keeps the single example but tokenises it as
+plain text and updates only the most gradient-salient coordinates:
+
+Algorithm
+---------
 1. A single (harmful_prompt, safe_response) example is tokenised.
 2. A single forward + backward pass yields per-parameter gradient saliency
        S(w) = |∂ L_CE(safe_response | harmful_prompt) / ∂ w|
@@ -19,8 +26,7 @@ Algorithm (paper Sec. 3)
    response, the capability footprint of the edit is minimal.
 
 The gradient saliency concentrates the edit on the minimal set of weights
-responsible for the harmful behaviour; ``num_steps`` can be as few as 1
-(the paper's headline "one-shot" setting).
+responsible for the harmful behaviour; ``num_steps`` can be as few as 1.
 
 vLLM backend
 ------------
@@ -118,7 +124,7 @@ def _build_topk_mask(
 ) -> Dict[str, torch.Tensor]:
     """Build a boolean mask selecting the top-fraction saliency entries globally.
 
-    The paper uses a *global* top-k across all selected parameters so the most
+    The top-k is *global* across all selected parameters, so the most
     safety-relevant coordinates are preferred regardless of which layer they
     belong to.
     """
@@ -163,12 +169,14 @@ def apply_oneshot_safety_patch(
         HuggingFace tokenizer for the model.
     top_fraction:
         Global fraction of parameters to update (selected by highest saliency).
-        Paper default: 0.05 (5 %).
+        Default: 0.05 (5 %).
     lr:
-        Adam learning rate for the targeted update. Paper default: 1e-4.
+        Adam learning rate for the targeted update. Default: 1e-4 (the paper
+        fine-tunes all weights at 2e-5).
     num_steps:
         Gradient steps on the targeted parameter subset after saliency
-        selection. ``num_steps=1`` is the paper's headline "one-shot" setting.
+        selection. "One-shot" in the paper means one example, not one step;
+        it trains on that example for 10 epochs.
     target_modules:
         Substrings of parameter names to consider for saliency and update.
         Default: all parameters.
