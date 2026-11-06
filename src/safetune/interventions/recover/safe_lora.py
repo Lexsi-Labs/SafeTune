@@ -5,8 +5,10 @@ Faithful reimplementation of Hsu et al., NeurIPS 2024 (arXiv:2405.16833).
 from __future__ import annotations
 
 import functools
+import math
 import os
 import json
+import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 import torch
@@ -79,6 +81,21 @@ def _module_key_for_lora(lora_name: str) -> str:
     if key.startswith("base_model.model."): 
         key = key[len("base_model.model."):]
     return key
+
+def _lora_scaling(peft_config: Dict[str, Any], module_key: str, r: int) -> float:
+    """Factor PEFT scales ``B @ A`` by for ``module_key`` (``LoraLayer.update_layer``).
+
+    ``r`` is the module's rank (rows of ``lora_A``), which already reflects
+    ``rank_pattern``. ``alpha_pattern`` is matched the way PEFT's ``get_pattern_key`` does.
+    """
+    alpha = peft_config["lora_alpha"]
+    for pattern, value in (peft_config.get("alpha_pattern") or {}).items():
+        if re.match(rf"(.*\.)?({pattern})$", module_key):
+            alpha = value
+            break
+    if peft_config.get("use_rslora"):
+        return alpha / math.sqrt(r)
+    return alpha / r
 
 def _collect_lora_layers(model: nn.Module) -> List[Tuple[str, nn.Module]]:
     layers: List[Tuple[str, nn.Module]] = []
@@ -266,9 +283,6 @@ def apply_safe_lora(
         with open(config_path, "r") as f:
             peft_config = json.load(f)
         
-        # Lora scaling factor
-        scaling = peft_config["lora_alpha"] / peft_config["r"]
-        
         # Clone base_sd to build aligned full weights safely
         aligned_sd = {k: v.clone() for k, v in base_sd.items()}
         
@@ -279,9 +293,11 @@ def apply_safe_lora(
                     b_weight = adapter_sd[key].float()
                     a_weight = adapter_sd[a_key].float()
                     
-                    base_key = _module_key_for_lora(key) + ".weight"
+                    module_key = _module_key_for_lora(key)
+                    base_key = module_key + ".weight"
                     
                     if base_key in aligned_sd:
+                        scaling = _lora_scaling(peft_config, module_key, a_weight.shape[0])
                         delta = torch.mm(b_weight, a_weight) * scaling
                         aligned_sd[base_key] = (aligned_sd[base_key].float() + delta).to(aligned_sd[base_key].dtype)
 
