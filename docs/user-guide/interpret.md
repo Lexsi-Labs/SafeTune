@@ -33,4 +33,4 @@ circuit = safety_circuit_info(
 | `identify_safety_neurons` (activation mode) | safety neurons by activation contrast | [Activation-based](interpret/safety-neurons/activation.md) |
 | `safety_circuit_info` | convenience wrapper — both steps in one call | [safety_circuit_info](interpret/circuit-info/safety-circuit-info.md) |
 | `CircuitInfo` | round-trippable data container | [CircuitInfo object](interpret/circuit-info/circuit-info-object.md) |
-| `eap_safety_circuit` | edge attribution patching | [EAP / EAP-IG](interpret/eap/index.md) |
+| `eap_safety_circuit` | node-level EAP / EAP-IG (Simplified) | [EAP / EAP-IG](interpret/eap/index.md) |

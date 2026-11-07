@@ -1,7 +1,8 @@
 # EAP / EAP-IG circuit discovery
 
 Edge Attribution Patching (EAP) or EAP with Integrated Gradients (EAP-IG)
-discovers safety-relevant edges in the model's computational graph.
+scores the nodes (attention heads and MLPs) of the model's computational graph. **Simplified:** the original methods score
+*edges*; a node score is the sum of its outgoing-edge scores, and this function returns the top-k nodes.
 
 ```python
 from safetune.interpret import eap_safety_circuit, EAPSafetyCircuitConfig
@@ -22,7 +23,7 @@ circuit = eap_safety_circuit(
 )
 
 # eap_safety_circuit returns the same CircuitInfo shape as safety_circuit_info():
-print(len(circuit.safety_units.unit_ids), "safety-relevant edges/heads found")
+print(len(circuit.safety_units.unit_ids), "safety-relevant nodes (heads / MLPs) found")
 print(circuit.safety_units.unit_ids[:5])
 ```
 
@@ -33,14 +34,14 @@ print(circuit.safety_units.unit_ids[:5])
 | `method` | `str` | `"eap-ig"` | `"eap"` or `"eap-ig"` |
 | `granularity` | `str` | `"head"` | `"head"` or `"block"` |
 | `intervention` | `str` | `"patching"` | `"patching"`, `"zero"`, or `"mean"` |
-| `top_k_edges` | `int` | `100` | Number of edges to keep |
-| `ig_steps` | `int` | `5` | Integration steps for EAP-IG |
+| `top_k_edges` | `int` | `100` | Number of top NODES to keep (the name is historical) |
+| `ig_steps` | `int` | `5` | Integration steps for EAP-IG (the official default is 30); EAP-IG integrates over the input-embedding line, `"patching"` only |
 | `batch_size` | `int` | `8` | Batch size |
 | `max_seq_len` | `int` | `64` | Max prompt length in tokens; a longer prompt keeps its last `max_seq_len` tokens and a warning is logged |
 
 ## When to use
 
-EAP discovers the *circuit* (set of edges) responsible for refusal, not just
+This discovers the components (heads and MLPs) responsible for refusal, not just
 individual neurons. Use when you need to understand the full computation path
 that drives the model's safety behaviour.
 

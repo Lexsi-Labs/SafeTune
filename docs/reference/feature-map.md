@@ -182,12 +182,12 @@ Harden notes (second-pass audit):
 
 | Feature | Faithful? |
 |---|---|
-| identify_safety_neurons (weight mode) | Faithful |
+| identify_safety_neurons (weight mode) | Variant |
 | identify_safety_neurons (activation mode) | Variant |
 | safety_circuit_info | Faithful |
 | CircuitInfo (+ JSON/YAML reader+writer) | Faithful |
 | CircuitInfoProvider + save_circuit_info_to_file | Faithful |
-| eap_safety_circuit (EAP / EAP-IG) | Faithful |
+| eap_safety_circuit (EAP / EAP-IG) | Simplified |
 
 ## Rewards
 

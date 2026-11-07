@@ -51,6 +51,11 @@ cited as the named method.
   AgentHarm score; `load_prompts('rwku')` / the `rwku` benchmark loads the forget probes (`forget_level2`) only, without
   the original's retain and neighbour sets. (This page keeps no numeric Simplified count on this branch; the line above
   is what to merge with the Simplified list of the other audit PRs, which edit the same bullet.)
+- Simplified methods are usable but should be described as simplified. Interpret: `eap_safety_circuit` scores
+  graph NODES (attention heads and MLPs) with the true gradient, where EAP / EAP-IG (Syed et al.; Hanna et al.) score
+  EDGES; a node score is the sum of its outgoing-edge scores, so the edge ranking is lost. Its EAP-IG is the official
+  "IG, inputs" variant. Pairs of unequal length are aligned by index (the official code raises), and `ig_steps` defaults to 5
+  (official 30). (This page keeps no numeric Simplified count on this branch.)
 - Variant methods run but **must not be cited** as the named method — treat them
   as experimental / unverified.
 
@@ -86,9 +91,9 @@ The Faithful methods, by pillar:
 - **Runtime:** the full guardrail family — `SafetyMiddleware`, `InputSanitizer`,
   `OutputVerifier`, `CoSAlignFormatter`, etc.
 
-## Not Faithful — the 21 Variants
+## Not Faithful — the 23 Variants
 
-The 21 remaining Variant methods run correctly but must not be cited as the named
+The 23 remaining Variant methods run correctly but must not be cited as the named
 method:
 
 - **`deeprefusal`** (Harden) — incompatible API with the published paper;
@@ -152,6 +157,13 @@ method:
 - **`identify_safety_neurons` activation-mode** (Interpret) — one-model
   contrast vs. cross-model set-difference metric; use weight mode for a
   Faithful result.
+- **`identify_safety_neurons` weight mode** (Interpret) — SafeTune's own heuristic: the absolute cosine of each
+  `down_proj` column with a refusal direction. No paper defines it; Chen et al. (arXiv:2406.14144) define no
+  weight-space metric. It needs only a refusal direction.
+- **`identify_safety_neurons` activation mode** (Interpret) — a one-model harmful-vs-harmless contrast of the
+  `down_proj` input over PROMPT tokens, top-k per layer, mean|a| difference. Chen et al. take the RMS of the
+  activation difference between two CHECKPOINTS over generated tokens and rank all neurons together (Wei et al.
+  use a Wanda/SNIP safety-vs-utility set difference). Neither mode implements the cross-checkpoint metric.
 
 ## Stubs
 
