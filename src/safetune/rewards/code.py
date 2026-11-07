@@ -5,7 +5,7 @@ Code-related reward functions for SafeTune.
 from typing import List, Optional, Dict, Any
 import logging
 import re
-from ._code_grader import grade_assertion, grade_io, run_candidate
+from ._code_grader import grade_assertion, grade_assertions, grade_io, run_candidate
 from .base import RewardFunction, RewardConfig
 
 logger = logging.getLogger(__name__)
@@ -149,10 +149,17 @@ class MBPPReward(RewardFunction):
     """Reward for MBPP-style code generation.
 
     MBPP problems ship with three Python ``assert`` statements as the test
-    suite. The reward extracts a code block from ``text``, runs it in a child
+    suite. The reward extracts a code block from ``text``, runs it in ONE child
     process, checks each assert on the values it returns, and returns the
     fraction of asserts that pass. Tests are taken from ``kwargs['test_list']`` (a list of
     assert strings) or from ``config.params['test_list']``.
+
+    ``timeout`` is an idle timeout: the child is killed after that many seconds without finishing
+    an assert (and after ``timeout * len(tests) + 1`` seconds in all), so a completion that hangs
+    costs one ``timeout``, not one per assert. Asserts answered before a hang keep their credit.
+    Each assert runs the candidate afresh in a new namespace; process-level state (``sys.modules``,
+    attributes set on builtins or imported modules, files) is shared between asserts, and the memory
+    and file-size limits cover all asserts together (see ``_code_grader.grade_assertions``).
     """
 
     def __init__(self, config: RewardConfig):
@@ -165,7 +172,7 @@ class MBPPReward(RewardFunction):
         code = self._extract_code(text)
         if not code or not tests:
             return 0.0
-        passed = sum(grade_assertion(code, test, self.timeout) for test in tests)
+        passed = sum(grade_assertions(code, tests, self.timeout))
         return passed / len(tests)
 
     def _extract_code(self, text: str) -> str:
