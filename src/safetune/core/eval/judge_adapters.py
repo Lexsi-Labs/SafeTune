@@ -124,8 +124,8 @@ class ScorerJudgeAdapter:
         future judge honouring the same contract).
     behaviors:
         Optional list of prompts/behaviors aligned with the scored ``texts``.
-        Used to populate the ``prompt`` field each judge reads. When ``None``
-        or shorter than ``texts`` the missing entries default to ``""``.
+        Used to populate the ``prompt`` field each judge reads. ``None`` sends ``""``
+        (for judges that ignore the prompt); a list shorter than ``texts`` raises.
     score_key:
         Key read from each row's ``judgement`` dict for the scalar score.
         Defaults to ``"asr"`` (the shared convention of all ``scorer.py``
@@ -137,15 +137,31 @@ class ScorerJudgeAdapter:
     score_key: str = "asr"
 
     def score(self, texts: List[str]) -> List[float]:
-        behaviors = self.behaviors or []
+        behaviors = self.behaviors
+        if behaviors is not None and len(behaviors) < len(texts):
+            raise ValueError(
+                f"ScorerJudgeAdapter: {len(behaviors)} behaviors for {len(texts)} texts; "
+                "pass one behavior per text, or behaviors=None for judges that ignore the prompt."
+            )
         rows: List[Dict[str, Any]] = []
         for i, t in enumerate(texts):
-            behavior = behaviors[i] if i < len(behaviors) else ""
+            behavior = behaviors[i] if behaviors is not None else ""
             rows.append({"prompt": behavior, "response": t})
         scored = self.judge.score(rows)
-        return [
-            float(r.get("judgement", {}).get(self.score_key, 0.0)) for r in scored
-        ]
+        if len(scored) != len(texts):
+            raise ValueError(
+                f"ScorerJudgeAdapter: the judge returned {len(scored)} rows for {len(texts)} texts."
+            )
+        out: List[float] = []
+        for i, r in enumerate(scored):
+            judgement = r.get("judgement") or {}
+            if self.score_key not in judgement:
+                raise ValueError(
+                    f"ScorerJudgeAdapter: the judge's judgement for text {i} has no "
+                    f"{self.score_key!r} key (got {sorted(judgement)}); refusing to read it as 0.0."
+                )
+            out.append(float(judgement[self.score_key]))
+        return out
 
 
 def build_judge_adapter(

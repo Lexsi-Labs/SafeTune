@@ -153,26 +153,28 @@ Harden notes (second-pass audit):
 
 | Feature | Faithful? |
 |---|---|
-| StringMatchJudge | Faithful |
+| StringMatchJudge (mode="gcg", the llm-attacks check) | Faithful |
+| StringMatchJudge (mode="prefix", the default 12-prefix starts-with match) | Variant |
 | HFJudge (HarmBench classifier) | Faithful |
 | OpenAIJudge (StrongREJECT) | Faithful |
 | JudgeAdapter | Faithful |
 | SpectralEntropyMonitor | Faithful |
 | evaluate.suite.evaluate | Faithful |
 | TamperBenchEvaluator | Faithful |
+| PTSTEvaluator | Variant |
 | Loader: advbench | Faithful |
 | Loader: xstest | Faithful |
 | Loader: sorrybench | Faithful |
 | Loader: orbench | Faithful |
-| Loader: harmbench | Faithful |
-| Loader: agentharm | Faithful |
+| Loader: harmbench | Simplified |
+| Loader: agentharm | Simplified |
 | Loader: saladbench | Faithful |
 | Loader: airbench | Faithful |
 | Loader: cares | Faithful |
 | Loader: wildjailbreak | Faithful |
 | Loader: jailbreakbench | Faithful |
 | Loader: muse | Faithful |
-| Loader: rwku | Faithful |
+| Loader: rwku | Simplified |
 | Loader: safedialbench | Faithful |
 | Pareto utilities | Faithful |
 

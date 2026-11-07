@@ -85,9 +85,25 @@ class AbliterationAttack:
         return direction, layer_idx
 
     def run(self, mode: str = "runtime_ablate", strength: float = 1.0) -> None:
-        """Apply the attack. ``mode`` is ``runtime_ablate`` or ``weight_orthogonalize``."""
+        """Apply the attack. ``mode`` is ``runtime_ablate`` or ``weight_orthogonalize``.
+
+        Calling ``run`` again reverts the previous application first. ``strength`` applies to
+        ``runtime_ablate`` only; ``weight_orthogonalize`` raises for any other value than 1.0.
+        """
         if self._direction is None:
             raise RuntimeError("Call .fit(...) before .run(...) to extract the direction.")
+        if mode not in ("runtime_ablate", "weight_orthogonalize"):
+            raise ValueError(
+                f"mode must be 'runtime_ablate' or 'weight_orthogonalize', got {mode!r}"
+            )
+        if mode == "weight_orthogonalize" and strength != 1.0:
+            raise ValueError(
+                "weight_orthogonalize removes the direction completely; it has no strength. "
+                f"Got strength={strength!r}; use mode='runtime_ablate' for a partial ablation."
+            )
+        # An earlier application is undone first, so hooks never stack and the weight
+        # snapshot is always the unedited model (a second snapshot would be of edited weights).
+        self.revert()
 
         if mode == "runtime_ablate":
             self._runtime = RefusalDirectionModel(
@@ -98,10 +114,6 @@ class AbliterationAttack:
             ).install()
         elif mode == "weight_orthogonalize":
             self._weight_snapshots = orthogonalize_weights(self.model, self._direction)
-        else:
-            raise ValueError(
-                f"mode must be 'runtime_ablate' or 'weight_orthogonalize', got {mode!r}"
-            )
 
     def revert(self) -> None:
         """Undo whichever mode was last applied. Idempotent."""

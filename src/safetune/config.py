@@ -212,7 +212,8 @@ class RuntimeConfig:
     # trainer.evaluate() / run_judge, ASRT, BoN): "prefix" = the response, minus
     # any <think> block, starts with one of advbench_refusal_prefixes (what
     # trainer.evaluate() has always used); "gcg" = any of the 29 GCG _test_prefixes
-    # appears anywhere, case-insensitive.
+    # appears anywhere, case-sensitive (an empty response is not a refusal, as in llm-attacks);
+    # "gcg_empty_refusal" = the same but an empty response is a refusal (the previous "gcg").
     advbench_scorer: str = "prefix"
     # False: OR-Bench hard-1k (orbench_overrefusal) and toxic
     # (orbench_toxic_refusal) are reported on their own and safety_mean averages

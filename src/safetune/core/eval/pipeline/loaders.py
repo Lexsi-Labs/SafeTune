@@ -60,7 +60,10 @@ LoaderFn = Callable[[Dict[str, Any]], List[Dict[str, Any]]]
 
 
 def load_harmbench(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Walledai/HarmBench standard split."""
+    """walledai/HarmBench: all three configs, standard (200) + contextual (100) + copyright (100), in
+    that order (the contextual context is prefixed to the behavior). Gated: checked against code only.
+    Badge: Simplified: contextual rows are judged without ``prompt_contextual`` and copyright rows by the classifier
+    instead of the original's hash check (see ``data/loaders/benchmarks.py:load_harmbench``)."""
     return [
         {"source": "harmbench", "behavior_id": str(idx), "prompt": item.get("prompt", ""),
          "harmbench_category": item.get("category", "")}
@@ -168,13 +171,15 @@ def load_wildjailbreak(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
 def load_agentharm(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """AgentHarm benchmark (Andriushchenko et al., ICLR 2025, arXiv:2410.09024).
 
-    Agent-style malicious tasks. Canonical id: ``ai-safety-institute/AgentHarm``.
+    Agent-style malicious tasks. Badge: Simplified (prompt only, see below). Canonical id: ``ai-safety-institute/AgentHarm``.
     The ``harmful`` config (split ``test_public``, 176 rows; ``validation`` has
     32) is verified against the dataset viewer to carry 9 columns: ``id``,
     ``id_original``, ``detailed_prompt`` (bool), ``hint_included`` (bool),
     ``name``, ``category``, ``prompt``, ``target_functions`` (list[str]),
     ``grading_function``. We map ``id`` -> ``behavior_id``, ``prompt``,
-    ``category``, ``name`` and the ``hint_included`` flag.
+    ``category``, ``name`` and the ``hint_included`` flag. The ``target_functions`` and
+    ``grading_function`` columns (the tool and grading structure) and ``detailed_prompt`` are NOT
+    kept: rows are plain prompts, so a refusal rate on them is not the AgentHarm score.
     """
     ds = _load("agentharm", cfg)
     max_p = cfg.get("max_prompts")
@@ -195,6 +200,15 @@ def load_agentharm(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     return rows
 
 
+def _cares_polarity(level: Any) -> str:
+    """``harmful_level`` 0 is harmless (a good answer complies), 1-3 harmful; anything else "unknown"."""
+    try:
+        level = int(level)
+    except (TypeError, ValueError):
+        return "unknown"
+    return "harmless" if level == 0 else "harmful" if 1 <= level <= 3 else "unknown"
+
+
 def load_cares(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """CARES medical safety benchmark.
 
@@ -203,7 +217,11 @@ def load_cares(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     config with ``test``/``train`` splits. Fields: ``principle_index``,
     ``generation_model``, ``harmful_level`` (0-3), ``method`` (direct, indirect,
     obfuscate, role-play), ``base_prompt`` (the underlying medical question),
-    ``prompt`` (the final, possibly adversarially-transformed prompt).
+    ``prompt`` (the final, possibly adversarially-transformed prompt). ``harmful_level`` 0 means
+    harmless: 1,991 of the 9,239 test rows are level 0. All rows are kept; ``polarity`` is
+    ``"harmless"`` for level 0 and ``"harmful"`` for levels 1-3 (``"unknown"`` if the level is
+    missing). Nothing aggregates over it: **exclude ``polarity == "harmless"`` rows when
+    computing an attack success rate**, since complying with those is correct.
     """
     ds = _load("cares", cfg)
     max_p = cfg.get("max_prompts")
@@ -221,6 +239,7 @@ def load_cares(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "prompt": prompt,
                 "cares_base_prompt": item.get("base_prompt", ""),
                 "cares_harmful_level": item.get("harmful_level", ""),
+                "polarity": _cares_polarity(item.get("harmful_level")),
                 "cares_method": item.get("method", ""),
                 "cares_principle_index": item.get("principle_index", ""),
             }
@@ -235,7 +254,8 @@ def load_airbench(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     The dataset has six configs (``default``, ``china``, ``us``,
     ``eu_comprehensive``, ``eu_mandatory``, ``judge_prompts``); a config name
     is mandatory. We default to ``default`` (5.7K prompts), split ``test``.
-    Fields: ``cate-idx``, ``l2-name``, ``l3-name``, ``l4-name``, ``prompt``.
+    Fields: ``cate-idx``, ``l2-name``, ``l3-name``, ``l4-name``, ``prompt``. ``behavior_id`` is
+    ``cate-idx`` (a category id, shared by up to 30 prompts); ``row_id`` is unique per row.
     """
     ds = _load("airbench", cfg)
     max_p = cfg.get("max_prompts")
@@ -247,6 +267,9 @@ def load_airbench(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
             {
                 "source": "airbench",
                 "behavior_id": str(item.get("cate-idx", idx)),
+                # ``cate-idx`` is the CATEGORY id: 5,694 prompts share 314 values (up to 30 each),
+                # so behavior_id is not unique. ``row_id`` is.
+                "row_id": str(idx),
                 "prompt": item.get("prompt", ""),
                 "airbench_category": item.get("l3-name", ""),
                 "airbench_l2_category": item.get("l2-name", ""),
@@ -311,7 +334,7 @@ def load_muse(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 def load_rwku(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """RWKU (Jin et al., arXiv:2406.10890): forget-set QA probes (default config
-    ``forget_level2``, split ``test``)."""
+    ``forget_level2``, split ``test``). Forget probes only: no retain or neighbour set."""
     split = cfg.get("split") or spec("rwku").get("split")
     return [
         {"source": "rwku", "behavior_id": str(item.get("id", idx)),
@@ -324,7 +347,8 @@ def load_rwku(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
 def load_safedialbench(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """SafeDialBench (Zhao et al., arXiv:2502.11090): multi-turn dialogues, each
     with a ``conversation`` and a flattened single-turn ``prompt``. Loads from
-    ``HongyeCao/SafeDialBench``; see
+    ``HongyeCao/SafeDialBench`` (4,053 rows; ``id`` is not unique: 2,037 distinct values; no
+    safe/unsafe label column, so ``label`` is ``""``); see
     :func:`safetune.data.loaders.benchmarks.load_safedialbench`."""
     return [
         {"source": "safedialbench", "behavior_id": str(item.get("id", idx)),

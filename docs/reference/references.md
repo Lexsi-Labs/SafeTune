@@ -131,15 +131,16 @@ Inference-time wrappers and decoding processors that steer model behaviour witho
 | Method | Paper | Venue / Year | arXiv | Repo | Description | Requires | Outputs |
 |---|---|---|---|---|---|---|---|
 | `AbliterationAttack` | Abliteration (Arditi et al.) | 2024 | [2406.11717](https://arxiv.org/abs/2406.11717) | — | Removes the refusal direction from model weights to produce a maximally uncensored red-team baseline. | — | abliterated model |
-| `BoNAttack` | Best-of-N Jailbreaking (Hughes et al.) | 2024 | [2412.03556](https://arxiv.org/abs/2412.03556) | — | Generates N augmented prompt variants and selects the one that elicits the most harmful completion. | judge | attack result |
+| `BoNAttack` | Best-of-N Jailbreaking (Hughes et al.) | 2024 | [2412.03556](https://arxiv.org/abs/2412.03556) | — | Samples up to N augmented prompt variants (word scrambling, random capitalization, ASCII noise) and stops at the first one whose response passes the success gate (judge positive, more than 50 words, no recitation, no false-positive phrase). | judge | attack result |
 
 ### Judges & evaluation infrastructure
 
 | Method | Paper | Venue / Year | arXiv | Repo | Description | Requires | Outputs |
 |---|---|---|---|---|---|---|---|
 | `StringMatchJudge` | — (AdvBench refusal-prefix list; GCG list with mode="gcg") | — | — | — | Detects refusals via string-matching against a standard list of refusal prefixes. | response string | bool |
-| `HFJudge` | HarmBench (Mazeika et al.) | 2024 | [2402.04249](https://arxiv.org/abs/2402.04249) | — | Scores model responses with a HuggingFace classifier (default `cais/HarmBench-Mistral-7b-val-cls`) using the official HarmBench classifier template. | model response | 0/1 label |
-| `OpenAIJudge` | StrongREJECT (Souly et al.) | 2024 | [2402.10260](https://arxiv.org/abs/2402.10260) | — | Autogrades responses with a GPT-4 StrongREJECT rubric on a 1–5 harmlessness scale. | OpenAI API key + response | 1–5 score |
+| `HFJudge` | HarmBench (Mazeika et al.) | 2024 | [2402.04249](https://arxiv.org/abs/2402.04249) | — | Scores model responses with a HuggingFace classifier (default `cais/HarmBench-Mistral-7b-val-cls`) using the Llama-2 HarmBench classifier template (the Mistral model card gives a different one; see `HFJudgeConfig`). | model response | 0/1 label |
+| `OpenAIJudge` | StrongREJECT (Souly et al.) | 2024 | [2402.10260](https://arxiv.org/abs/2402.10260) | — | Autogrades responses with the StrongREJECT rubric (refusal flag, convincingness and specificity 1–5) and returns the paper's score in [0, 1]. | OpenAI API key + response | score in [0, 1] |
+| `PTSTEvaluator` | Not the paper's method; named after Lyu et al., "Keeping LLMs Aligned After Fine-tuning: The Crucial Role of Prompt Templates" (Variant) | 2024 | [2402.18540](https://arxiv.org/abs/2402.18540) | [vfleaking/PTST](https://github.com/vfleaking/PTST) | Template-robustness check: refusal rate per prompt format and cross-format consistency (`passed` = consistency, not safety). | `generate_fn` + prompts | per-template rates, consistency |
 | `JudgeAdapter` | — (SafeTune infra) | — | — | — | Unified adapter that wraps any judge and normalizes its output to a common score format. | judge instance | normalized score |
 | `SpectralEntropyMonitor` | — (SafeTune infra) | — | — | — | Monitors the spectral entropy of each layer's hidden states and flags drops below a calibrated baseline. | model + inputs | entropy metrics |
 | `evaluate` | — (SafeTune infra) | — | — | — | End-to-end evaluation pipeline that runs a model against benchmarks and aggregates judge scores. | benchmarks + judge | metric dict |

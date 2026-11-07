@@ -56,7 +56,7 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="HarmBench",
         loader="safetune.data.loaders.load_harmbench",
         category="jailbreak",
-        description="HarmBench text behaviours (Mazeika et al., 2024): standard 200 + contextual 100 + "
+        description="Simplified: HarmBench text behaviours (Mazeika et al., 2024): standard 200 + contextual 100 + "
                     "copyright 100 = 400. HarmBench-Mistral-7b judge (HarmBench itself scores copyright "
                     "behaviours with a hash check).",
         tags=["harmful", "asr", "paper-suite"],
@@ -75,7 +75,8 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="SorryBench v1",
         loader="safetune.data.loaders.load_sorrybench",
         category="jailbreak",
-        description="SorryBench (sorry-bench/sorry-bench-202503). Fine-tuned Mistral-7b judge.",
+        description="SorryBench (sorry-bench/sorry-bench-202503, base prompt style) with the official fine-tuned "
+                    "Mistral-7b judge (...-sorry-bench-202406), the pairing in the SORRY-Bench README. The name 'v1' is historical.",
         tags=["harmful", "asr", "paper-suite"],
     ),
     BenchmarkSpec(
@@ -92,7 +93,8 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="HEx-PHI",
         loader="safetune.data.loaders.load_hexphi",
         category="jailbreak",
-        description="HEx-PHI 330 harmful instructions across 11 categories (LLM-Trust/HEx-PHI). Llama-3.1-8B judge.",
+        description="HEx-PHI (LLM-Trust/HEx-PHI) is 330 harmful instructions across 11 categories; the default "
+                    "Hammington/hexphi mirror has 200 prompts (columns prompt, response). Llama-3.1-8B judge.",
         tags=["harmful", "asr", "paper-suite"],
     ),
     BenchmarkSpec(
@@ -100,7 +102,7 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="AILuminate",
         loader="safetune.data.loaders.load_ailuminate",
         category="jailbreak",
-        description="MLCommons AILuminate DEMO — 1290 prompts across 12 hazard categories. Llama-3.1-8B judge.",
+        description="MLCommons AILuminate DEMO — 1,200 prompts (the CSV has 1,200 rows) across 12 hazard categories. Llama-3.1-8B judge.",
         tags=["harmful", "asr", "paper-suite", "mlcommons"],
     ),
     BenchmarkSpec(
@@ -177,7 +179,8 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         display_name="XSTest",
         loader="safetune.data.loaders.load_xstest",
         category="over_refusal",
-        description="Over-refusal / exaggerated-safety test suite.",
+        description="Over-refusal / exaggerated-safety test suite (250 safe + 200 unsafe contrast prompts). "
+                    "evaluate() reports the refusal rate on the safe prompts and both subsets separately.",
         tags=["over_refusal"],
     ),
     BenchmarkSpec(
@@ -207,9 +210,9 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         category="domain",
         description=(
             "Machine Unlearning Six-Way Evaluation (Shi et al., "
-            "arXiv:2407.06460). Forget/retain splits across news and books "
-            "domains; evaluates verbatim memorization, knowledge memorization, "
-            "privacy, utility, fluency, and factuality."
+            "arXiv:2407.06460). The paper has forget/retain splits across news and books "
+            "domains and six metrics; the loader returns only the verbmem FORGET set (100 passages in "
+            "'prompt') and raises for configs without a 'prompt' column. No retain split."
         ),
         tags=["unlearning", "forget", "retain", "muse"],
     ),
@@ -220,10 +223,11 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         category="domain",
         description=(
             "Real-World Knowledge Unlearning benchmark (Jin et al., "
-            "arXiv:2406.10890). Question-answer probes (forget_level2) about "
-            "200 public-figure forget targets."
+            "arXiv:2406.10890). Question-answer probes (forget_level2, 2,879 rows) about "
+            "200 public-figure forget targets. Simplified: forget probes only, without the original's retain "
+            "and neighbour sets."
         ),
-        tags=["unlearning", "forget", "retain", "knowledge", "rwku"],
+        tags=["unlearning", "forget", "retain", "knowledge", "rwku", "simplified"],
     ),
     BenchmarkSpec(
         name="safedialbench",
@@ -232,9 +236,9 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         category="jailbreak",
         description=(
             "Multi-turn safety benchmark (Zhao et al., arXiv:2502.11090). "
-            "22 safety scenarios × 7 jailbreak attack types; each example is "
-            "a full multi-turn conversation labelled safe or unsafe. Not on "
-            "the Hub yet: set its source with configure(datasets=...). "
+            "7 attack methods; each row is a recorded multi-turn conversation (HongyeCao/SafeDialBench, "
+            "train, 4,053 rows; columns task, method, model_type, scene, id, history). There is no "
+            "safe/unsafe label column, and the id is not unique (2,037 distinct values). "
             "evaluate() sends the dialogue flattened into one user turn."
         ),
         tags=["multi-turn", "jailbreak", "safety", "conversation"],

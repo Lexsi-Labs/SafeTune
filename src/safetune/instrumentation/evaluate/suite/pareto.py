@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -97,8 +98,16 @@ class ParetoVisualizer:
         self.points: List[ParetoPoint] = []
 
     def add(self, label: str, safety: float, capability: float, **metadata: Any) -> None:
+        safety, capability = float(safety), float(capability)
+        if not (math.isfinite(safety) and math.isfinite(capability)):
+            # NaN compares False with everything, so it would never be dominated and would
+            # sit on the frontier; inf has no place on a plot.
+            raise ValueError(
+                f"ParetoVisualizer.add({label!r}): safety and capability must be finite, "
+                f"got safety={safety}, capability={capability}"
+            )
         self.points.append(
-            ParetoPoint(label=label, safety=float(safety), capability=float(capability), metadata=dict(metadata))
+            ParetoPoint(label=label, safety=safety, capability=capability, metadata=dict(metadata))
         )
 
     def extend(self, items: Iterable[Tuple[str, float, float]]) -> None:
