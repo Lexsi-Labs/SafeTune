@@ -330,8 +330,14 @@ def test_cli_eval_unknown_benchmark_exits_nonzero_before_loading_the_model(tmp_p
 def test_cli_eval_exits_nonzero_when_a_benchmark_fails(tmp_path):
     pytest.importorskip("transformers")
     from huggingface_hub import try_to_load_from_cache
-    if not isinstance(try_to_load_from_cache(TINY_LLAMA, "config.json"), str):
-        pytest.skip(f"{TINY_LLAMA} not in the HF cache")
+    # The CLI subprocess runs with HF_HUB_OFFLINE=1, so everything its load reads must be cached already:
+    # the config, the tokenizer files and the weights (a test that only built the tokenizer leaves no weights).
+    cached = lambda name: isinstance(try_to_load_from_cache(TINY_LLAMA, name), str)
+    missing = [f for f in ("config.json", "tokenizer_config.json", "tokenizer.json") if not cached(f)]
+    if not (cached("model.safetensors") or cached("pytorch_model.bin")):
+        missing.append("model.safetensors (or pytorch_model.bin)")
+    if missing:
+        pytest.skip(f"{TINY_LLAMA} is not fully in the HF cache; missing {', '.join(missing)}")
     cfg = tmp_path / "eval.yaml"
     # CPU/fp32: loading this tiny model on MPS segfaults on the dev Mac (base too).
     cfg.write_text(f"runtime:\n  device: cpu\n  dtype: float32\n"

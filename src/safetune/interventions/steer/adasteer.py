@@ -1,6 +1,6 @@
 """AdaSteer inference-time steering model wrapper.
 
-Self-contained SafeTune VARIANT inspired by:
+Self-contained SafeTune VARIANT of:
 
     "AdaSteer: Your Aligned LLM is Inherently an Adaptive Jailbreak Defender"
     Zhao, Guo, Hu, Deng, Zhang, Sui, Han, Zhao, Qin, Chua et al.
@@ -9,15 +9,17 @@ Self-contained SafeTune VARIANT inspired by:
     Reference file: adasteer/models/For_Steering_LlamaModel_adasteer.py
                     (class ``LlamaModel_for_Steering.get_steer`` / ``forward``)
 
-FIDELITY: faithful to the paper's mechanism. AdaSteer steers along the
-Rejection Direction (RD) and Harmfulness Direction (HD) with **per-input
-adaptive coefficients learned via logistic regression** (the paper's R-Law /
-H-Law; arXiv:2504.09466 abstract + §3) — which is exactly what
-``_coeff`` does (``min + (max−min)·sigmoid(w·proj+b)`` with separately fitted
-RD/HD logistics). The only difference from the authors' *released inference
-code* is the exact coefficient scale/clamps (their deployment uses an affine
-ramp like ``0.02·(proj+60)`` clamped to a fixed range), which is a tuning
-instantiation of the same logistic law, not a different algorithm.
+FIDELITY: a variant, not the named method. Like the paper it steers along the Rejection
+Direction (RD) and Harmfulness Direction (HD) with per-input coefficients computed from the
+input's projection (R-Law / H-Law; arXiv:2504.09466 §3). It differs in the law and in where
+it is applied: the paper's laws (Eq. 6, 11) and the released code are linear in the projection,
+clipped to bounds (the code uses ``0.02·(proj+60)`` clamped to [-0.22, -0.08], on the
+scale-normalised projection to an anchor), whereas ``_coeff`` is
+``min + (max−min)·sigmoid(w·proj+b)`` with a logistic fitted per law, in [0, max]. The hooks add
+the steering at every forward pass (prompt and each generated token) at ``target_layers``; the
+released code adds it on the prefill pass only. The harmfulness vector also differs: the paper's
+Eq. 9 is the projection of d_HD onto d_RD, whereas ``extract_adasteer_directions`` removes the
+RD component (orthogonalises).
 
 Why this file is no longer a thin re-export
 --------------------------------------------
@@ -535,8 +537,14 @@ class AdaSteerModel:
         return hook
 
     def register_hooks(self) -> None:
-        """Install probe hooks (RD/HD layers) and steering hooks (targets)."""
+        """Install probe hooks (RD/HD layers) and steering hooks (targets).
+
+        Idempotent per model: AdaSteer hooks that another wrapper (or an earlier call) left on
+        the same model are removed first, so two wrappers never steer the model twice.
+        """
         self.remove_hooks()
+        for h in getattr(self.model, "_safetune_adasteer_handles", None) or []:
+            h.remove()
         layers = self._get_layers()
         n = len(layers)
 
@@ -550,6 +558,10 @@ class AdaSteerModel:
                 self._hooks.append(
                     layers[idx].register_forward_hook(self._steer_hook(idx))
                 )
+        try:
+            self.model._safetune_adasteer_handles = list(self._hooks)
+        except AttributeError:  # pragma: no cover - a model that refuses new attributes
+            pass
         logger.info(
             "AdaSteer: %d hooks (probe + steer) over %d target layers.",
             len(self._hooks),
@@ -590,7 +602,11 @@ class AdaSteerModel:
         return self.model.generate(*args, **kwargs)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        self._reset_adaptive_state()
+        # A prefill (more than one position) starts a new input; a single-token decode step
+        # keeps the coefficients computed at its prefill, as the official `_L > 1` test does.
+        ids = kwargs.get("input_ids", args[0] if args else None)
+        if ids is None or getattr(ids, "dim", lambda: 0)() < 2 or ids.shape[1] > 1:
+            self._reset_adaptive_state()
         return self.model(*args, **kwargs)
 
     def __getattr__(self, name: str) -> Any:

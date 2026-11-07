@@ -89,7 +89,11 @@ def _test_scans(fresh, tok, harmful, harmless):
 
 def _test_sta(fresh, tok, harmful, harmless):
     from safetune.runner.steer import STATrainer
-    t = STATrainer(model_id=_MODEL_ID, model=fresh(), tokenizer=tok)
+    import torch
+    model = fresh()
+    # STA needs an SAE or pre-decoded vectors; a random unit vector on layer 16 stands in for one here.
+    v = torch.nn.functional.normalize(torch.randn(model.config.hidden_size), dim=0)
+    t = STATrainer(model_id=_MODEL_ID, model=model, tokenizer=tok, atom_vectors={16: v})
     wrapped, _ = t.calibrate(harmful, harmless)
     t.evaluate(wrapped, domain="gsm8k", backend="vllm")
 
@@ -137,17 +141,16 @@ def _test_contrastive_decoding(fresh, tok, harmful, harmless):
 
 def _test_proxy_tuning(fresh, tok, harmful, harmless):
     from safetune.runner.steer import ProxyTuningTrainer
-    # Use the same model as proxy (degenerate but exercises the pipeline).
-    proxy = fresh()
+    # Use the same model for both proxies (degenerate but exercises the pipeline).
     t = ProxyTuningTrainer(model_id=_MODEL_ID, model=fresh(), tokenizer=tok,
-                           proxy_model=proxy, alpha=1.0)
+                           proxy_tuned_model=fresh(), proxy_base_model=fresh(), alpha=1.0)
     wrapped, _ = t.calibrate(harmful, harmless)
     t.evaluate(wrapped, domain="gsm8k", backend="vllm")
 
 def _test_nudging(fresh, tok, harmful, harmless):
     from safetune.runner.steer import NudgingTrainer
     t = NudgingTrainer(model_id=_MODEL_ID, model=fresh(), tokenizer=tok,
-                       nudge_strength=5.0)
+                       guide_model=fresh(), nudge_strength=5.0)
     wrapped, _ = t.calibrate(harmful, harmless)
     t.evaluate(wrapped, domain="gsm8k", backend="vllm")
 

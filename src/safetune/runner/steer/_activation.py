@@ -95,23 +95,61 @@ class LinearProbeGuardTrainer(_SteerBase):
 class SCANSTrainer(_SteerBase):
     METHOD = "SCANSTrainer"
 
+    def __init__(self, model=None, tokenizer=None, *, chat_template: bool = None, **kwargs):
+        super().__init__(model, tokenizer, **kwargs)
+        # None: build the anchors from the chat template whenever the tokenizer has one, because the
+        # evaluation backend sends templated prompts and the sign is classified from them.
+        self.chat_template = chat_template
+
     def _do_calibrate(self, harmful=None, harmless=None, *, calib_n: int = 256,
                   **kwargs):
         if harmful is None or harmless is None:
             harmful, harmless = self._default_calib(calib_n)
+        use_template = (bool(getattr(self.tok, "chat_template", None))
+                        if self.chat_template is None else self.chat_template)
         wrapped = S.SCANSModel(self.model, tokenizer=self.tok)
-        wrapped.fit(harmful, harmless)
+        wrapped.fit(harmful, harmless, chat_template=use_template)
         return wrapped
 
 
 class STATrainer(_SteerBase):
+    """STA steers with SAE target atoms, which the runner cannot compute from prompts alone.
+
+    Pass ``sae`` with ``atom_scores`` (or ``target_atoms`` as latent indices), or pre-decoded
+    ``atom_vectors`` keyed by layer. Without one of them there is nothing to steer with and
+    ``calibrate`` raises ``ValueError`` (it used to return a wrapper that changed nothing).
+    """
     METHOD = "STATrainer"
+
+    def __init__(self, model=None, tokenizer=None, *,
+                 sae=None, atom_scores=None, target_atoms=None, atom_vectors=None,
+                 sae_layer: int = None, multiplier: float = 3.0, **kwargs):
+        super().__init__(model, tokenizer, **kwargs)
+        self.sae = sae
+        self.atom_scores = atom_scores
+        self.target_atoms = target_atoms
+        self.atom_vectors = atom_vectors
+        self.sae_layer = sae_layer
+        self.multiplier = multiplier
 
     def _do_calibrate(self, harmful=None, harmless=None, *, calib_n: int = 256,
                   **kwargs):
-        if harmful is None or harmless is None:
-            harmful, harmless = self._default_calib(calib_n)
-        return S.STAModel(self.model)
+        has_sae = self.sae is not None and (self.atom_scores is not None or self.target_atoms)
+        if not has_sae and not self.atom_vectors:
+            raise ValueError(
+                "STATrainer needs an SAE (sae= with atom_scores= or target_atoms=) or pre-decoded "
+                "atom_vectors= keyed by layer: STA's target atoms are SAE latent features and are "
+                "not computed from the harmful / harmless prompts."
+            )
+        return S.STAModel(
+            self.model,
+            atom_vectors=self.atom_vectors,
+            target_atoms=self.target_atoms,
+            multiplier=self.multiplier,
+            sae=self.sae,
+            atom_scores=self.atom_scores,
+            sae_layer=self.sae_layer,
+        )
 
 
 class CircuitBreakerRRTrainer(_SteerBase):
@@ -121,6 +159,12 @@ class CircuitBreakerRRTrainer(_SteerBase):
                  rr_layers=None, target_layers=None,
                  threshold: float = 0.5, **kwargs):
         super().__init__(model, tokenizer, **kwargs)
+        import warnings
+        for name, value in (("rr_layers", rr_layers), ("target_layers", target_layers)):
+            if value is not None:
+                warnings.warn(
+                    f"CircuitBreakerRRTrainer: {name} is accepted but ignored; the hooks go on every layer "
+                    "that has a refusal direction.", UserWarning, stacklevel=2)
         self.rr_layers = rr_layers
         self.target_layers = target_layers
         self.threshold = threshold
@@ -273,6 +317,7 @@ class SafeSwitchTrainer(_SteerBase):
 
 class CircuitBreakerTrainer(_SteerBase):
     METHOD = "CircuitBreakerTrainer"
+    PASS_THROUGH = True
 
     def _do_calibrate(self, harmful=None, harmless=None, *, calib_n: int = 256,
                   **kwargs):
@@ -281,6 +326,7 @@ class CircuitBreakerTrainer(_SteerBase):
 
 class RepBendTrainer(_SteerBase):
     METHOD = "RepBendTrainer"
+    PASS_THROUGH = True
 
     def _do_calibrate(self, harmful=None, harmless=None, *, calib_n: int = 256,
                   **kwargs):
@@ -289,23 +335,30 @@ class RepBendTrainer(_SteerBase):
 
 class TARSteerTrainer(_SteerBase):
     METHOD = "TARSteerTrainer"
+    PASS_THROUGH = True
 
     def _do_calibrate(self, harmful=None, harmless=None, *, calib_n: int = 256,
                   **kwargs):
-        return S.TARModel(self.model)
+        return S.TARModel(self.model, warn=False)
 
 
 class RRFAEnsembleTrainer(_SteerBase):
     METHOD = "RRFAEnsembleTrainer"
+    PASS_THROUGH = True
 
     def __init__(self, model=None, tokenizer=None, *,
                  member_models=None, **kwargs):
         super().__init__(model, tokenizer, **kwargs)
+        if member_models:
+            import warnings
+            warnings.warn(
+                "RRFAEnsembleTrainer: member_models is accepted but ignored; RRFAEnsemble wraps the one "
+                "model as given and does not ensemble anything.", UserWarning, stacklevel=2)
         self.member_models = member_models or []
 
     def _do_calibrate(self, harmful=None, harmless=None, *, calib_n: int = 256,
                   **kwargs):
-        return S.RRFAEnsemble(self.model)
+        return S.RRFAEnsemble(self.model, warn=False)
 
 
 class SafeSteerTrainer(_SteerBase):

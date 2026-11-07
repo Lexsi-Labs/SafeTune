@@ -1,6 +1,6 @@
 """SCANS inference-time activation steering model wrapper.
 
-Faithful re-implementation of:
+Variant of:
 
     "SCANS: Mitigating the Exaggerated Safety for LLMs via Safety-Conscious
     Activation Steering", Cao, Yang, Zhao. AAAI 2025. arXiv:2408.11491.
@@ -183,8 +183,11 @@ class SCANSModel:
 
         self._reference_harm: Dict[int, Any] = dict(reference_harm or {})
 
+        # Whether prompts are formatted with the tokenizer's chat template (set by :meth:`fit`).
+        self._chat_template: bool = False
         # Per-prompt steering sign σ(q); +1 -> toward refusal, -1 -> away.
         self._current_sign: float = 1.0
+        self._row_sign: Optional[Any] = None   # per-row signs, set inside ``generate`` for one call
         self._hooks: List[Any] = []
 
         # If vectors were supplied up front, arm the hooks immediately so the
@@ -307,7 +310,8 @@ class SCANSModel:
         tok = self.tokenizer
         if tok is None:
             raise ValueError("a tokenizer is required to extract activations")
-        enc = tok(text, return_tensors="pt")
+        # a templated text already carries its BOS / special tokens
+        enc = tok(text, return_tensors="pt", add_special_tokens=not self._chat_template)
         device = next(self.model.parameters()).device
         input_ids = enc["input_ids"].to(device)
         attn = enc.get("attention_mask")
@@ -320,6 +324,15 @@ class SCANSModel:
         hs = torch.stack(out.hidden_states)[:, 0, :, :].detach().float().cpu()
         return hs
 
+    def _format(self, query: str) -> str:
+        """``query`` as the model sees it: a chat user turn plus the generation prompt when
+        ``fit(chat_template=True)`` was used (the official code wraps it as ``[INST] q [/INST]``),
+        else the plain text."""
+        if self._chat_template:
+            return self.tokenizer.apply_chat_template(
+                [{"role": "user", "content": query}], tokenize=False, add_generation_prompt=True)
+        return query
+
     def compute_vectors(
         self,
         harmful_prompts: Sequence[str],
@@ -331,11 +344,11 @@ class SCANSModel:
         position — the direction *from answering toward refusal*.
         """
         harm_hs = [
-            self._hidden_states(t)
+            self._hidden_states(self._format(t))
             for t in tqdm(harmful_prompts, desc="SCANS [harmful]", unit="prompt", leave=False)
         ]
         safe_hs = [
-            self._hidden_states(t)
+            self._hidden_states(self._format(t))
             for t in tqdm(harmless_prompts, desc="SCANS [harmless]", unit="prompt", leave=False)
         ]
         vectors: Dict[int, Any] = {}
@@ -376,7 +389,7 @@ class SCANSModel:
         """
         per_prompt: List[Dict[int, Any]] = []
         for q in harmful_prompts:
-            text = f"{q} {self._POSITIVE_RESPONSE}"
+            text = f"{self._format(q)} {self._POSITIVE_RESPONSE}"
             per_prompt.append(self._transition_vectors(text))
         ref: Dict[int, Any] = {}
         for layer in range(self._n_layers):
@@ -392,13 +405,20 @@ class SCANSModel:
         self,
         harmful_prompts: Sequence[str],
         harmless_prompts: Sequence[str],
+        chat_template: bool = False,
     ) -> "SCANSModel":
         """Run the full SCANS preparation stage on anchor data.
+
+        ``chat_template``: build the steering vectors, the reference transition and every later
+        classification from the tokenizer's chat template (user turn + generation prompt, then
+        ``Sure``), as the official code does with ``[INST] q [/INST] Sure``. The default (off) is
+        the plain ``"{q} Sure"`` text.
 
         Computes (1) refusal steering vectors, (2) safety-critical layers via
         vocabulary projection, (3) the reference harm direction for adaptive
         sign classification. Anchor sets are truncated to ``anchor_size``.
         """
+        self._chat_template = bool(chat_template)
         harmful = list(harmful_prompts)[: self.anchor_size]
         harmless = list(harmless_prompts)[: self.anchor_size]
 
@@ -438,7 +458,10 @@ class SCANSModel:
         if not self._reference_harm:
             # No reference available -> default to refusal-steering sign.
             return 1.0, 1.0
-        text = f"{prompt} {self._POSITIVE_RESPONSE}"
+        return self._classify_text(f"{self._format(prompt)} {self._POSITIVE_RESPONSE}")
+
+    def _classify_text(self, text: str) -> tuple:
+        """``(similarity, sign)`` for a transition text (the query with ``Sure`` appended)."""
         trans = self._transition_vectors(text)
         cosines: List[float] = []
         for layer in self.classification_layers:
@@ -477,7 +500,13 @@ class SCANSModel:
             else:
                 hidden = output
             v = self._steering_vectors[layer_idx].to(hidden.device).to(hidden.dtype)
-            steered = hidden + self._current_sign * self.multiplier * v
+            sign = self._current_sign
+            if self._row_sign is not None:
+                sign = self._row_sign.to(device=hidden.device, dtype=hidden.dtype)
+                if hidden.shape[0] != sign.shape[0]:  # e.g. beams: each row repeated
+                    sign = sign.repeat_interleave(hidden.shape[0] // sign.shape[0], dim=0)
+                sign = sign.view(-1, 1, 1)
+            steered = hidden + sign * self.multiplier * v
             if isinstance(output, tuple):
                 return (steered,) + output[1:]
             return steered
@@ -503,16 +532,41 @@ class SCANSModel:
     # Generation
     # ------------------------------------------------------------------
 
+    def _row_signs(self, input_ids: Any, attention_mask: Any = None) -> Any:
+        """σ(q) for each row of a tokenized batch (padding dropped). With ``fit(chat_template=True)``
+        the row is the already-templated prompt and is classified as it is; otherwise it is the
+        plain text, as :meth:`predict_safety` takes it."""
+        tok, signs = self.tokenizer, []
+        for i in range(input_ids.shape[0]):
+            ids = input_ids[i]
+            if attention_mask is not None:
+                ids = ids[attention_mask[i].bool()]
+            elif getattr(tok, "pad_token_id", None) is not None:
+                ids = ids[ids != tok.pad_token_id]
+            if self._chat_template:
+                signs.append(self._classify_text(f"{tok.decode(ids)} {self._POSITIVE_RESPONSE}")[1])
+            else:
+                signs.append(self.predict_safety(tok.decode(ids, skip_special_tokens=True))[1])
+        return torch.tensor(signs)
+
     def generate(self, *args: Any, prompt: Optional[str] = None, **kwargs: Any) -> Any:
         """Generate with SCANS steering.
 
-        If ``prompt`` is supplied, the adaptive sign σ(q) is recomputed for it
-        before generation (the SCANS classification step). Otherwise the
-        currently armed sign is used.
+        The adaptive sign σ(q) applies to this call only. If ``prompt`` is supplied it is
+        classified (one sign for the call). Otherwise, given tokenized ``input_ids`` and a fitted
+        reference, each row is decoded and classified on its own, so a batch mixes signs. With
+        neither, the sign armed by :meth:`set_prompt` is used.
         """
-        if prompt is not None:
-            self.set_prompt(prompt)
-        return self.model.generate(*args, **kwargs)
+        ids = kwargs.get("input_ids", args[0] if args else None)
+        try:
+            if prompt is not None:
+                self.set_prompt(prompt)
+            elif (torch.is_tensor(ids) and ids.dim() == 2 and self._reference_harm
+                  and self.tokenizer is not None):
+                self._row_sign = self._row_signs(ids, kwargs.get("attention_mask"))
+            return self.model.generate(*args, **kwargs)
+        finally:
+            self._current_sign, self._row_sign = 1.0, None
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self.model(*args, **kwargs)

@@ -123,24 +123,24 @@ Harden notes (second-pass audit):
 | Method | Faithful? |
 |---|---|
 | extract_refusal_direction + RefusalDirectionModel + orthogonalize/restore | Faithful |
-| CAA (extract_caa_vectors + CAAModel) | Faithful |
+| CAA (extract_caa_vectors + CAAModel) | Variant |
 | LinearProbeGuardModel | Faithful |
 | ContrastiveDecodingProcessor | Faithful |
 | ProxyTuningProcessor | Faithful |
 | SafeDecodingProcessor | Faithful |
 | AlphaSteerModel | Faithful |
 | RepBendModel | Faithful |
-| TARModel | Faithful |
-| SafeSteerModel | Faithful |
-| SafeSwitchModel | Faithful |
-| SCANSModel | Faithful |
+| TARModel | Stub |
+| SafeSteerModel | Variant |
+| SafeSwitchModel | Variant |
+| SCANSModel | Variant |
 | STAModel | Faithful |
 | CircuitBreakerModel | Faithful |
 | CircuitBreakerRRModel | Faithful |
 | NudgingProcessor | Faithful |
-| AdaSteerModel | Faithful |
-| RRFAEnsemble | Faithful |
-| CASTModel + fit_cast_condition | Faithful |
+| AdaSteerModel | Variant |
+| RRFAEnsemble | Stub |
+| CASTModel + fit_cast_condition | Simplified |
 
 ## Evaluate — Redteam
 

@@ -51,6 +51,7 @@ class SteeringVectorExtractor:
         self.config = config or VectorExtractionConfig()
         self._hooks: List[Any] = []
         self._activations: Dict[int, List[Any]] = {}
+        self._masks: List[Any] = []   # attention mask of each batch, in forward order
 
     def _get_layers(self) -> list:
         return _get_decoder_layers(self.model)
@@ -82,8 +83,14 @@ class SteeringVectorExtractor:
             h.remove()
         self._hooks.clear()
 
-    def _pool(self, hidden: Any) -> Any:
-        """Pool hidden states along the sequence dimension."""
+    def _pool(self, hidden: Any, mask: Any = None) -> Any:
+        """Pool hidden states along the sequence dimension.
+
+        ``mask`` is the batch's attention mask: ``mean`` and ``max`` skip the padded
+        positions, so a prompt's pooled vector does not depend on what it is batched
+        with. ``last_token`` takes the final position (the extractor pads on the left).
+        A batch with no padding takes the unmasked path unchanged.
+        """
         try:
             import torch
         except ImportError:
@@ -91,10 +98,17 @@ class SteeringVectorExtractor:
 
         if self.config.pool_method == "last_token":
             return hidden[:, -1, :]
-        elif self.config.pool_method == "max":
+        padded = mask is not None and not bool(mask.all())
+        if self.config.pool_method == "max":
+            if padded:
+                keep = mask.to(hidden.device).bool().unsqueeze(-1)
+                return hidden.masked_fill(~keep, float("-inf")).max(dim=1).values
             return hidden.max(dim=1).values
-        else:  # mean
-            return hidden.mean(dim=1)
+        # mean
+        if padded:
+            keep = mask.to(device=hidden.device, dtype=hidden.dtype).unsqueeze(-1)
+            return (hidden * keep).sum(dim=1) / keep.sum(dim=1).clamp_min(1)
+        return hidden.mean(dim=1)
 
     def _collect_activations(
         self, prompts: List[str], desc: str = "activations"
@@ -106,6 +120,7 @@ class SteeringVectorExtractor:
             raise ImportError("Vector extraction requires PyTorch.")
 
         self._register_hooks()
+        self._masks = []
         self.model.eval()
 
         use_chat = getattr(self.tokenizer, "chat_template", None) is not None
@@ -138,6 +153,7 @@ class SteeringVectorExtractor:
                 inputs = self.tokenizer(batch, **tok_kwargs)
                 device = next(self.model.parameters()).device
                 inputs = {k: v.to(device) for k, v in inputs.items()}
+                self._masks.append(inputs.get("attention_mask"))
 
                 with torch.no_grad():
                     self.model(**inputs)
@@ -152,7 +168,8 @@ class SteeringVectorExtractor:
         # dim-1 size mismatch when there is more than one batch.
         result: Dict[int, Any] = {}
         for layer_idx, act_list in self._activations.items():
-            pooled = [self._pool(a) for a in act_list]   # each: (batch, d)
+            pooled = [self._pool(a, self._masks[i].cpu() if self._masks[i] is not None else None)
+                      for i, a in enumerate(act_list)]   # each: (batch, d)
             result[layer_idx] = torch.cat(pooled, dim=0)  # (N, d)
 
         self._activations.clear()

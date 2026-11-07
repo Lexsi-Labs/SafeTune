@@ -113,13 +113,31 @@ class SafeDecodingProcessor(GuidedLogitsProcessor):
         self,
         guide: Any,
         tokenizer_target: Any,
-        prompt_length: int,
+        prompt_length: Optional[int] = None,
         tokenizer_guide: Optional[Any] = None,
         config: Optional[SafeDecodingConfig] = None,
+        *,
+        target: Optional[Any] = None,
     ) -> None:
-        super().__init__(guide=guide, tokenizer_target=tokenizer_target, tokenizer_guide=tokenizer_guide)
+        super().__init__(guide=guide, tokenizer_target=tokenizer_target, tokenizer_guide=tokenizer_guide,
+                         target=target)
         self.config = config or SafeDecodingConfig()
-        self.prompt_length = int(prompt_length)
+        # ``prompt_length=None``: derived per generation (the length at the first processor call; a
+        # call whose length is not the previous one + 1 starts a new generation). An explicit value
+        # is used as given and, as before, updated by :meth:`generate`.
+        self._explicit_prompt_length = prompt_length is not None
+        self.prompt_length = int(prompt_length) if prompt_length is not None else 0
+
+    def _new_generation(self, input_ids: Any) -> None:
+        if self._explicit_prompt_length and input_ids is not None:
+            self.prompt_length = input_ids.shape[1]
+
+    def _step(self, input_ids: torch.Tensor) -> int:
+        """Number of tokens generated so far in this generation."""
+        length = input_ids.shape[1]
+        if self._explicit_prompt_length:
+            return max(0, length - self.prompt_length)
+        return length - (self._gen_start if self._gen_start is not None else 0)   # set by ``__call__``
 
     def _common_token_mask(
         self,
@@ -175,7 +193,7 @@ class SafeDecodingProcessor(GuidedLogitsProcessor):
         input_ids: torch.Tensor,
     ) -> torch.Tensor:
         cfg = self.config
-        step = max(0, input_ids.shape[1] - self.prompt_length)
+        step = self._step(input_ids)
 
         target = scores.float()
         guide = guide_scores.float()

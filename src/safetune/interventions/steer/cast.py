@@ -47,8 +47,9 @@ maps to ``sim > threshold`` / ``sim < threshold`` respectively.
 The condition vector + grid-searched threshold are produced by
 :func:`fit_cast_condition`.
 
-Reference: B. Wu, S. Iyer, H. Yao, K. Chen, et al., "Programming Refusal with
-Conditional Activation Steering." arXiv:2409.05907 (2024). Library:
+Reference: B. W. Lee, I. Padhi, K. N. Ramamurthy, E. Miehling, P. Dognin, M. Nagireddy,
+A. Dhurandhar, "Programming Refusal with Conditional Activation Steering." arXiv:2409.05907
+(ICLR 2025). Library:
 https://github.com/IBM/activation-steering (Apache-2.0).
 """
 from __future__ import annotations
@@ -84,7 +85,8 @@ class CASTCondition:
               ``"larger"``  → ``sim < threshold``
               ``"smaller"`` → ``sim > threshold``
         f1: condition F1 achieved by the chosen point on the fit set.
-        pool: ``"mean"`` (default, paper) or ``"last"`` token pooling.
+        pool: ``"last"`` (the default of :func:`fit_cast_condition`) or ``"mean"`` token pooling;
+            IBM's own default comparison mode is ``mean``.
     """
 
     condition_vector: torch.Tensor
@@ -233,7 +235,7 @@ def fit_cast_condition(
 
     Args:
         candidate_layers: layers to grid-search. ``None`` → all decoder layers.
-        pool: ``"mean"`` (paper default) or ``"last"`` token pooling.
+        pool: ``"last"`` (the default here) or ``"mean"`` (IBM's default comparison mode).
         threshold_range / threshold_step: cosine-similarity threshold grid.
         val_frac: fraction of each class held out for threshold selection.
         chat_template: format the prompts as chat user turns before reading
@@ -427,7 +429,8 @@ class CASTModel:
         out = cast.generate(**inputs)   # gates each prompt of the batch
 
     ``with cast: model.generate(...)`` installs the vectors unconditionally,
-    without the gate.
+    without the gate. ``forward`` is gated, but ``cast(...)`` goes through ``__call__``, which
+    forwards to the model ungated; ``generate`` is gated.
 
     Back-compat construction (legacy logistic probe) is still accepted via the
     ``probe_layer`` / ``probe_weights`` / ``probe_bias`` arguments; in that mode

@@ -40,7 +40,8 @@ cited as the named method.
 - **Check the verdict before relying on a method.** Per-method verdicts are in
   the [Feature Map](../reference/feature-map.md).
 - **Only Faithful methods may be cited as the named method** from their paper.
-- Simplified methods are usable but should be described as simplified.
+- Simplified methods are usable but should be described as simplified: `CASTModel` (a mean-difference
+  condition vector where IBM uses PCA, and no norm rescale).
 - Variant methods run but **must not be cited** as the named method — treat them
   as experimental / unverified.
 
@@ -62,12 +63,11 @@ The Faithful methods, by pillar:
   `booster_project`, `SaLoRA`, `tar_outer_loss`, `AntibodyTrainer`,
   `SurgeryTrainer`, `MARTTrainer`, `SEAMTrainer`, `CTRAPTrainer`,
   `RepNoiseTrainer`, `LoXHardenTrainer`.
-- **Steer:** `extract_refusal_direction`, `CAA`, `LinearProbeGuardModel`,
+- **Steer:** `extract_refusal_direction`, `LinearProbeGuardModel`,
   `ContrastiveDecodingProcessor`, `ProxyTuningProcessor`, `SafeDecodingProcessor`,
-  `NudgingProcessor`, `AlphaSteerModel`, `RepBendModel`, `SafeSteerModel`,
-  `SafeSwitchModel`, `SCANSModel`, `STAModel`, `CircuitBreakerModel`,
-  `CircuitBreakerRRModel`, `TARModel`, `RRFAEnsemble`, `AdaSteerModel`,
-  `CASTModel`.
+  `NudgingProcessor`, `AlphaSteerModel`, `RepBendModel`,
+  `STAModel`, `CircuitBreakerModel`,
+  `CircuitBreakerRRModel`.
 - **Evaluate:** `AbliterationAttack`, `BoNAttack`; all eval infra —
   `StringMatchJudge`, `HFJudge`, `OpenAIJudge`, `JudgeAdapter`,
   `SpectralEntropyMonitor`, `evaluate`, `TamperBenchEvaluator`, `Pareto`
@@ -77,9 +77,9 @@ The Faithful methods, by pillar:
 - **Runtime:** the full guardrail family — `SafetyMiddleware`, `InputSanitizer`,
   `OutputVerifier`, `CoSAlignFormatter`, etc.
 
-## Not Faithful — the 14 Variants
+## Not Faithful — the 19 Variants
 
-The 14 remaining Variant methods run correctly but must not be cited as the named
+The 19 remaining Variant methods run correctly but must not be cited as the named
 method:
 
 - **`deeprefusal`** (Harden) — incompatible API with the published paper;
@@ -118,8 +118,29 @@ method:
   (harmful prompt, safe response) pair. The paper (arXiv:2601.01887) fine-tunes
   all weights on one chat-format example chosen by bi-level data selection, for
   10 epochs at lr 2e-5, with no saliency mask.
+- **`CAA`** (Steer) — vectors come from harmful-vs-harmless prompts at the last prompt token and
+  are added at every position; the paper contrasts A/B answers to the same question at the
+  answer token and adds from the end of the instruction onward.
+- **`AdaSteerModel`** (Steer) — adaptive coefficients are a logistic fit in [0, max], applied at
+  every token; the official code uses a clipped linear law on the prefill pass only, and its
+  harmfulness vector is a projection onto RD where SafeTune orthogonalises.
+- **`SafeSteerModel`** (Steer) — the runner builds a unit refusal direction (last token, harmful minus
+  harmless); the paper uses token-averaged attention activations, safe minus unsafe, with median-norm
+  pruning, and the pruning code is not used by the runner.
+- **`SafeSwitchModel`** (Steer) — the runner path has no trained refusal head and no compliance prober;
+  a flagged prompt returns an empty completion, and the prober is a mean-pooled logistic regression
+  where the paper uses a last-token MLP.
+- **`SCANSModel`** (Steer) — the adaptive sign is armed only by `generate(prompt=...)`; the evaluation
+  path calls `generate(**inputs)` and steers every prompt toward refusal. The transition prompt is built
+  without the chat template.
 - **`identify_safety_neurons` activation-mode** (Interpret) — one-model
   contrast vs. cross-model set-difference metric; use weight mode for a
   Faithful result.
 
-No remaining Wrong / Stub methods exist in the live audited surface.
+## Stubs
+
+- **`TARModel`** and **`RRFAEnsemble`** (Steer) are pass-through wrappers: `generate` and `__call__` go straight to
+  the model, and the methods themselves are training-time (`tar_outer_loss` in Harden; RRFA's LoRA training in its
+  upstream repository). Their runner trainers warn on construction.
+
+No remaining Wrong methods exist in the live audited surface.

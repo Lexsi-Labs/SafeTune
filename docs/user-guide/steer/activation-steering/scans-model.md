@@ -24,8 +24,12 @@ SCANSTrainer(
 )
 ```
 
-The trainer takes no method-specific parameters. `calibrate` builds a `SCANSModel`
-and calls its `fit(harmful, harmless)` to compute the steering vectors and reference
+`chat_template` (default `None`) controls whether the anchors, the reference transition and every
+classification use the tokenizer's chat template (`[user turn] + generation prompt`, then `Sure`, as the official
+code wraps `[INST] q [/INST]`): `None` turns it on when the tokenizer has a template, `True`/`False` force it.
+The evaluation backend sends templated prompts, and `generate(**inputs)` classifies each row of the batch on its
+own, so the template should match. `calibrate` builds a `SCANSModel`
+and calls its `fit(harmful, harmless, chat_template=...)` to compute the steering vectors and reference
 harm direction. Steering magnitude (`multiplier`, default `3.5`), `target_layers`,
 and `threshold` are set on `SCANSModel` if you construct it directly.
 

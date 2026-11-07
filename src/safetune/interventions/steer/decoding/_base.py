@@ -52,6 +52,10 @@ class GuidedLogitsProcessor(LogitsProcessor):
         tokenizer_guide: tokenizer of the guide model. If different from
             ``tokenizer_target``, only the intersection of the two vocabs is
             used and the guide contribution is zero elsewhere.
+        target: the model being steered. :meth:`generate` runs this model with the
+            processor attached (``target.generate(logits_processor=[self], ...)``). Without it
+            :meth:`generate` raises; use the processor directly instead, as
+            ``target.generate(logits_processor=[proc])``.
     """
 
     def __init__(
@@ -59,14 +63,19 @@ class GuidedLogitsProcessor(LogitsProcessor):
         guide: Any,
         tokenizer_target: Any,
         tokenizer_guide: Optional[Any] = None,
+        *,
+        target: Optional[Any] = None,
     ) -> None:
         self.guide = guide
+        self.target = target
         self.tokenizer_target = tokenizer_target
         self.tokenizer_guide = tokenizer_guide or tokenizer_target
         self._state = _GuideState()
         # Pre-compute the (target_id -> guide_id) translation table.
         # When the vocabs are identical, this is the identity; otherwise we
         # map by token string and accept lossy mismatches (mapped to -1).
+        self._gen_start: Optional[int] = None   # sequence length at the first call of this generation
+        self._gen_last: Optional[int] = None    # sequence length at the latest call
         self._target_to_guide = self._build_translation()
 
     def _build_translation(self) -> torch.Tensor:
@@ -166,27 +175,49 @@ class GuidedLogitsProcessor(LogitsProcessor):
         raise NotImplementedError
 
     def generate(self, *args: Any, **kwargs: Any) -> Any:
-        """Delegate to the guide model with self as a logits_processor."""
+        """Run the TARGET model with this processor attached (a fresh generation).
+
+        This used to delegate to the guide, so the evaluation backend, which calls
+        ``processor.generate(**inputs)``, generated from the guide alone.
+        """
         from transformers import LogitsProcessorList
+        if self.target is None:
+            raise ValueError(
+                f"{type(self).__name__}.generate() needs the target model: build the processor with "
+                "target=<model>, or call target.generate(logits_processor=[processor]) directly. "
+                "It does not fall back to the guide, which would generate from the guide alone."
+            )
         input_ids = kwargs.get("input_ids")
         if input_ids is None:
             input_ids = args[0] if args else None
-        if input_ids is not None and hasattr(self, "prompt_length"):
-            self.prompt_length = input_ids.shape[1]
         self._state = _GuideState()
+        self._gen_start = self._gen_last = None
+        self._new_generation(input_ids)
         lp = kwargs.pop("logits_processor", None)
         if lp is None:
             lp = LogitsProcessorList([self])
         else:
             lp = LogitsProcessorList([self] + list(lp))
-        return self.guide.generate(*args, logits_processor=lp, **kwargs)
+        return self.target.generate(*args, logits_processor=lp, **kwargs)
+
+    def _new_generation(self, input_ids: Any) -> None:
+        """Hook for subclasses with per-generation state; called at the start of :meth:`generate`."""
 
     def __getattr__(self, name: str) -> Any:
         if name == "guide":
             raise AttributeError(name)
         return getattr(self.__dict__["guide"], name)
 
+    def _track_generation(self, length: int) -> None:
+        """A call whose length is not the previous one + 1 starts a new generation: drop the guide's
+        cached past (it belongs to the previous generation) and remember where this one began."""
+        if self._gen_last is None or length != self._gen_last + 1:
+            self._state = _GuideState()
+            self._gen_start = length
+        self._gen_last = length
+
     def __call__(self, input_ids: torch.Tensor, scores: torch.Tensor) -> torch.Tensor:
+        self._track_generation(input_ids.shape[1])
         guide_scores = self._guide_logits(input_ids)
         # Reconcile width to the target model's logit width. An lm_head is often
         # padded WIDER than the tokenizer vocab (e.g. Qwen2.5: head 151936 vs

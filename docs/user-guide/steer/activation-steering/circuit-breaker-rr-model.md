@@ -5,6 +5,11 @@
     trained checkpoint, not an inference-only wrapper. It is placed under Steer
     because its mechanism is representation rerouting.
 
+!!! warning "Without `baselines`, results depend on call history"
+    The runtime hook z-scores each position's projection against running statistics that accumulate across every
+    forward pass (and so across prompts, batch order, padding side and cache use) until `remove()`. Pass
+    `baselines={layer: (mean, std)}` for a history-free hook; the trainer path has none and warns once.
+
 Representation rerouting (RR) with a configurable threshold. `calibrate()` extracts
 refusal directions from the contrast set, builds a `CircuitBreakerRRModel`, and calls
 `.install()` so the RR behaviour is applied through runtime hooks. The model also exposes
@@ -31,8 +36,8 @@ CircuitBreakerRRTrainer(
 |---|---|---|---|
 | `model` | `PreTrainedModel` | required | Model to train |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
-| `rr_layers` | `list[int] \| None` | `None` | Layers used for the RR loss during training |
-| `target_layers` | `list[int] \| None` | `None` | Layers where the runtime reroute hooks are installed |
+| `rr_layers` | `list[int] \| None` | `None` | Accepted and ignored (warns): the trainer trains nothing |
+| `target_layers` | `list[int] \| None` | `None` | Accepted and ignored (warns): the hooks go on every layer that has a refusal direction |
 | `threshold` | `float` | `0.5` | Reroute threshold passed to `CircuitBreakerRRConfig` |
 
 The remaining RR knobs (`strength`, `reroute_to`, `alpha`, `schedule_steps`) live on

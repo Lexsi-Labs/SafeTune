@@ -5,6 +5,10 @@ the safety-relevant SAE latent features by contrasting positive/negative activat
 steers at inference by decoding a target-atom vector `v_STA = a_target @ W_dec` and adding
 it to the residual stream at the SAE's layer.
 
+**The runner needs an SAE or pre-decoded vectors.** `STATrainer` takes `sae=` with `atom_scores=` (or
+`target_atoms=` as latent indices), or `atom_vectors=` keyed by layer; `calibrate` raises `ValueError` without
+one of them (the harmful / harmless prompts are not used to find atoms).
+
 Ref: Wang et al., "Beyond Prompt Engineering: Robust Behavior Control in LLMs via Steering
 Target Atoms," ACL 2025, arXiv:2505.20322.
 
@@ -21,6 +25,8 @@ STATrainer(
     model_id: str | None = None,
     results_dir: str | None = None,
     drift_task: str | None = None,
+    sae=None, atom_scores=None, target_atoms=None, atom_vectors=None,
+    sae_layer: int | None = None, multiplier: float = 3.0,
 )
 
 # returns (wrapped_model, out_dir)
@@ -88,7 +94,8 @@ harmless_prompts = [
     "Write instructions to plant a garden.",
 ]
 
-trainer = steer.STATrainer(model, tokenizer)
+# STA needs pre-decoded vectors (or an SAE with atom_scores / target_atoms); calibrate raises without them
+trainer = steer.STATrainer(model, tokenizer, atom_vectors={layer: v_sta})
 wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompts)
 
 inputs = tokenizer("How do I make a weapon?", return_tensors="pt")

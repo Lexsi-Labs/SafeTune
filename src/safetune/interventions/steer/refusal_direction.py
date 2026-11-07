@@ -25,6 +25,12 @@ both attack and defense code). SafeTune exposes it for:
 * the VERIFY pillar (abliteration as a weight-space drift condition) at
   ``safetune.evaluate.redteam.abliteration`` (thin re-export of the same core)
 
+Layer numbering: ``layer l`` here is the OUTPUT of decoder block ``l``, i.e. the residual stream
+the official code (andyrdt/refusal_direction) calls layer ``l + 1`` (it reads the block input).
+A paper ``pick_layer`` of ``l`` is ``l - 1`` here. ``mode="steer"`` is a SafeTune addition: the
+paper induces refusal by adding the unnormalised mean difference once, at one layer; here
+``strength * unit direction`` is added at the output of every selected layer.
+
 Reference paper: A. Arditi, O. Obeso, A. Syed, D. Paleka, N. Panickssery,
 W. Gurnee, N. Nanda. "Refusal in Language Models Is Mediated by a Single
 Direction." NeurIPS 2024 / arXiv:2406.11717.
@@ -209,6 +215,11 @@ def extract_refusal_direction(
     heuristic directly.
     """
     cfg = config or RefusalDirectionConfig()
+    if not harmful_prompts or not harmless_prompts:
+        raise ValueError(
+            "extract_refusal_direction needs at least one harmful and one harmless prompt "
+            f"(got {len(harmful_prompts)} harmful, {len(harmless_prompts)} harmless)."
+        )
 
     from safetune._refusal_helpers import _get_decoder_layers  # lazy to avoid cycles
     from safetune.core.runtime.inference.vector_extraction import (
@@ -244,7 +255,12 @@ def extract_refusal_direction(
 
     # 1. Caller forced a layer -> honour it, no sweep.
     if cfg.pick_layer is not None:
-        idx = cfg.pick_layer if cfg.pick_layer in directions else _middle_layer()
+        if cfg.pick_layer not in directions:
+            raise ValueError(
+                f"extract_refusal_direction: pick_layer={cfg.pick_layer} is not one of the extracted "
+                f"layers {sorted(directions)}."
+            )
+        idx = cfg.pick_layer
         reason = "forced via pick_layer"
     elif not cfg.select_directions:
         idx = _middle_layer()
@@ -263,10 +279,13 @@ def extract_refusal_direction(
                       "layer helps, or winner in the early layers)")
 
     direction = directions[idx]
+    if not float(direction.norm()) > 1e-8:
+        raise ValueError(
+            f"extract_refusal_direction: the direction at layer {idx} has zero norm; the harmful "
+            "and harmless activations are identical (same prompts in both sets?)."
+        )
     if cfg.normalize:
-        n = direction.norm()
-        if n > 1e-8:
-            direction = direction / n
+        direction = direction / direction.norm()
     logger.info(
         "RefusalDirection: selected layer %d / %d (%s; norm %.4f, hidden %d).",
         idx, n_layers, reason, direction.norm().item(), direction.shape[0],
@@ -536,12 +555,26 @@ def _select_direction_by_scoring(
 # Runtime intervention: ablate, steer, restore
 # ---------------------------------------------------------------------------
 
+_ATTN_NAMES = ("self_attn", "attn", "attention")
+_MLP_NAMES = ("mlp", "feed_forward")
+
+
+def _first_attr(module: nn.Module, names: Tuple[str, ...]) -> Optional[nn.Module]:
+    for n in names:
+        sub = getattr(module, n, None)
+        if isinstance(sub, nn.Module):
+            return sub
+    return None
+
+
 class RefusalDirectionModel:
     """Wrap a model with refusal-direction hooks.
 
     Construct with a pre-extracted ``direction`` (1-D tensor of size hidden)
     and a ``mode`` of ``"ablate"`` or ``"steer"``. Call ``install()`` to attach
-    hooks to every decoder layer's residual stream, ``remove()`` to detach.
+    hooks, ``remove()`` to detach. ``ablate`` projects the direction out of every
+    block's input and of every attention and MLP output (as the official code does);
+    ``steer`` adds ``strength * direction`` to every block's output.
 
     The model is still a normal nn.Module; ``.generate()`` and ``.forward()``
     work as usual.
@@ -557,16 +590,41 @@ class RefusalDirectionModel:
     ) -> None:
         if mode not in ("ablate", "steer"):
             raise ValueError(f"mode must be 'ablate' or 'steer', got {mode!r}")
+        if layers is not None and len(list(layers)) == 0:
+            raise ValueError(
+                "RefusalDirectionModel: layers=[] would install no hook. Pass layer indices, or None "
+                "for every decoder layer."
+            )
         self.model = model
         self.direction = direction.detach().clone()
-        # Defensive normalization: projection math assumes unit vector.
+        # Projection math assumes a unit vector.
         norm = self.direction.norm()
-        if norm > 1e-8:
-            self.direction = self.direction / norm
+        if not float(norm) > 1e-8:
+            raise ValueError("RefusalDirectionModel: the direction has zero norm.")
+        self.direction = self.direction / norm
         self.mode = mode
         self.strength = float(strength)
         self._target_layers = layers
         self._handles: List[Any] = []
+
+    def _project_out(self, h: torch.Tensor) -> torch.Tensor:
+        d = self.direction.to(dtype=h.dtype, device=h.device)
+        proj = (h * d).sum(dim=-1, keepdim=True) * d
+        return h - self.strength * proj
+
+    def _ablate_input_hook(self, _module: nn.Module, args: Any, kwargs: Any) -> Any:
+        """Project the direction out of a block's input (the residual stream it reads)."""
+        if args:
+            return (self._project_out(args[0]),) + tuple(args[1:]), kwargs
+        kwargs = dict(kwargs)
+        kwargs["hidden_states"] = self._project_out(kwargs["hidden_states"])
+        return args, kwargs
+
+    def _ablate_output_hook(self, _module: nn.Module, _inputs: Any, output: Any) -> Any:
+        """Project the direction out of an attention or MLP output (what it writes)."""
+        if isinstance(output, tuple):
+            return (self._project_out(output[0]),) + tuple(output[1:])
+        return self._project_out(output)
 
     def _hook(self, _module: nn.Module, _inputs: Any, output: Any) -> Any:
         # Decoder blocks in HF causal LMs typically return a tuple where the
@@ -592,10 +650,22 @@ class RefusalDirectionModel:
         self.remove()
         layers = _get_decoder_layers(self.model)
         indices = self._target_layers if self._target_layers is not None else list(range(len(layers)))
+        bad = [i for i in indices if not 0 <= i < len(layers)]
+        if bad:
+            raise ValueError(f"RefusalDirectionModel: layers {bad} out of range for {len(layers)} decoder layers.")
         for idx in indices:
-            if 0 <= idx < len(layers):
-                h = layers[idx].register_forward_hook(self._hook)
-                self._handles.append(h)
+            layer = layers[idx]
+            attn = _first_attr(layer, _ATTN_NAMES)
+            mlp = _first_attr(layer, _MLP_NAMES)
+            if self.mode == "ablate" and attn is not None and mlp is not None:
+                # Directional ablation as in the official code (hook_utils.py:80-88): the block's
+                # input and everything written into the residual stream by attention and the MLP.
+                self._handles.append(layer.register_forward_pre_hook(self._ablate_input_hook, with_kwargs=True))
+                self._handles.append(attn.register_forward_hook(self._ablate_output_hook))
+                self._handles.append(mlp.register_forward_hook(self._ablate_output_hook))
+            else:
+                # steer, or a block whose attention / MLP submodules are not found: block output.
+                self._handles.append(layer.register_forward_hook(self._hook))
         logger.info(
             "RefusalDirectionModel: installed %d hooks (mode=%s, strength=%.2f).",
             len(self._handles),
@@ -611,6 +681,29 @@ class RefusalDirectionModel:
             except Exception:
                 pass
         self._handles.clear()
+
+    def _steered(self, fn: Any, *args: Any, **kwargs: Any) -> Any:
+        """Call ``fn`` with the hooks on: already on (``install()`` / ``with``) -> as is; otherwise
+        for this call only (mirrors ``CAAModel``)."""
+        if self._handles:
+            return fn(*args, **kwargs)
+        self.install()
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            self.remove()
+
+    def generate(self, *args: Any, **kwargs: Any) -> Any:
+        """``model.generate`` with the direction ablated / added for this call."""
+        return self._steered(self.model.generate, *args, **kwargs)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self._steered(self.model, *args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        if name == "model":
+            raise AttributeError(name)
+        return getattr(self.__dict__["model"], name)
 
     def __enter__(self) -> "RefusalDirectionModel":
         return self.install()
@@ -652,8 +745,9 @@ def orthogonalize_weights(
 
     d = direction.detach().clone()
     n = d.norm()
-    if n > 1e-8:
-        d = d / n
+    if not float(n) > 1e-8:
+        raise ValueError("orthogonalize_weights: the direction has zero norm.")
+    d = d / n
 
     # Identify the parameters to edit.
     candidates: List[Tuple[str, nn.Parameter]] = []
@@ -687,8 +781,23 @@ def orthogonalize_weights(
         # Project out: W <- W - d d^T W  (acts on rows).
         proj = torch.outer(dt, dt) @ weight.data
         weight.data.sub_(proj)
-    logger.info("RefusalDirection.orthogonalize_weights: edited %d projections.", len(snapshots))
+
+    # The token embedding writes into the residual stream too (llama3_model.py:80 in the official
+    # code). With tied embeddings this tensor is also the output head: it is edited once, here, and
+    # lm_head is never edited separately (as in the official gemma_model.py:70).
+    get_emb = getattr(model, "get_input_embeddings", None)
+    emb = get_emb() if callable(get_emb) else None
+    if emb is not None and getattr(emb, "weight", None) is not None and emb.weight.shape[-1] == d.shape[0]:
+        w = emb.weight
+        snapshots[_EMBED_KEY] = w.data.clone()
+        dt = d.to(dtype=w.dtype, device=w.device)
+        # rows are token embeddings of size d_model: E <- E - (E d) d^T
+        w.data.sub_(torch.outer(w.data @ dt, dt))
+    logger.info("RefusalDirection.orthogonalize_weights: edited %d tensors.", len(snapshots))
     return snapshots
+
+
+_EMBED_KEY = "embed_tokens"
 
 
 def restore_weights(model: nn.Module, snapshots: Dict[str, torch.Tensor]) -> None:
@@ -704,6 +813,9 @@ def restore_weights(model: nn.Module, snapshots: Dict[str, torch.Tensor]) -> Non
         return
 
     with torch.no_grad():
+        if _EMBED_KEY in snapshots:
+            emb = model.get_input_embeddings()
+            emb.weight.data.copy_(snapshots[_EMBED_KEY].to(emb.weight.device))
         for li, layer in enumerate(layers):
             for name, mod in layer.named_modules():
                 full = f"layer{li}.{name}" if name else f"layer{li}"

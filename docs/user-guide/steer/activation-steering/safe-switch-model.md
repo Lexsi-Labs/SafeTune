@@ -3,7 +3,7 @@
 SafeSwitch's full design has two trained components: a two-stage prober
 (instruction-safety plus compliance) whose probabilities combine as
 `p_unsafe = p_instr * p_compliance`, and a fine-tuned refusal head that substitutes
-for the LM head when `p_unsafe > threshold`.
+for the LM head when `p_unsafe >= threshold`.
 
 !!! note "The trainer builds the single-stage fallback"
     `SafeSwitchTrainer.calibrate` fits a single-stage prober (logistic regression on

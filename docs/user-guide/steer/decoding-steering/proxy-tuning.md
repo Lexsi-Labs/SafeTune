@@ -5,7 +5,7 @@ Two-model processor: `delta = scale * (tuned_logits - base_logits)`, `out = targ
 ```python
 from safetune.runner import steer
 
-trainer = steer.ProxyTuningTrainer(model, tokenizer, proxy_model=aligned_model)
+trainer = steer.ProxyTuningTrainer(model, tokenizer, proxy_tuned_model=small_tuned, proxy_base_model=small_base)
 wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompts)
 
 # wrapped is a HuggingFace LogitsProcessor — pass it to generate():

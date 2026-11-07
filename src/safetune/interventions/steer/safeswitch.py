@@ -1,6 +1,6 @@
 """SafeSwitch inference-time prober + refusal-head model wrapper.
 
-Faithful re-implementation of SafeSwitch (Han et al., Findings of EMNLP 2025,
+Variant of SafeSwitch (Han et al., Findings of EMNLP 2025,
 arXiv:2502.01042, https://github.com/Hanpx20/SafeSwitch).
 
 The authors' design has two trained components:
@@ -40,7 +40,10 @@ when no trained refusal head is supplied.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, List, Optional
+
+logger = logging.getLogger(__name__)
 
 try:
     from safetune.core.runtime.inference.safeswitch import (
@@ -94,12 +97,15 @@ class MLPProber:
 
     def _last_token_feature(self, hidden_states: Any, attention_mask: Any = None):
         """Pool layer ``layer_idx`` at the last (non-pad) token position."""
+        import torch
+
 
         hs = hidden_states[self.layer_idx]  # (batch, seq, hidden)
         if attention_mask is not None:
-            # last non-padding index per row
-            lengths = attention_mask.long().sum(dim=1) - 1  # (batch,)
-            idx = lengths.clamp(min=0).view(-1, 1, 1).expand(-1, 1, hs.size(-1))
+            # last real (non-padding) position per row, whichever side the padding is on
+            m = attention_mask.long().to(hs.device)
+            last = (m * torch.arange(m.shape[1], device=hs.device)).argmax(dim=1)  # (batch,)
+            idx = last.view(-1, 1, 1).expand(-1, 1, hs.size(-1))
             pooled = hs.gather(1, idx).squeeze(1)
         else:
             pooled = hs[:, -1, :]
@@ -172,7 +178,7 @@ class SafeSwitchModel:
     * If a compliance prober is given, decode ``pilot_tokens`` pilot tokens
       and run stage-2 -> ``p_compliance``; combine ``p_unsafe = p_instr *
       p_compliance``.
-    * If ``p_unsafe > unsafe_threshold`` (paper default 0.5) generate with the
+    * If ``p_unsafe >= unsafe_threshold`` (paper default 0.5; the official ``judge_risk`` uses ``>=``) generate with the
       *refusal head* substituted for the base LM head; otherwise generate
       normally.
 
@@ -313,12 +319,10 @@ class SafeSwitchModel:
     def _compute_p_unsafe(self, input_ids: Any, attention_mask: Any = None) -> List[float]:
         """Two-stage unsafe probability (paper Eq. 2), one per prompt."""
 
-        # stage 1 -- instruction prober on prefill
-        try:
-            hs_prefill = self._prefill_hidden_states(input_ids, attention_mask)
-            p_instr = prober_probs(self.instr_prober, hs_prefill, attention_mask)
-        except Exception:
-            return [0.0] * len(input_ids)
+        # stage 1 -- instruction prober on prefill. A failure raises: treating it as "safe" would
+        # silently turn the switch off.
+        hs_prefill = self._prefill_hidden_states(input_ids, attention_mask)
+        p_instr = prober_probs(self.instr_prober, hs_prefill, attention_mask)
 
         if self.compliance_prober is None:
             return p_instr
@@ -331,8 +335,11 @@ class SafeSwitchModel:
             else:
                 hs_pilot, pilot_mask = res, None
             p_comp = prober_probs(self.compliance_prober, hs_pilot, pilot_mask)
-        except Exception:
-            # if stage 2 fails, fall back to stage-1 estimate only
+        except (AttributeError, NotImplementedError) as e:
+            # The one documented fallback: a model / wrapper that cannot do pilot decoding
+            # (no ``generate`` or hidden states) uses the stage-1 estimate only. Any other
+            # failure (an untrained prober, a shape error) raises.
+            logger.warning("SafeSwitch: pilot decoding is unavailable (%s); using the stage-1 estimate.", e)
             return p_instr
         return [a * b for a, b in zip(p_instr, p_comp)]
 
@@ -398,7 +405,7 @@ class SafeSwitchModel:
         import torch
 
         attention_mask = kwargs.get("attention_mask")
-        unsafe = torch.tensor([p > self.unsafe_threshold
+        unsafe = torch.tensor([p >= self.unsafe_threshold
                                for p in self._compute_p_unsafe(input_ids, attention_mask)])
         if unsafe.any():
             return self._generate_with_refusal_head(input_ids, rows=unsafe, **kwargs)

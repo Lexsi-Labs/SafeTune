@@ -354,25 +354,42 @@ class AlphaSteerModel:
     def _last_valid_index(
         attention_mask: Any, batch: int, seq_len: int, device: Any
     ) -> "torch.Tensor":
-        """Index of the last non-pad token per sequence (robust to L/R padding)."""
+        """Index of the last non-pad token per row (the official ``get_last_valid_token_index``,
+        AlphaSteer ``src/utils/mask_utils.py:7``).
+
+        ``None`` -> the last position. A 2-D padding mask: ``!= 0`` is valid. A 4-D mask, whose
+        last query row is read: an additive float mask (eager attention) is valid where it is
+        ``0``; a boolean mask (sdpa) is valid where it is ``True``. A row with no valid position
+        gets index 0, as in the official code.
+        """
         if attention_mask is None:
             return torch.full((batch,), seq_len - 1, dtype=torch.long, device=device)
         mask = attention_mask.to(device)
-        if mask.dim() > 2:  # collapse extended (4-D) masks to [B, T]
-            mask = mask.reshape(batch, -1)[:, :seq_len]
-        # last position where mask != 0
-        idx = (mask != 0).float()
-        # argmax of reversed -> last True; fall back to seq_len-1 if all zero.
-        rev = torch.flip(idx, dims=[1])
-        last = seq_len - 1 - torch.argmax(rev, dim=1)
-        last = torch.where(idx.sum(dim=1) > 0, last, torch.full_like(last, seq_len - 1))
-        return last.to(torch.long)
+        if mask.dim() == 4:
+            last_row = mask[:, 0, -1, :]
+            valid = last_row if mask.dtype == torch.bool else (last_row == 0)
+        elif mask.dim() == 2:
+            valid = mask != 0
+        else:
+            raise ValueError(f"Unexpected attention_mask.dim={mask.dim()}, expected 2 or 4.")
+        valid = valid[:, -seq_len:]
+        has_valid = valid.any(dim=-1)
+        inv = torch.flip(valid.to(torch.long), dims=[1]).argmax(dim=-1)
+        last = (valid.shape[1] - 1) - inv
+        return torch.where(has_valid, last, torch.zeros_like(last)).to(torch.long)
 
     def _make_hook(self, layer_idx: int):
         steering = self.steering_matrices[layer_idx]
         strength = self.strengths.get(layer_idx, 1.0)
+        # HF passes ``attention_mask`` to a decoder layer as a keyword argument, which a plain
+        # forward hook cannot see: a pre-hook with kwargs stashes it for the forward hook.
+        seen: dict = {"mask": None}
+
+        def pre_hook(module: Any, args: Any, kwargs: Any) -> None:
+            seen["mask"] = kwargs.get("attention_mask")
 
         def hook(module: Any, inputs: Any, output: Any) -> Any:
+            mask, seen["mask"] = seen["mask"], None
             if strength == 0.0:
                 return output
             is_tuple = isinstance(output, tuple)
@@ -395,10 +412,7 @@ class AlphaSteerModel:
                 # Build the steering vector from the last valid token's hidden
                 # state and broadcast it across every position (authors'
                 # AlphaLlamaDecoderLayer.forward).
-                attn = None
-                if isinstance(inputs, (tuple, list)) and len(inputs) > 1 and torch.is_tensor(inputs[1]):
-                    attn = inputs[1]  # GPT-2 blocks pass the KV cache here, not a mask
-                last_idx = self._last_valid_index(attn, B, T, hidden.device)
+                last_idx = self._last_valid_index(mask, B, T, hidden.device)
                 batch_idx = torch.arange(B, device=hidden.device)
                 last_hidden = hidden[batch_idx, last_idx, :]      # [B, D]
                 steer_vec = (last_hidden @ sm) * strength         # [B, D]
@@ -411,18 +425,25 @@ class AlphaSteerModel:
             hidden = hidden.clamp(-big, big).to(dtype)
             return (hidden,) + tuple(output[1:]) if is_tuple else hidden
 
-        return hook
+        return pre_hook, hook
 
     # ---- public API ------------------------------------------------------
     def register_hooks(self) -> None:
         self.remove_hooks()
+        # Idempotent per model: hooks an earlier AlphaSteer wrapper left on it are removed first.
+        for h in getattr(self.model, "_safetune_alphasteer_handles", None) or []:
+            h.remove()
         layers = self._resolve_layers()
         for li in self.steering_matrices:
             if not 0 <= li < len(layers):
                 continue
-            self._hooks.append(
-                layers[li].register_forward_hook(self._make_hook(li))
-            )
+            pre_hook, hook = self._make_hook(li)
+            self._hooks.append(layers[li].register_forward_pre_hook(pre_hook, with_kwargs=True))
+            self._hooks.append(layers[li].register_forward_hook(hook))
+        try:
+            self.model._safetune_alphasteer_handles = list(self._hooks)
+        except AttributeError:  # pragma: no cover - a model that refuses new attributes
+            pass
 
     def remove_hooks(self) -> None:
         for h in self._hooks:

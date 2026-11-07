@@ -89,7 +89,7 @@ class TestRunnerForwardsDecodingParams:
     def test_nudging_trainer_forwards_params(self):
         import torch.nn as nn
         from safetune.runner.steer import NudgingTrainer
-        t = NudgingTrainer(nn.Linear(2, 2), object(),
+        t = NudgingTrainer(nn.Linear(2, 2), object(), guide_model=nn.Linear(2, 2),
                            nudge_strength=2.5, safe_tokens=[1], unsafe_tokens=[2])
         proc = t._do_calibrate(harmful=["x"], harmless=["y"])
         assert proc.config.nudge_strength == 2.5
