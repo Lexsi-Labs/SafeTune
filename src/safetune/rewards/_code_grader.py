@@ -63,10 +63,15 @@ def _main():
     _Exception, _TypeError, _isfunction, _callable, _getattr = Exception, TypeError, inspect.isfunction, callable, getattr
     try:
         import resource
-        for limit, value in ((resource.RLIMIT_AS, int(sys.argv[3])), (resource.RLIMIT_FSIZE, int(sys.argv[4]))):
-            resource.setrlimit(limit, (value, value))
-    except (ImportError, ValueError, OSError):
-        pass  # not every platform enforces these
+    except ImportError:
+        resource = None
+    # One try per limit: macOS refuses RLIMIT_AS, and that must not skip the file-size limit.
+    for limit, value in ((getattr(resource, "RLIMIT_AS", None), int(sys.argv[3])), (getattr(resource, "RLIMIT_FSIZE", None), int(sys.argv[4]))):
+        try:
+            if limit is not None:
+                resource.setrlimit(limit, (value, value))
+        except (ValueError, OSError):
+            pass  # not every platform enforces these
     with _open(sys.argv[1]) as f:
         job = json.load(f)
     os.unlink(sys.argv[1])
@@ -115,10 +120,15 @@ def _main():
     _BaseException, _Exception, _TypeError = BaseException, Exception, TypeError
     try:
         import resource
-        for limit, value in ((resource.RLIMIT_AS, int(sys.argv[3])), (resource.RLIMIT_FSIZE, int(sys.argv[4]))):
-            resource.setrlimit(limit, (value, value))
-    except (ImportError, ValueError, OSError):
-        pass  # not every platform enforces these
+    except ImportError:
+        resource = None
+    # One try per limit: macOS refuses RLIMIT_AS, and that must not skip the file-size limit.
+    for limit, value in ((getattr(resource, "RLIMIT_AS", None), int(sys.argv[3])), (getattr(resource, "RLIMIT_FSIZE", None), int(sys.argv[4]))):
+        try:
+            if limit is not None:
+                resource.setrlimit(limit, (value, value))
+        except (ValueError, OSError):
+            pass  # not every platform enforces these
     with _open(sys.argv[1]) as f:
         job = json.load(f)
     os.unlink(sys.argv[1])
