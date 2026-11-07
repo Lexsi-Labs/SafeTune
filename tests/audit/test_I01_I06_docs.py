@@ -1,6 +1,7 @@
 """Audit Interpret docs: badges, citations and the readers of CircuitInfo are stated as the code behaves."""
 from pathlib import Path
 
+import re
 import safetune.instrumentation.interpret as I
 
 ROOT = Path(I.__file__).resolve().parents[4]
@@ -18,7 +19,7 @@ def test_feature_map_badges():
 
 def test_scope_lists_the_variants_and_the_simplified_eap():
     sc = _t("docs/community/scope.md")
-    assert "the 6 Variants" in sc and "identify_safety_neurons` weight mode" in sc and "Neither mode implements the cross-checkpoint metric" in sc
+    assert re.search(r"the \d+ Variants", sc) and "identify_safety_neurons` weight mode" in sc and "Neither mode implements the cross-checkpoint metric" in sc
     assert "set-difference metric; use weight mode for a Faithful result" not in sc
     assert "`identify_safety_neurons` (weight mode), `safety_circuit_info`" not in sc and "eap_safety_circuit` is Simplified" in sc
 

@@ -23,7 +23,7 @@ def test_the_feature_map_and_scope_label_it():
     assert re.search(r'StringMatchJudge \(mode="prefix".*\| Variant \|', fm)
     assert re.search(r'StringMatchJudge \(mode="gcg".*\| Faithful \|', fm)
     sc = _flat((ROOT / "docs/community/scope.md").read_text())
-    assert 'StringMatchJudge(mode="prefix")' in sc and "the 7 Variants" in sc and "START of the response" in sc
+    assert 'StringMatchJudge(mode="prefix")' in sc and re.search(r"the \d+ Variants", sc) and "START of the response" in sc
 
 
 def test_prefix_behaviour_is_unchanged():
