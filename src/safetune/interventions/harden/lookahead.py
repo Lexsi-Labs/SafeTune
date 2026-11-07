@@ -138,7 +138,7 @@ class AnswerPreviewCollator:
         if self.prefix_length < 0:
             raise ValueError(f"prefix_length must be >= 0, got {self.prefix_length}")
         self.prefix_token_ids = getattr(config, "prefix_token_ids", None)
-        # ponytail: id 0 without a tokenizer; the padded positions have mask 0 and label -100.
+        # id 0 without a tokenizer; the padded positions have mask 0 and label -100.
         self.pad_token_id = getattr(config, "pad_token_id", None) or 0
 
     def _preview_for_example(self, answer_ids: List[int]) -> List[int]:

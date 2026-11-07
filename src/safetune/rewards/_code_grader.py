@@ -297,7 +297,7 @@ def run_candidate(
             return None
         finally:
             if proc is not None:
-                # ponytail: the process group misses a child that calls setsid.
+                # the process group misses a child that calls setsid.
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
                 except (OSError, AttributeError):
@@ -306,7 +306,7 @@ def run_candidate(
 
 
 def _kill(proc: "subprocess.Popen") -> None:
-    # ponytail: the process group misses a child that calls setsid.
+    # the process group misses a child that calls setsid.
     try:
         os.killpg(proc.pid, signal.SIGKILL)
     except (OSError, AttributeError):

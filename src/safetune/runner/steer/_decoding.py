@@ -65,10 +65,10 @@ class ContrastiveDecodingTrainer(_SteerBase):
 
 
 class ProxyTuningTrainer(_SteerBase):
-    METHOD = "ProxyTuningTrainer"
-
     """Proxy Tuning: ``model`` is the large base model (and the model that generates); the delta
     ``proxy_tuned_model - proxy_base_model`` of the small pair is added to its logits."""
+
+    METHOD = "ProxyTuningTrainer"
 
     def __init__(self, model=None, tokenizer=None, *,
                  proxy_tuned_model=None, proxy_base_model=None, alpha: float = 1.0,
@@ -108,10 +108,10 @@ class ProxyTuningTrainer(_SteerBase):
 
 
 class NudgingTrainer(_SteerBase):
-    METHOD = "NudgingTrainer"
-
     """Nudging: ``model`` is the base model that generates; ``guide_model`` is the small aligned model
     that takes over the steps where the base model's top-1 probability is below the threshold."""
+
+    METHOD = "NudgingTrainer"
 
     def __init__(self, model=None, tokenizer=None, *,
                  guide_model=None,

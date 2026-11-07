@@ -99,3 +99,28 @@ def test_a_result_file_full_of_newlines_is_rejected_quickly(monkeypatch):
     got = cg.grade_assertions("x = 1", ["assert x == 1", "assert x == 1"], 5.0)
     assert time.monotonic() - t0 < 20
     assert got == [False, False]
+
+
+def test_antibody_turns_fp16_off_given_args_positionally_or_by_keyword(tmp_path):
+    from transformers import TrainingArguments
+    from safetune.interventions.harden.antibody import AntibodyTrainer
+    from transformers import LlamaConfig, LlamaForCausalLM
+    cfg = LlamaConfig(vocab_size=32, hidden_size=16, intermediate_size=32, num_hidden_layers=1,
+                      num_attention_heads=2, num_key_value_heads=2)
+    seen = []
+    import transformers
+    orig = transformers.Trainer.__init__
+    monkey = lambda self, *a, **k: seen.append((a, k))  # noqa: E731
+    transformers.Trainer.__init__ = monkey
+    try:
+        args = TrainingArguments(output_dir=str(tmp_path), use_cpu=True, report_to=[])
+        object.__setattr__(args, "fp16", True)
+        for call in (lambda: AntibodyTrainer(LlamaForCausalLM(cfg), args), lambda: AntibodyTrainer(model=LlamaForCausalLM(cfg), args=args)):
+            try:
+                call()
+            except Exception:
+                pass
+    finally:
+        transformers.Trainer.__init__ = orig
+    got = [(a[1] if len(a) > 1 else k["args"]).fp16 for a, k in seen]
+    assert got == [False, False], got
