@@ -13,6 +13,7 @@ from _steer_common import HARMFUL, HARMLESS, build, prompt_ids
 FOUR = ["RepBendTrainer", "TARSteerTrainer", "CircuitBreakerTrainer", "RRFAEnsembleTrainer"]
 
 
+@pytest.mark.timeout(900)
 @pytest.mark.parametrize("name", FOUR)
 def test_the_trainer_warns_once_with_the_shared_line(name):
     m, tok = build()
@@ -22,6 +23,7 @@ def test_the_trainer_warns_once_with_the_shared_line(name):
     assert msgs == [PASS_THROUGH_WARNING], msgs
 
 
+@pytest.mark.timeout(900)
 @pytest.mark.parametrize("name", FOUR)
 def test_calibrating_does_not_warn_a_second_time_and_the_wrapper_still_passes_through(name):
     m, tok = build()

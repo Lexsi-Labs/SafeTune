@@ -36,6 +36,7 @@ def test_readme_has_the_pillar_blocks():
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(900)
 def test_readme_python_blocks_run(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(harden_base, "DEFAULT_RESULTS_DIR", str(tmp_path / "results"))

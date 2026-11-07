@@ -339,21 +339,31 @@ class _HardenBase:
                                params=dict(epochs=self.epochs, batch_size=self.batch_size,
                                            lr=self.lr))
 
+    def _fp32_master_weights(self, args):
+        """fp16 mixed precision keeps fp32 master weights. A model loaded in fp16 on a T4 / V100
+        has fp16 trainable parameters, which the GradScaler refuses ("Attempting to unscale FP16
+        gradients"); cast those to fp32 and let autocast run the compute in fp16."""
+        if getattr(args, "fp16", False) and getattr(self, "model", None) is not None:
+            for p in self.model.parameters():
+                if p.requires_grad and p.dtype == torch.float16:
+                    p.data = p.data.float()
+        return args
+
     def _training_args(self, out_dir):
         """Build TrainingArguments using this trainer's configured settings."""
-        return _make_training_args(
+        return self._fp32_master_weights(_make_training_args(
             out_dir, self.epochs, self.batch_size, self.lr,
             self.bf16, self.optimizer, self.logging_steps,
             fp16=self.fp16, wandb=self.wandb,
-        )
+        ))
 
     def _configure_args(self, config, out_dir):
         """Stamp this trainer's settings onto an existing config object."""
-        return _apply_training_args(
+        return self._fp32_master_weights(_apply_training_args(
             config, out_dir, self.epochs, self.batch_size, self.lr,
             self.bf16, self.optimizer, self.logging_steps,
             fp16=self.fp16, wandb=self.wandb,
-        )
+        ))
 
     def eval(
         self,
