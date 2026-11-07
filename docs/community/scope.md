@@ -40,22 +40,18 @@ cited as the named method.
 - **Check the verdict before relying on a method.** Per-method verdicts are in
   the [Feature Map](../reference/feature-map.md).
 - **Only Faithful methods may be cited as the named method** from their paper.
-- Simplified methods are usable but should be described as simplified: `CASTModel` (a mean-difference
-  condition vector where IBM uses PCA, and no norm rescale).
-- Simplified methods are usable but should be described as simplified. The three Evaluate loaders badged Simplified:
+- Simplified methods are usable but should be described as simplified. `CASTModel` (a mean-difference
+  condition vector where IBM uses PCA, and no norm rescale). The three Evaluate loaders badged Simplified:
   `load_prompts('harmbench')` / the `harmbench` benchmark joins a contextual row's context to its behavior and sends it, like the 100
   copyright rows, to the classifier with the standard template, where the original uses `prompt_contextual` for contextual rows
   (`eval_utils.py:401-403`) and a MinHash hash check for copyright rows (`eval_utils.py:367-391`);
   `load_prompts('agentharm')` keeps the prompt only, without the original's tool definitions
   (`target_functions`) and grading functions (`grading_function`, `detailed_prompt`), so a refusal rate on it is not the
   AgentHarm score; `load_prompts('rwku')` / the `rwku` benchmark loads the forget probes (`forget_level2`) only, without
-  the original's retain and neighbour sets. (This page keeps no numeric Simplified count on this branch; the line above
-  is what to merge with the Simplified list of the other audit PRs, which edit the same bullet.)
-- Simplified methods are usable but should be described as simplified. Interpret: `eap_safety_circuit` scores
-  graph NODES (attention heads and MLPs) with the true gradient, where EAP / EAP-IG (Syed et al.; Hanna et al.) score
-  EDGES; a node score is the sum of its outgoing-edge scores, so the edge ranking is lost. Its EAP-IG is the official
-  "IG, inputs" variant. Pairs of unequal length are aligned by index (the official code raises), and `ig_steps` defaults to 5
-  (official 30). (This page keeps no numeric Simplified count on this branch.)
+  the original's retain and neighbour sets. Interpret: `eap_safety_circuit` scores graph NODES (attention heads and MLPs)
+  with the true gradient, where EAP / EAP-IG (Syed et al.; Hanna et al.) score EDGES; a node score is the sum of its
+  outgoing-edge scores, so the edge ranking is lost. Its EAP-IG is the official "IG, inputs" variant. Pairs of unequal
+  length are aligned by index (the official code raises), and `ig_steps` defaults to 5 (official 30).
 - Variant methods run but **must not be cited** as the named method — treat them
   as experimental / unverified.
 
@@ -86,14 +82,15 @@ The Faithful methods, by pillar:
   `StringMatchJudge(mode="gcg")`, `HFJudge`, `OpenAIJudge`, `JudgeAdapter`,
   `SpectralEntropyMonitor`, `evaluate`, `TamperBenchEvaluator`, `Pareto`
   utilities, and the dataset loaders other than the Simplified ones (HarmBench, AgentHarm, RWKU; see above).
-- **Interpret:** `identify_safety_neurons` (weight mode), `safety_circuit_info`,
-  `CircuitInfo`, `eap_safety_circuit` (EAP / EAP-IG).
+- **Interpret:** `safety_circuit_info`, `CircuitInfo` (+ JSON/YAML I/O) and
+  `CircuitInfoProvider` (the Protocol). Neither neuron-scoring mode of `identify_safety_neurons`
+  implements the paper's metric (see Variants); `eap_safety_circuit` is Simplified.
 - **Runtime:** the full guardrail family — `SafetyMiddleware`, `InputSanitizer`,
   `OutputVerifier`, `CoSAlignFormatter`, etc.
 
-## Not Faithful — the 23 Variants
+## Not Faithful — the 22 Variants
 
-The 23 remaining Variant methods run correctly but must not be cited as the named
+The 22 remaining Variant methods run correctly but must not be cited as the named
 method:
 
 - **`deeprefusal`** (Harden) — incompatible API with the published paper;
@@ -154,9 +151,6 @@ method:
 - **`PTSTEvaluator`** (Evaluate) — runs one model over seven SafeTune-defined prompt formats and reports
   cross-template refusal consistency (`passed` is consistency, not safety). It is not the PTST method of
   Lyu et al. (arXiv:2402.18540, `vfleaking/PTST@134600f`), which fine-tunes without a safety prompt and tests with one.
-- **`identify_safety_neurons` activation-mode** (Interpret) — one-model
-  contrast vs. cross-model set-difference metric; use weight mode for a
-  Faithful result.
 - **`identify_safety_neurons` weight mode** (Interpret) — SafeTune's own heuristic: the absolute cosine of each
   `down_proj` column with a refusal direction. No paper defines it; Chen et al. (arXiv:2406.14144) define no
   weight-space metric. It needs only a refusal direction.
