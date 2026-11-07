@@ -86,3 +86,16 @@ def test_safegrad_update_does_not_depend_on_the_fp16_loss_scale():
     base = _surgery(None)
     scaled = _surgery(65536.0)
     assert torch.allclose(base, scaled, rtol=1e-4, atol=1e-6)
+
+
+def test_a_result_file_full_of_newlines_is_rejected_quickly(monkeypatch):
+    """The reader must not re-split the buffer once per line: 16 MiB of newlines would take hours."""
+    import time
+    from safetune.rewards import _code_grader as cg
+    monkeypatch.setattr(
+        cg, "_HARNESS_MANY",
+        "import sys\nopen(sys.argv[2], 'wb').write(b'\\n' * int(sys.argv[4]))\n")
+    t0 = time.monotonic()
+    got = cg.grade_assertions("x = 1", ["assert x == 1", "assert x == 1"], 5.0)
+    assert time.monotonic() - t0 < 20
+    assert got == [False, False]

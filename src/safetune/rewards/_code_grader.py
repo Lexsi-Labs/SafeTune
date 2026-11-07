@@ -360,10 +360,18 @@ def run_candidate_many(
                     if not chunk:
                         return
                     buf += chunk
-                    while b"\n" in buf:
-                        line, buf = buf.split(b"\n", 1)
-                        lines.append(line)
+                    # One pass over the buffer, stopping as soon as there are more
+                    # lines than asserts: re-splitting the remainder per line is
+                    # quadratic, and a child can fill the result with newlines.
+                    pos = 0
+                    while len(lines) <= n:
+                        end = buf.find(b"\n", pos)
+                        if end < 0:
+                            break
+                        lines.append(buf[pos:end])
+                        pos = end + 1
                         idle_until = time.monotonic() + timeout
+                    buf = buf[pos:]
 
                 while True:
                     drain()
