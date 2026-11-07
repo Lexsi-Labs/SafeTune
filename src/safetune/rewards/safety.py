@@ -17,6 +17,7 @@ Two distinct notions of "safety" live in this module:
 
 from typing import Optional
 import logging
+import math
 import re
 
 from .base import RewardFunction, RewardConfig
@@ -177,7 +178,10 @@ class SafetyReward(RewardFunction):
         if callable(self._judge):
             try:
                 score = float(self._judge(prompt, text))
-                return max(0.0, min(1.0, score))
+                if math.isnan(score):
+                    logger.warning("SafetyReward judge returned NaN; using heuristic.")
+                else:
+                    return max(0.0, min(1.0, score))
             except Exception as exc:  # pragma: no cover - defensive
                 logger.warning("SafetyReward judge failed (%s); using heuristic.", exc)
 
@@ -282,7 +286,11 @@ class SafetyRewardFunction(RewardFunction):
 
         if callable(self.judge):
             try:
-                return max(0.0, min(1.0, float(self.judge(prompt, text))))
+                score = float(self.judge(prompt, text))
+                if math.isnan(score):
+                    logger.warning("SafetyRewardFunction judge returned NaN; using heuristic.")
+                else:
+                    return max(0.0, min(1.0, score))
             except Exception as exc:  # pragma: no cover - defensive
                 logger.warning("SafetyRewardFunction judge failed (%s); heuristic.", exc)
 
@@ -405,8 +413,11 @@ class HarmlessnessReward(RewardFunction):
         text_lower = text.lower()
         harm_count = sum(1 for p in harmful_patterns if re.search(p, text_lower))
 
-        ethical_indicators = ['ethical', 'responsible', 'safe', 'respectful']
+        ethical_indicators = ['ethical', 'responsible', 'respectful']
         eth_count = sum(1 for i in ethical_indicators if i in text_lower)
+        # safe/safely/safety/safeguard(s) as whole words; "unsafe" must not earn the bonus.
+        if re.search(r"\bsafe(?:ly|ty|guards?)?\b", text_lower):
+            eth_count += 1
 
         return max(0.0, min(1.0, 1.0 - harm_count * 0.5 + min(0.3, eth_count * 0.1)))
 
