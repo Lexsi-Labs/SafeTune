@@ -60,6 +60,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from safetune._refusal_helpers import _get_decoder_layers
 
+from safetune.interventions.steer._hooks import claim, release_previous
+
 logger = logging.getLogger(__name__)
 
 
@@ -543,8 +545,7 @@ class AdaSteerModel:
         the same model are removed first, so two wrappers never steer the model twice.
         """
         self.remove_hooks()
-        for h in getattr(self.model, "_safetune_adasteer_handles", None) or []:
-            h.remove()
+        release_previous(self, "adasteer", "_hooks")
         layers = self._get_layers()
         n = len(layers)
 
@@ -558,10 +559,7 @@ class AdaSteerModel:
                 self._hooks.append(
                     layers[idx].register_forward_hook(self._steer_hook(idx))
                 )
-        try:
-            self.model._safetune_adasteer_handles = list(self._hooks)
-        except AttributeError:  # pragma: no cover - a model that refuses new attributes
-            pass
+        claim(self, "adasteer", self._hooks)
         logger.info(
             "AdaSteer: %d hooks (probe + steer) over %d target layers.",
             len(self._hooks),

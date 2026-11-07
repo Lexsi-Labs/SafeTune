@@ -74,6 +74,8 @@ import torch.nn as nn
 
 from safetune._refusal_helpers import _get_decoder_layers
 
+from safetune.interventions.steer._hooks import claim, release_previous
+
 logger = logging.getLogger(__name__)
 
 
@@ -322,9 +324,7 @@ class CircuitBreakerRRModel:
         RR/LoRRA method. See :meth:`rr_loss` for the faithful objective.
         """
         self.remove()
-        # Idempotent per model: hooks an earlier wrapper left on it are removed first.
-        for h in getattr(self.model, "_safetune_cbrr_handles", None) or []:
-            h.remove()
+        release_previous(self, "cbrr", "_handles")
         if not self.directions:
             logger.warning(
                 "CircuitBreakerRRModel.install(): no directions provided; "
@@ -345,10 +345,7 @@ class CircuitBreakerRRModel:
         for idx in self.directions:
             if 0 <= idx < len(layers):
                 self._handles.append(layers[idx].register_forward_hook(self._make_hook(idx)))
-        try:
-            self.model._safetune_cbrr_handles = list(self._handles)
-        except AttributeError:  # pragma: no cover - a model that refuses new attributes
-            pass
+        claim(self, "cbrr", self._handles)
         logger.info(
             "CircuitBreakerRRModel: installed %d inference-approximation hooks "
             "(threshold=%.2f, mode=%s). This is a training-free stand-in for "

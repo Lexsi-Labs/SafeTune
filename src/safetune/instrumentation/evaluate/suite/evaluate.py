@@ -395,8 +395,8 @@ def _build_judge_scorer(judge_name: str) -> JudgeAdapter:
         )
 
     if judge_name == "harmbench":
-        from ..judges._templates import harmbench_template
-        template = harmbench_template(_suite_judge("harmbench")["model_id"])   # raises for an unknown id
+        from ..judges._templates import harmbench_template_for
+        template = harmbench_template_for(_suite_judge("harmbench"))   # raises for an unknown id without a template
         hb_tok, hb_model = get_harmbench_judge()
 
         def _harmbench_batch(texts: List[str]) -> List[float]:

@@ -78,6 +78,12 @@ _HARMBENCH_KNOWN = {
 }
 
 
+def harmbench_template_for(spec: dict) -> str:
+    """The template for a judge spec: its own ``template`` if it sets one (a mirror or a local copy),
+    else the one that belongs to its ``model_id``."""
+    return spec.get("template") or harmbench_template(spec["model_id"])
+
+
 def harmbench_template(model_id: str) -> str:
     """The HarmBench classifier template that belongs to ``model_id`` (see the module docstring).
 
@@ -90,7 +96,7 @@ def harmbench_template(model_id: str) -> str:
         raise ValueError(
             f"no HarmBench classifier template for model {model_id!r}; known: {sorted(_HARMBENCH_KNOWN)}. "
             "For a mirror or a local copy pass the template of the classifier it was trained with "
-            "(HFJudgeConfig(template=...))."
+            "(HFJudgeConfig(template=...), or configure(judges={'harmbench': {'template': ...}}))."
         ) from None
 
 

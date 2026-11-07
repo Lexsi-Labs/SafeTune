@@ -116,7 +116,14 @@ def apply_safemerge(
     density: Optional[float] = None,
     only_2d: bool = True,
 ) -> nn.Module:
-    """Selectively merge unsafe fine-tuned layers toward the safety-aligned model."""
+    """Selectively merge unsafe fine-tuned layers toward the safety-aligned model.
+
+    ``finetuned`` must have been fine-tuned *from* ``aligned`` (the SafeMERGE setting, Eq. 2): each
+    layer's cosine is taken on ``W_ft - W_aligned`` against the safety vector ``W_aligned - W_base``.
+    If ``finetuned`` was trained from ``base`` directly, ``W_ft - W_aligned`` still contains the
+    negated safety vector, the cosine comes out high for nearly every layer, and few or no layers
+    are merged; a warning is logged when none is.
+    """
     if merge_type not in ("linear", "dare_linear"):
         raise ValueError(
             f"merge_type must be 'linear' or 'dare_linear', got {merge_type!r}"
@@ -181,6 +188,11 @@ def apply_safemerge(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
+    if considered and not merged:
+        logger.warning(
+            "apply_safemerge: no layer was merged out of %d eligible. The fine-tune must start from "
+            "`aligned`; if it started from `base`, W_ft - W_aligned holds the negated safety vector "
+            "and every layer looks safe.", considered)
     logger.info(
         "apply_safemerge: merged %d / %d eligible layers (threshold=%.3f, "
         "alpha=%.3f, merge_type=%s)",

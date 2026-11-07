@@ -55,6 +55,8 @@ with backward-compatible defaults.
 
 from __future__ import annotations
 
+from safetune.interventions.steer._hooks import claim, release_previous
+
 from typing import Any, List, Optional, Sequence, Union
 from safetune._refusal_helpers import _get_decoder_layers
 
@@ -430,9 +432,7 @@ class AlphaSteerModel:
     # ---- public API ------------------------------------------------------
     def register_hooks(self) -> None:
         self.remove_hooks()
-        # Idempotent per model: hooks an earlier AlphaSteer wrapper left on it are removed first.
-        for h in getattr(self.model, "_safetune_alphasteer_handles", None) or []:
-            h.remove()
+        release_previous(self, "alphasteer", "_hooks")
         layers = self._resolve_layers()
         for li in self.steering_matrices:
             if not 0 <= li < len(layers):
@@ -440,10 +440,7 @@ class AlphaSteerModel:
             pre_hook, hook = self._make_hook(li)
             self._hooks.append(layers[li].register_forward_pre_hook(pre_hook, with_kwargs=True))
             self._hooks.append(layers[li].register_forward_hook(hook))
-        try:
-            self.model._safetune_alphasteer_handles = list(self._hooks)
-        except AttributeError:  # pragma: no cover - a model that refuses new attributes
-            pass
+        claim(self, "alphasteer", self._hooks)
 
     def remove_hooks(self) -> None:
         for h in self._hooks:

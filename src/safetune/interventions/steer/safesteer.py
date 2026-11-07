@@ -45,6 +45,8 @@ unaffected.
 
 from __future__ import annotations
 
+from safetune.interventions.steer._hooks import claim, release_previous
+
 from typing import Any, Callable, Dict, List, Optional, Sequence
 from safetune._refusal_helpers import _get_decoder_layers
 
@@ -281,9 +283,7 @@ class SafeSteerModel:
 
     def register_hooks(self) -> None:
         self.remove_hooks()
-        # Idempotent per model: hooks an earlier SafeSteer wrapper left on it are removed first.
-        for h in getattr(self.model, "_safetune_safesteer_handles", None) or []:
-            h.remove()
+        release_previous(self, "safesteer", "_hooks")
         decoder = self._decoder_layers()
         n = len(decoder)
         for pos, layer_idx in enumerate(self.layers):
@@ -294,10 +294,7 @@ class SafeSteerModel:
                 )
             h = decoder[layer_idx].register_forward_hook(self._make_hook(pos))
             self._hooks.append(h)
-        try:
-            self.model._safetune_safesteer_handles = list(self._hooks)
-        except AttributeError:  # pragma: no cover - a model that refuses new attributes
-            pass
+        claim(self, "safesteer", self._hooks)
 
     def remove_hooks(self) -> None:
         for h in self._hooks:

@@ -124,3 +124,65 @@ def test_antibody_turns_fp16_off_given_args_positionally_or_by_keyword(tmp_path)
         transformers.Trainer.__init__ = orig
     got = [(a[1] if len(a) > 1 else k["args"]).fp16 for a, k in seen]
     assert got == [False, False], got
+
+
+def test_a_second_steering_wrapper_warns_and_the_first_stops_claiming_hooks(caplog):
+    import logging
+    from safetune.interventions.steer._hooks import claim, release_previous
+
+    class Model(torch.nn.Module):
+        pass
+
+    class Wrapper:
+        def __init__(self, model): self.model, self._hooks = model, []
+
+    lin = torch.nn.Linear(2, 2)
+    m = Model(); m.lin = lin
+    first, second = Wrapper(m), Wrapper(m)
+    for w in (first, second):
+        with caplog.at_level(logging.WARNING):
+            release_previous(w, "demo")
+        w._hooks.append(lin.register_forward_hook(lambda *a: None))
+        claim(w, "demo", w._hooks)
+    assert "another" in caplog.text and first._hooks == [] and second._hooks
+    assert len(lin._forward_hooks) == 1
+
+
+def test_a_new_prompt_one_token_longer_than_the_last_stop_is_a_new_generation():
+    from safetune.interventions.steer.decoding._base import _GuideState  # noqa: F401
+    from safetune.interventions.steer.decoding import _base
+
+    cls = next(c for c in vars(_base).values() if isinstance(c, type) and hasattr(c, "_track_generation"))
+    p = object.__new__(cls)
+    p._gen_start = p._gen_last = p._gen_prompt = None
+    p._state = None
+    first = torch.arange(10).reshape(1, 10)
+    p._track_generation(first)
+    p._track_generation(torch.cat([first, torch.tensor([[7]])], dim=1))     # a real continuation
+    assert p._gen_start == 10
+    state = p._state
+    p._track_generation(torch.arange(100, 112).reshape(1, 12))              # new prompt, last + 1 long
+    assert p._gen_start == 12 and p._state is not state
+
+
+def test_a_harmbench_judge_spec_may_bring_its_own_template():
+    from safetune.instrumentation.evaluate.judges._templates import harmbench_template_for
+    assert harmbench_template_for({"model_id": "my-org/mirror", "template": "T {behavior} {generation}"}).startswith("T")
+    assert "[INST]" in harmbench_template_for({"model_id": "cais/HarmBench-Llama-2-13b-cls"})
+    with pytest.raises(ValueError):
+        harmbench_template_for({"model_id": "my-org/mirror"})
+
+
+def test_safemerge_warns_when_nothing_merges(caplog):
+    import logging
+    from safetune.interventions.recover.safemerge import apply_safemerge
+
+    class Net(torch.nn.Module):
+        def __init__(self, w): super().__init__(); self.w = torch.nn.Linear(4, 4, bias=False); self.w.weight.data = w
+
+    base = Net(torch.zeros(4, 4))
+    aligned = Net(torch.eye(4))                         # safety vector = I
+    ft = Net(torch.eye(4) - 0.1 * torch.eye(4))        # fine-tuned from base: W_ft - W_aligned = -0.1 I, antiparallel to the safety vector
+    with caplog.at_level(logging.WARNING):
+        apply_safemerge(ft, base=base, aligned=aligned, threshold=0.3)
+    assert "no layer was merged" in caplog.text
