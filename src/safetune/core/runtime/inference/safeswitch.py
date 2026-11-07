@@ -143,10 +143,17 @@ def prober_probs(prober: Any, hidden_states: Any, attention_mask: Any = None) ->
     """P(unsafe) per prompt from any prober. One that only scores a single prompt
     (``predict_unsafe_probability``) is called once per row."""
     if hasattr(prober, "predict_unsafe_probabilities"):
-        return list(prober.predict_unsafe_probabilities(hidden_states, attention_mask))
-    rows = range(hidden_states[0].shape[0])
-    return [float(prober.predict_unsafe_probability(tuple(h[i:i + 1] for h in hidden_states)))
-            for i in rows]
+        probs = list(prober.predict_unsafe_probabilities(hidden_states, attention_mask))
+    else:
+        rows = range(hidden_states[0].shape[0])
+        probs = [float(prober.predict_unsafe_probability(tuple(h[i:i + 1] for h in hidden_states)))
+                 for i in rows]
+    # A NaN / inf probability compares False with every threshold and would read as "safe": same policy
+    # as a prober failure, which raises.
+    import math
+    if not all(math.isfinite(float(p)) for p in probs):
+        raise ValueError(f"prober returned a non-finite p_unsafe: {probs}")
+    return probs
 
 
 class SafeSwitchRunner:
@@ -169,15 +176,11 @@ class SafeSwitchRunner:
 
     def _check_prompt_safety(self, input_ids: Any, attention_mask: Any = None) -> List[float]:
         """Run a prefill forward pass and get P(unsafe) for each prompt."""
-        try:
-            import torch
-            with torch.no_grad():
-                out = self.model(input_ids=input_ids, attention_mask=attention_mask,
-                                 output_hidden_states=True)
-            return prober_probs(self.prober, out.hidden_states, attention_mask)
-        except Exception as e:
-            logger.error("SafeSwitch: prober failed: %s", e)
-            return [0.0] * len(input_ids)
+        import torch
+        with torch.no_grad():
+            out = self.model(input_ids=input_ids, attention_mask=attention_mask,
+                             output_hidden_states=True)
+        return prober_probs(self.prober, out.hidden_states, attention_mask)
 
     def generate(self, input_ids: Any, **kwargs: Any) -> Any:
         """

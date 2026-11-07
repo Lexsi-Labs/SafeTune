@@ -74,6 +74,8 @@ import torch.nn as nn
 
 from safetune._refusal_helpers import _get_decoder_layers
 
+from safetune.interventions.steer._hooks import claim, release_previous
+
 logger = logging.getLogger(__name__)
 
 
@@ -123,7 +125,9 @@ class CircuitBreakerRRModel:
             the inference-time approximation. May be empty / omitted when the
             object is used purely for :meth:`rr_loss` training.
         baselines: optional ``{layer_idx: (mean_proj, std_proj)}`` for z-scoring
-            the projection. If absent, a running mean is used.
+            the projection. If absent, a streaming mean / std of the projections seen so far is
+            used. It accumulates across every forward pass (and so across prompts) until
+            :meth:`remove`; pass ``baselines`` for a z-score that does not depend on what ran before.
         config: :class:`CircuitBreakerRRConfig`.
     """
 
@@ -147,6 +151,7 @@ class CircuitBreakerRRModel:
         self.baselines: Dict[int, tuple] = baselines or {}
         self._handles: List[Any] = []
         self._stats: Dict[int, Dict[str, float]] = {}
+        self._warned_history = False
 
     # ------------------------------------------------------------------
     # Training-time RR/LoRRA objective (the paper's actual mechanism).
@@ -319,6 +324,7 @@ class CircuitBreakerRRModel:
         RR/LoRRA method. See :meth:`rr_loss` for the faithful objective.
         """
         self.remove()
+        release_previous(self, "cbrr", "_handles")
         if not self.directions:
             logger.warning(
                 "CircuitBreakerRRModel.install(): no directions provided; "
@@ -327,9 +333,19 @@ class CircuitBreakerRRModel:
             )
             return self
         layers = _get_decoder_layers(self.model)
+        missing = [i for i in self.directions if i not in self.baselines]
+        if missing and not self._warned_history:
+            import warnings
+            self._warned_history = True
+            warnings.warn(
+                "CircuitBreakerRRModel: no baselines for layers %s, so the z-score uses running statistics "
+                "accumulated across every forward pass until remove(); outputs depend on call history "
+                "(and so on batch order, padding side and cache use). Pass baselines={layer: (mean, std)} "
+                "for a history-free hook." % sorted(missing), UserWarning, stacklevel=2)
         for idx in self.directions:
             if 0 <= idx < len(layers):
                 self._handles.append(layers[idx].register_forward_hook(self._make_hook(idx)))
+        claim(self, "cbrr", self._handles)
         logger.info(
             "CircuitBreakerRRModel: installed %d inference-approximation hooks "
             "(threshold=%.2f, mode=%s). This is a training-free stand-in for "

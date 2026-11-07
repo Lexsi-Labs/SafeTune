@@ -1,12 +1,12 @@
 """
-EAP / EAP-IG safety-circuit discovery — a faithful from-scratch implementation.
+EAP / EAP-IG safety-circuit discovery — a node-level, from-scratch implementation (badge Simplified).
 
 Public entry point: :func:`eap_safety_circuit`. Given a model name, a contrast
 set of harmful vs. harmless prompts, and a few hyperparameters, this function
 discovers the *safety circuit* — the subset of model components most responsible
 for the refusal-vs-compliance logit difference — and returns it as a SafeTune
-:class:`CircuitInfo` that downstream Recover methods (PKE, NLSR, LSSF,
-DeepRefusal) can target.
+:class:`CircuitInfo` read by C-ΔΘ and SafetyLoRA (LSSF, PKE, NLSR and DeepRefusal
+do not read it).
 
 Algorithm
 ---------
@@ -20,6 +20,15 @@ dependency:
   Beyond Circuit Overlap When Finding Model Mechanisms," arXiv:2403.17806.
   Reference repo: https://github.com/hannamw/EAP-IG
 
+What is simplified. EAP and EAP-IG (Syed et al.; Hanna et al.) score EDGES between components:
+(corrupted − clean activation of the sender) · (gradient at the receiver's input), and the circuit is a
+set of edges. This module scores NODES: (corrupted − clean activation of a node's output) ·
+(gradient with respect to that output). Because every node writes into the residual stream, a
+node's score is the sum of the scores of its outgoing edges, so the edge-level ranking is lost;
+``top_k_edges`` therefore keeps the top-k NODES. The corrupted/clean pairs are the harmful/harmless
+prompts, which may differ in length (the official code requires equal lengths and raises): the corrupted
+batch is padded or truncated to the clean width and positions are matched by index.
+
 The core idea is a first-order (Taylor) approximation to activation patching.
 For a component whose output activation is ``z``, the change in a scalar metric
 ``L`` caused by replacing ``z`` with its corrupted value ``z_corrupt`` is
@@ -32,8 +41,11 @@ where ``∂L/∂z`` is the gradient of the metric w.r.t. the clean activation an
 batch). EAP gets every component's score from a *single* clean forward+backward
 pass plus one corrupted forward pass. EAP-IG replaces the single clean gradient
 with the gradient averaged over ``m`` points on the straight line between the
-corrupted and clean activations (an integrated-gradients estimate), which the
-EAP-IG paper shows yields more *faithful* circuits.
+corrupted and clean INPUT EMBEDDINGS (alpha = k/m, k = 0..m-1; the "IG, inputs" variant of
+``hannamw/EAP-IG``, ``attribute.py:149-181``), with every activation recomputed at each point; the
+gradient is the true gradient through all later nodes. The paper shows this yields more *faithful*
+circuits. (An earlier version of this module interpolated all node activations jointly and cut the
+graph at every node; that was neither official variant and is gone.)
 
 Granularity
 -----------
@@ -70,7 +82,6 @@ from __future__ import annotations
 
 import json
 import logging
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -93,8 +104,8 @@ class EAPSafetyCircuitConfig:
             (as in "I cannot ..."). Only its first sub-token is used.
         compliance_token: token string for the compliance class. Default
             ``"Sure"``. Only its first sub-token is used.
-        top_k_edges: number of top-scoring components to keep in the resulting
-            CircuitInfo.
+        top_k_edges: number of top-scoring NODES (not edges; the name is kept for
+            compatibility) to keep in the resulting CircuitInfo.
         granularity: node resolution of the component graph. ``"head"``
             (default) decomposes every attention block into per-head nodes
             (``blocks.<L>.attn.head<H>``, the head's pre-``o_proj`` channel
@@ -107,15 +118,20 @@ class EAPSafetyCircuitConfig:
             ``"zero"`` ablates the component to zero; ``"mean"`` uses the
             per-component mean activation over the harmless batch.
         ig_steps: number of integrated-gradients interpolation steps for
-            ``method="eap-ig"`` (ignored for ``"eap"``). The EAP-IG paper uses
-            values around 5–10.
+            ``method="eap-ig"`` (ignored for ``"eap"``). Default 5; the official code's
+            default is 30 (``hannamw/EAP-IG`` ``get_scores_eap_ig(steps=30)``). More steps cost
+            proportionally more forward/backward passes. ``eap-ig`` needs
+            ``intervention="patching"``.
         batch_size: number of contrast pairs processed per forward/backward
             pass.
-        max_seq_len: tokenizer truncation length for prompts.
+        max_seq_len: tokenizer truncation length for prompts. A longer prompt
+            keeps its last ``max_seq_len`` tokens (the metric is read at the
+            final token) and a warning is logged.
         device: ``"cpu"``, ``"cuda"``, or ``None`` to auto-select.
         dtype: torch dtype name for model weights (``"float32"`` on CPU).
-        output_dir: where to dump raw outputs (scores JSON, contrast pairs).
-            If ``None`` a tmpdir is used.
+        output_dir: where to dump raw outputs (``eap_scores.json`` with all node scores and
+            ``contrast_pairs.json``). If ``None`` nothing is written (no temp directory is left
+            behind) and the CircuitInfo's ``raw_output_path`` is ``None``.
         extra: free-form extra keys, recorded in metadata for provenance.
     """
 
@@ -348,31 +364,29 @@ def _module_output_tensor(output: Any):
 
 
 class _ActivationCapture:
-    """Hooks that record (and optionally substitute) per-node activations.
+    """Hooks that record per-node activations, and optionally keep them in the autograd graph.
 
     Supports both node hook kinds:
 
     * ``forward`` nodes (whole-attention-output / MLP-output) — a forward hook
-      on the node's module records/patches the module's *output* tensor.
+      on the node's module reads the module's *output* tensor.
     * ``pre`` nodes (per-attention-head) — a forward-pre-hook on the shared
-      ``o_proj`` module records/patches that module's *input* tensor; each head
-      node owns a contiguous channel slice of it. Several head nodes therefore
-      share one underlying hook; in patch mode the hook reassembles the full
-      projection input from the per-head patch tensors (heads not supplied keep
-      their original slice).
+      ``o_proj`` module reads that module's *input* tensor; each head node owns a
+      contiguous channel slice of it. Several head nodes share one underlying hook.
 
     Two modes:
 
-    * ``record`` — store each node's (sliced) activation tensor.
-    * ``patch``  — substitute precomputed tensors into the forward graph (used
-      for the corrupted baseline and the IG interpolation passes).
+    * ``record`` — store each node's (sliced) activation, detached.
+    * ``grad``   — store the LIVE tensor and call ``retain_grad()`` on it, leaving the forward
+      graph untouched, so that after ``backward()`` ``grads()`` returns the true gradient of the
+      metric with respect to each node's activation (through every later node).
     """
 
     def __init__(self, nodes: List[_Node]):
         self.nodes = nodes
         self.handles: List[Any] = []
         self.recorded: Dict[str, Any] = {}
-        self._patch_values: Dict[str, Any] = {}
+        self._live: Dict[str, Tuple[Any, Optional[Tuple[int, int]]]] = {}
         self._mode = "record"
 
         # Group nodes by the (module, hook-kind) pair that physically carries
@@ -387,60 +401,32 @@ class _ActivationCapture:
             return tensor
         return tensor[..., channels[0] : channels[1]]
 
+    def _see(self, group: List[_Node], tensor: Any) -> None:
+        if self._mode == "record":
+            for node in group:
+                self.recorded[node.name] = self._slice(tensor, node.channels).detach()
+            return
+        if not tensor.requires_grad:
+            raise RuntimeError(
+                "eap_safety_circuit: a node activation does not require grad, so there is no gradient "
+                "to attribute (the forward pass must run from inputs_embeds that require grad)."
+            )
+        tensor.retain_grad()
+        for node in group:
+            self._live[node.name] = (tensor, node.channels)
+
     def _make_forward_hook(self, group: List[_Node]) -> Callable:
         def hook(_module, _inp, output):
-            tensor = _module_output_tensor(output)
-            if self._mode == "record":
-                for node in group:
-                    self.recorded[node.name] = self._slice(
-                        tensor, node.channels
-                    ).detach()
-                return output
-            # patch mode — substitute supplied node tensors into the output.
-            new = tensor
-            for node in group:
-                if node.name not in self._patch_values:
-                    continue
-                repl = self._patch_values[node.name]
-                if node.channels is None:
-                    new = repl
-                else:
-                    new = new.clone()
-                    new[..., node.channels[0] : node.channels[1]] = repl
-            if new is tensor:
-                return output
-            if isinstance(output, tuple):
-                return (new,) + tuple(output[1:])
-            return new
+            self._see(group, _module_output_tensor(output))
+            return output
 
         return hook
 
     def _make_pre_hook(self, group: List[_Node]) -> Callable:
         def hook(_module, args):
-            if not args:
-                return args
-            tensor = args[0]
-            if self._mode == "record":
-                for node in group:
-                    self.recorded[node.name] = self._slice(
-                        tensor, node.channels
-                    ).detach()
-                return args
-            # patch mode — rebuild the projection input from per-head patches.
-            new = tensor
-            for node in group:
-                if node.name not in self._patch_values:
-                    continue
-                repl = self._patch_values[node.name]
-                if node.channels is None:
-                    new = repl
-                else:
-                    if new is tensor:
-                        new = tensor.clone()
-                    new[..., node.channels[0] : node.channels[1]] = repl
-            if new is tensor:
-                return args
-            return (new,) + tuple(args[1:])
+            if args:
+                self._see(group, args[0])
+            return args
 
         return hook
 
@@ -466,9 +452,18 @@ class _ActivationCapture:
         self._mode = "record"
         self.recorded = {}
 
-    def set_patch(self, values: Dict[str, Any]) -> None:
-        self._mode = "patch"
-        self._patch_values = values
+    def set_grad(self) -> None:
+        self._mode = "grad"
+        self._live = {}
+
+    def grads(self) -> Dict[str, Any]:
+        """``{node: dMetric/dActivation}`` after ``backward()`` (sliced to the node's channels)."""
+        out = {}
+        for name, (tensor, channels) in self._live.items():
+            if tensor.grad is None:
+                raise RuntimeError(f"eap_safety_circuit: no gradient reached node {name!r}.")
+            out[name] = self._slice(tensor.grad, channels).detach().clone()
+        return out
 
 
 # --------------------------------------------------------------------------
@@ -500,20 +495,39 @@ def _logit_diff_metric(
 # --------------------------------------------------------------------------
 # Core EAP / EAP-IG attribution
 # --------------------------------------------------------------------------
+def _last_real_index(mask: Any):
+    """Index of the last real (mask == 1) token of each row, whatever the padding side."""
+    import torch
+
+    pos = torch.arange(mask.shape[1], device=mask.device).unsqueeze(0)
+    return (mask.long() * (pos + 1)).max(dim=1).values.sub(1).clamp(min=0)
+
+
+def _pads_left(mask: Any) -> bool:
+    """True when the batch is left-padded (every row ends in a real token and some row starts in a pad)."""
+    return bool(mask[:, -1].all().item()) and not bool(mask[:, 0].all().item())
+
+
 def _tokenize_batch(tokenizer: Any, prompts: List[str], cfg: EAPSafetyCircuitConfig, device: str):
     import torch
 
-    enc = tokenizer(
-        prompts,
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-        max_length=cfg.max_seq_len,
-    )
+    # Cut long prompts from the left: the metric is read at the final token, and
+    # a chat template's system preamble alone can be longer than max_seq_len.
+    truncation_side = tokenizer.truncation_side
+    tokenizer.truncation_side = "left"
+    try:
+        enc = tokenizer(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=cfg.max_seq_len,
+        )
+    finally:
+        tokenizer.truncation_side = truncation_side
     enc = {k: v.to(device) for k, v in enc.items()}
     mask = enc["attention_mask"]
-    last_idx = mask.sum(dim=1) - 1  # final real token per example
-    last_idx = torch.clamp(last_idx, min=0)
+    last_idx = _last_real_index(mask)  # final real token per example, left- or right-padded
     return enc, last_idx
 
 
@@ -543,21 +557,24 @@ def _attribute_batch(
     # harmless prompts of unequal length otherwise produce mismatched
     # activation tensors and crash the "patching" intervention. Clean is the
     # attribution reference and is never modified; the corrupted batch (only a
-    # baseline) is padded/truncated on the right to match.
+    # baseline) is padded/truncated on the side its own padding is on (left for a left-padded
+    # batch, so the real tokens stay right-aligned) to match.
     cl = clean_enc["input_ids"].shape[1]
     if corrupt_enc["input_ids"].shape[1] != cl:
         def _resize(enc, target):
             ids, am = enc["input_ids"], enc["attention_mask"]
             cur = ids.shape[1]
+            left = _pads_left(am)
             if cur > target:
-                ids, am = ids[:, :target], am[:, :target]
+                ids, am = (ids[:, cur - target:], am[:, cur - target:]) if left else (ids[:, :target], am[:, :target])
             elif cur < target:
                 pad = target - cur
-                ids = torch.cat([ids, ids.new_zeros((ids.shape[0], pad))], dim=1)
-                am = torch.cat([am, am.new_zeros((am.shape[0], pad))], dim=1)
+                zi, za = ids.new_zeros((ids.shape[0], pad)), am.new_zeros((am.shape[0], pad))
+                ids = torch.cat([zi, ids], dim=1) if left else torch.cat([ids, zi], dim=1)
+                am = torch.cat([za, am], dim=1) if left else torch.cat([am, za], dim=1)
             return {**enc, "input_ids": ids, "attention_mask": am}
         corrupt_enc = _resize(corrupt_enc, cl)
-        corrupt_last = torch.clamp(corrupt_enc["attention_mask"].sum(dim=1) - 1, min=0)
+        corrupt_last = _last_real_index(corrupt_enc["attention_mask"])
 
     # 1. Corrupted forward pass — record corrupted activations (no grad).
     capture.set_record()
@@ -589,45 +606,37 @@ def _attribute_batch(
                 c = c[:, :m, :]
         act_diff[name] = (base - c)
 
-    # 3. Gradient(s) of the metric w.r.t. clean component activations.
-    #    EAP   -> one gradient at the clean point (ig_steps effectively 1).
-    #    EAP-IG-> average the gradient over `steps` points on the line from the
-    #             corrupted activation to the clean activation.
+    # 3. Gradient(s) of the metric w.r.t. each node's activation, through the WHOLE graph (no node is
+    #    replaced or detached), so a node's gradient includes every path through later nodes.
+    #    EAP    -> one gradient at the clean input (hannamw/EAP-IG@e24bafd attribute.py:44-98).
+    #    EAP-IG -> the gradient averaged over `steps` points on the line from the corrupted to the
+    #              clean INPUT EMBEDDINGS, k/steps for k = 0..steps-1 (attribute.py:149-181, "IG,
+    #              inputs"): at each point every activation is the one the model computes there.
     steps = max(1, cfg.ig_steps) if cfg.method == "eap-ig" else 1
+    embed = model.get_input_embeddings()
+    if embed is None:
+        raise ValueError("eap_safety_circuit: the model has no input embedding layer to differentiate through.")
+    with torch.no_grad():
+        clean_emb = embed(clean_enc["input_ids"]).detach()
+        corrupt_emb = embed(corrupt_enc["input_ids"]).detach()
 
     grad_accum: Dict[str, Any] = {n: torch.zeros_like(clean_acts[n]) for n in names}
 
     for k in range(0, steps):
-        # Plain EAP (Eq.1): a single gradient at the CLEAN activation (alpha=1),
-        # NOT the corrupted endpoint. EAP-IG integrates the gradient along the
-        # corrupted->clean line on the k/steps grid (the inputs-variant
-        # convention, which omits the alpha=1 endpoint).
-        alpha = (k / steps) if cfg.method == "eap-ig" else 1.0  # 0 -> corrupted, 1 -> clean
-        # Interpolated activations to substitute into the clean forward graph.
-        interp: Dict[str, Any] = {}
-        for name in names:
-            clean = clean_acts[name]
-            diff = act_diff[name]  # (base - clean)
-            # interpolated = clean + (1 - alpha) * (base - clean)
-            #   alpha=1 -> clean ; alpha->0 -> base (corrupted)
-            z = clean + (1.0 - alpha) * diff
-            z = z.clone().detach().requires_grad_(True)
-            interp[name] = z
-
-        capture.set_patch(interp)
-        logits = model(**clean_enc).logits
+        alpha = (k / steps) if cfg.method == "eap-ig" else 1.0  # 0 -> corrupted input, 1 -> clean input
+        x = (corrupt_emb + alpha * (clean_emb - corrupt_emb)).clone().requires_grad_(True)
+        capture.set_grad()
+        logits = model(inputs_embeds=x, attention_mask=clean_enc["attention_mask"]).logits
         loss = metric_fn(logits, clean_last)
         model.zero_grad(set_to_none=True)
         loss.backward()
-
-        for name in names:
-            g = interp[name].grad
-            if g is not None:
-                grad_accum[name] = grad_accum[name] + g.detach()
+        for name, g in capture.grads().items():
+            grad_accum[name] = grad_accum[name] + g
+        model.zero_grad(set_to_none=True)
 
     capture.set_record()  # leave hooks in a benign state
 
-    # 4. Edge score = (corrupted − clean) · (mean gradient), summed over the
+    # 4. Node score = (corrupted − clean) · (mean gradient), summed over the
     #    hidden dimension, positions, and batch.  Divide the IG gradient sum by
     #    `steps` to get the average gradient (integrated-gradients estimate).
     scores: Dict[str, float] = {}
@@ -664,6 +673,15 @@ def _run_eap(
     total: Dict[str, float] = {node.name: 0.0 for node in nodes}
     n_pairs = len(harmful_prompts)
 
+    prompts = harmful_prompts + harmless_prompts
+    n_long = sum(len(ids) > cfg.max_seq_len for ids in tokenizer(prompts)["input_ids"])
+    if n_long:
+        logger.warning(
+            "eap_safety_circuit: %d of %d prompts are longer than max_seq_len=%d; "
+            "only their last %d tokens are used. Raise max_seq_len to keep them whole.",
+            n_long, len(prompts), cfg.max_seq_len, cfg.max_seq_len,
+        )
+
     with _ActivationCapture(nodes) as capture:
         for start in range(0, n_pairs, cfg.batch_size):
             end = min(start + cfg.batch_size, n_pairs)
@@ -691,9 +709,9 @@ def _run_eap(
             for name, val in batch_scores.items():
                 total[name] += val
 
-    # Average over contrast pairs for a batch-size-independent magnitude.
-    n_batches = max(1, (n_pairs + cfg.batch_size - 1) // cfg.batch_size)
-    return {name: val / n_batches for name, val in total.items()}
+    # Mean over contrast PAIRS (the metric is summed over each batch), as hannamw/EAP-IG@e24bafd
+    # attribute.py:98 / :180 divide by total_items, so batch_size does not change the scores.
+    return {name: val / max(1, n_pairs) for name, val in total.items()}
 
 
 # --------------------------------------------------------------------------
@@ -702,7 +720,7 @@ def _run_eap(
 def _scores_to_circuit_info(
     scores: Dict[str, float],
     cfg: EAPSafetyCircuitConfig,
-    output_dir: Path,
+    output_dir: Optional[Path],
 ):
     """Threshold scored components into the top-k circuit and build CircuitInfo."""
     from safetune.core.circuit_kit.interface import (
@@ -754,21 +772,23 @@ def _scores_to_circuit_info(
         target_modules += ["gate_proj", "up_proj", "down_proj"]
     target_modules = sorted(set(target_modules))
 
-    # Persist raw scores for inspection / reproducibility.
-    scores_path = output_dir / "eap_scores.json"
-    scores_path.write_text(
-        json.dumps(
-            {
-                "method": cfg.method,
-                "granularity": cfg.granularity,
-                "intervention": cfg.intervention,
-                "ig_steps": cfg.ig_steps,
-                "all_scores": scores,
-                "circuit": score_map,
-            },
-            indent=2,
+    # Persist raw scores for inspection / reproducibility, only when the caller gave an output_dir.
+    scores_path = None
+    if output_dir is not None:
+        scores_path = output_dir / "eap_scores.json"
+        scores_path.write_text(
+            json.dumps(
+                {
+                    "method": cfg.method,
+                    "granularity": cfg.granularity,
+                    "intervention": cfg.intervention,
+                    "ig_steps": cfg.ig_steps,
+                    "all_scores": scores,
+                    "circuit": score_map,
+                },
+                indent=2,
+            )
         )
-    )
 
     return CircuitInfo(
         safety_units=SafetyRelevantUnits(
@@ -788,12 +808,14 @@ def _scores_to_circuit_info(
         layer_suggestions=LayerModuleSuggestions(
             target_modules=target_modules,
             layer_subset=layer_indices,
+            # NOTE: keys are NODE names (``blocks.<L>.attn.head<H>``, ``blocks.<L>.mlp``), not the module
+            # names the schema describes; no consumer reads ``priority``.
             priority={
                 name: abs(val) for name, val in score_map.items()
             },
-            metadata={"source": "safetune.core.interpret.eap (native EAP/EAP-IG)"},
+            metadata={"source": "safetune.instrumentation.interpret.eap (native node-level EAP/EAP-IG)"},
         ),
-        raw_output_path=str(scores_path),
+        raw_output_path=str(scores_path) if scores_path is not None else None,
         metadata={
             "method": cfg.method,
             "intervention": cfg.intervention,
@@ -851,8 +873,7 @@ def eap_safety_circuit(
     Returns:
         :class:`safetune.core.circuit_kit.CircuitInfo` holding the top-k scored
         components, their parent layers, per-component attribution scores, and
-        suggested LoRA target modules — ready to feed LSSF / PKE / NLSR /
-        DeepRefusal.
+        suggested LoRA target modules — read by C-ΔΘ and SafetyLoRA.
 
     Raises:
         ValueError: if the contrast prompt lists are of mismatched length or
@@ -879,29 +900,32 @@ def eap_safety_circuit(
             f"eap_safety_circuit: unknown intervention {cfg.intervention!r}; "
             f"expected 'patching', 'zero', or 'mean'."
         )
+    if cfg.method == "eap-ig" and cfg.intervention != "patching":
+        raise ValueError(
+            "eap_safety_circuit: method='eap-ig' integrates the gradient along the line between the "
+            "corrupted and the clean input embeddings (Hanna et al. 2403.17806, 'IG, inputs'), which is defined "
+            f"for intervention='patching' only, got {cfg.intervention!r}; use method='eap' for 'zero' or 'mean'."
+        )
     if cfg.granularity not in ("head", "block"):
         raise ValueError(
             f"eap_safety_circuit: unknown granularity {cfg.granularity!r}; "
             f"expected 'head' or 'block'."
         )
 
-    output_dir = (
-        Path(cfg.output_dir)
-        if cfg.output_dir
-        else Path(tempfile.mkdtemp(prefix="safetune_eap_"))
-    )
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(cfg.output_dir) if cfg.output_dir else None
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Persist the contrast set for reproducibility.
-    (output_dir / "contrast_pairs.json").write_text(
-        json.dumps(
-            [
-                {"harmful": h, "harmless": s}
-                for h, s in zip(harmful_prompts, harmless_prompts)
-            ],
-            indent=2,
+        # Persist the contrast set for reproducibility.
+        (output_dir / "contrast_pairs.json").write_text(
+            json.dumps(
+                [
+                    {"harmful": h, "harmless": s}
+                    for h, s in zip(harmful_prompts, harmless_prompts)
+                ],
+                indent=2,
+            )
         )
-    )
 
     preloaded = not isinstance(model_name, (str, Path))
     was_training = preloaded and model_name.training

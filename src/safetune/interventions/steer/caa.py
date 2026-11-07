@@ -43,8 +43,10 @@ class CAAConfig:
     Attributes:
         target_layers: Layers to extract / apply at. Defaults to all decoder
             layers if ``None``.
-        pool_method: Sequence-dim reduction at extraction time.
-            ``"last_token"`` is paper-faithful; ``"mean"`` averages.
+        pool_method: Sequence-dim reduction at extraction time. ``"last_token"`` takes the
+            last prompt token; the paper reads the answer-letter token of a prompt that ends in
+            the answer (position -2 in nrimsky/CAA), so this is not the paper's position.
+            ``"mean"`` averages over the real (unpadded) tokens.
         strength: Multiplier ``alpha`` applied at inference time.
         normalize: Whether to L2-normalize each per-layer vector.
     """

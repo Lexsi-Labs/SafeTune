@@ -87,3 +87,22 @@ This page is a registry reference — `get_benchmark`/`list_benchmarks` look up 
 run anything. To actually execute a benchmark end-to-end, call `evaluate()` (see the
 [Evaluate overview](../../evaluate.md) or [Judges](../judges/index.md) for a complete,
 runnable example).
+
+## Known limits
+
+- **`max_prompts`** keeps the first k rows in file order (no shuffle, no seed). For benchmarks built from several
+  configs (HarmBench: standard, contextual, copyright; OR-Bench: hard-1k, toxic) a small cap only reaches the first.
+- **Empty prompts:** `evaluate()` drops them (`n_evaluated` can be below `n_total`); `run_safety_eval` keeps them and sends
+  the empty prompt to the model.
+- **CLI:** `safetune eval` has no `--judge`, seed or `max_prompts` option; it uses the default judge and the runtime settings.
+- **XSTest:** `evaluate()` reports the refusal rate on the 250 safe prompts at the top level and both subsets under `safe` /
+  `unsafe`. The combined `orbench` benchmark (`configure(orbench_in_safety_mean=True)`) is still one pooled number over
+  hard-1k and toxic; prefer `orbench_hard` and `orbench_toxic`.
+- **Over-refusal benchmarks** (`xstest`, `orbench`, `orbench_hard`) need `judge="wildguard"`; the other judges rate harm and
+  would call every benign prompt safe.
+- **Datasets not checked against their data:** the gated HarmBench, AdvBench, XSTest, SORRY-Bench and WildJailbreak
+  (checked against code only). No dataset revision is pinned.
+- **Loaders that differ from the paper:** AgentHarm keeps prompts only (no tool or grading fields); CARES level-0 (harmless)
+  rows have no polarity flag; MUSE loads the verbmem forget set only; RWKU loads forget probes only; the SafeDialBench `id`
+  is not unique and there is no label column; the HarmBench `copyright` rows go to the classifier, not a hash check; the
+  default `hexphi` mirror has 200 prompts, the original HEx-PHI has 330.

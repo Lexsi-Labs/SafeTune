@@ -86,7 +86,7 @@ def _load_pretrained_lm(path: str, *, trust_remote_code: bool = False, **kwargs:
     if fusion and "fusion_config" not in kwargs:
         from transformers.conversion_mapping import get_checkpoint_conversion_mapping
         if get_checkpoint_conversion_mapping(config.model_type):
-            # ponytail: transformers 5.17 registers a fused model's (North's) checkpoint
+            # transformers 5.17 registers a fused model's (North's) checkpoint
             # converters process-wide on the first from_pretrained and raises
             # "conflicts with an existing conversion mapping" on the second. They are
             # already registered, so skip that step; the model is still fused.

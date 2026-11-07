@@ -147,7 +147,11 @@ def test_steer_calibrates_on_vision_models(arch, method, kw, tok):
     """AlphaSteer and SafeSteer looked only at model.model.layers; STA found no
     layers and installed no hooks."""
     from safetune.runner import steer
-    w, _ = getattr(steer, method)(_model(arch), tok, **kw).calibrate(
+    model = _model(arch)
+    if method == "STATrainer":      # STA needs an SAE or pre-decoded vectors; use one on layer 0
+        import torch
+        kw = dict(atom_vectors={0: torch.ones(model.config.get_text_config().hidden_size)})
+    w, _ = getattr(steer, method)(model, tok, **kw).calibrate(
         harmful=HARMFUL, harmless=HARMLESS, calib_n=4)
     assert w is not None
 

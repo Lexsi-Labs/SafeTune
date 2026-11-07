@@ -74,7 +74,7 @@ class ResultsWriter:
         data.append(record)
         with open(self.path, "w") as f:
             json.dump(data, f, indent=2)
-        # ponytail: one record per summaries dir, describing the latest write.
+        # one record per summaries dir, describing the latest write.
         from safetune.provenance import write_provenance
         write_provenance(self._summaries_dir, f"{self.pillar}.{record.get('method')}",
                          params={"variant": record.get("variant")})

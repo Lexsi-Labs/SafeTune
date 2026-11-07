@@ -97,6 +97,12 @@ class TARModel:
             raise ImportError(
                 "safetune.core.repeng.tar is unavailable"
             ) from _IMPORT_ERROR
+        if target_modules is not None:
+            import warnings
+            warnings.warn(
+                "TARModel: target_modules is accepted but ignored; train_step forwards only inner_steps "
+                "and inner_lr to the Harden TAR objective, which has no target_modules option.",
+                UserWarning, stacklevel=2)
         self.model = model
         self.inner_steps = inner_steps
         self.inner_lr = inner_lr

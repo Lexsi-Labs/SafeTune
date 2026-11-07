@@ -36,6 +36,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Iterator
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -62,10 +63,15 @@ def _main():
     _Exception, _TypeError, _isfunction, _callable, _getattr = Exception, TypeError, inspect.isfunction, callable, getattr
     try:
         import resource
-        for limit, value in ((resource.RLIMIT_AS, int(sys.argv[3])), (resource.RLIMIT_FSIZE, int(sys.argv[4]))):
-            resource.setrlimit(limit, (value, value))
-    except (ImportError, ValueError, OSError):
-        pass  # not every platform enforces these
+    except ImportError:
+        resource = None
+    # One try per limit: macOS refuses RLIMIT_AS, and that must not skip the file-size limit.
+    for limit, value in ((getattr(resource, "RLIMIT_AS", None), int(sys.argv[3])), (getattr(resource, "RLIMIT_FSIZE", None), int(sys.argv[4]))):
+        try:
+            if limit is not None:
+                resource.setrlimit(limit, (value, value))
+        except (ValueError, OSError):
+            pass  # not every platform enforces these
     with _open(sys.argv[1]) as f:
         job = json.load(f)
     os.unlink(sys.argv[1])
@@ -95,6 +101,72 @@ def _main():
         values.append(enc(fs[0](*inp) if _type(inp) in (_list, _tuple) else fs[0](inp)))
     _dump(values, result)
     result.close()
+
+_main()
+"""
+
+# Runs in the child of ``run_candidate_many``. Same encoding and same limits as _HARNESS, but the candidate
+# is executed afresh (new namespace) for each assert, and one record per assert is written and flushed as soon
+# as that assert is done, so the parent can tell a hang from slow progress. A record is the list of values of
+# that assert's expressions, or ``null`` if the candidate raised, exited or could not be compiled: the child
+# never says whether an assert passed.
+_HARNESS_MANY = r"""
+def _main():
+    import json, os, sys
+    # json.dump (not dumps): the C encoder does not call the builtins a candidate may have patched.
+    _eval, _exec, _compile, _open, _dump = eval, exec, compile, open, json.dump
+    _type, _bool, _int, _str, _float, _repr = type, bool, int, str, float, repr
+    _list, _tuple, _set, _frozenset, _dict = list, tuple, set, frozenset, dict
+    _BaseException, _Exception, _TypeError = BaseException, Exception, TypeError
+    try:
+        import resource
+    except ImportError:
+        resource = None
+    # One try per limit: macOS refuses RLIMIT_AS, and that must not skip the file-size limit.
+    for limit, value in ((getattr(resource, "RLIMIT_AS", None), int(sys.argv[3])), (getattr(resource, "RLIMIT_FSIZE", None), int(sys.argv[4]))):
+        try:
+            if limit is not None:
+                resource.setrlimit(limit, (value, value))
+        except (ValueError, OSError):
+            pass  # not every platform enforces these
+    with _open(sys.argv[1]) as f:
+        job = json.load(f)
+    os.unlink(sys.argv[1])
+    result = _open(sys.argv[2], "w")
+    sys.argv = ["candidate"]
+
+    def enc(x):
+        t = _type(x)
+        if x is None or t is _bool or t is _int or t is _str: return x
+        if t is _float: return {"f": _repr(x)}
+        if t is _list or t is _tuple or t is _set or t is _frozenset: return {t.__name__: [enc(i) for i in x]}
+        if t is _dict: return {"dict": [[enc(k), enc(v)] for k, v in x.items()]}
+        raise _TypeError(t)
+
+    try:
+        code = _compile(job["code"], "<candidate>", "exec")
+    except _BaseException:
+        code = None
+    for exprs in job["asserts"]:
+        values = None
+        try:
+            if code is not None:
+                ns = {"__name__": "__main__"}
+                _exec(code, ns)
+                values = []
+                for e in exprs:
+                    try:
+                        values.append(enc(_eval(e, ns)))
+                    except _Exception:
+                        values.append({"e": 0})
+        except _BaseException:
+            values = None
+        if values is None:
+            result.write("null")
+        else:
+            _dump(values, result)
+        result.write("\n")
+        result.flush()
 
 _main()
 """
@@ -225,12 +297,129 @@ def run_candidate(
             return None
         finally:
             if proc is not None:
-                # ponytail: the process group misses a child that calls setsid.
+                # the process group misses a child that calls setsid.
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
                 except (OSError, AttributeError):
                     proc.kill()
                 proc.wait()
+
+
+def _kill(proc: "subprocess.Popen") -> None:
+    # the process group misses a child that calls setsid.
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except (OSError, AttributeError):
+        proc.kill()
+    proc.wait()
+
+
+def run_candidate_many(
+    code: str,
+    jobs: List[Tuple[str, ...]],
+    timeout: float,
+) -> List[Optional[List[Any]]]:
+    """Run ``code`` once per entry of ``jobs`` in ONE child, in a fresh namespace each time.
+
+    ``jobs[i]`` holds the expressions of assert ``i``. Returns one entry per job: the decoded values
+    of its expressions, or ``None`` if the child gave no usable record for it (the candidate raised or
+    exited, the record is malformed or not plain data, or the child was killed first). Nothing the
+    child does should raise here.
+
+    The child writes one JSON record per job to the result file as soon as the job is done. The parent
+    reads records as they arrive and kills the child's process group when no record has arrived for
+    ``timeout`` seconds (the clock restarts at every record, and starts when the child is spawned), with
+    a hard cap of ``timeout * len(jobs) + 1`` seconds on the whole child. Records already received count.
+    More lines than jobs, or stray bytes after the last record, mean the file was tampered with and every
+    job gets ``None``. The memory and file-size limits apply to the whole child, so the results of all
+    jobs now count together. Each job sees the candidate's module-level code run again in a new
+    namespace, but process-level state (``sys.modules``, attributes set on builtins or on imported
+    modules, files in the working directory) is shared between jobs.
+    """
+    n = len(jobs)
+    none: List[Optional[List[Any]]] = [None] * n
+    if n == 0:
+        return []
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp, \
+            tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as work:
+        harness, job, result = (os.path.join(tmp, name) for name in ("h.py", "job.json", "out.json"))
+        proc = None
+        try:
+            with open(harness, "w") as f:
+                f.write(_HARNESS_MANY)
+            with open(job, "w") as f:
+                json.dump({"code": code, "asserts": [list(e) for e in jobs]}, f)
+            open(result, "wb").close()
+            with open(result, "rb") as reader:
+                proc = subprocess.Popen(
+                    [sys.executable, "-I", harness, job, result, str(_MAX_MEMORY_BYTES), str(_MAX_RESULT_BYTES)],
+                    cwd=work,
+                    env={"PATH": os.environ.get("PATH", ""), "HOME": work},
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+                start = time.monotonic()
+                idle_until, hard_until = start + timeout, start + timeout * n + 1
+                buf, lines = b"", []
+
+                def drain() -> None:
+                    nonlocal buf, idle_until
+                    chunk = reader.read(_MAX_RESULT_BYTES + 1)
+                    if not chunk:
+                        return
+                    buf += chunk
+                    # One pass over the buffer, stopping as soon as there are more
+                    # lines than asserts: re-splitting the remainder per line is
+                    # quadratic, and a child can fill the result with newlines.
+                    pos = 0
+                    while len(lines) <= n:
+                        end = buf.find(b"\n", pos)
+                        if end < 0:
+                            break
+                        lines.append(buf[pos:end])
+                        pos = end + 1
+                        idle_until = time.monotonic() + timeout
+                    buf = buf[pos:]
+
+                while True:
+                    drain()
+                    if len(lines) > n or len(buf) > _MAX_RESULT_BYTES:
+                        return none
+                    try:
+                        proc.wait(timeout=0.01)
+                        break  # the child is done
+                    except subprocess.TimeoutExpired:
+                        pass
+                    if time.monotonic() > min(idle_until, hard_until):
+                        break
+                _kill(proc)
+                drain()
+            if len(lines) > n or (len(lines) == n and buf) or os.path.getsize(result) > _MAX_RESULT_BYTES:
+                return none
+            out: List[Optional[List[Any]]] = []
+            for i in range(n):
+                if i >= len(lines):
+                    out.append(None)
+                    continue
+                try:
+                    raw = json.loads(lines[i])
+                    if not isinstance(raw, list) or len(raw) != len(jobs[i]):
+                        out.append(None)
+                        continue
+                    budget = [_MAX_DECODED_ELEMENTS]
+                    out.append([_decode(v, budget) for v in raw])
+                # A record is the child's to write, so anything can be in it.
+                except (OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError, MemoryError):
+                    out.append(None)
+            return out
+        except (OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError, MemoryError,
+                subprocess.SubprocessError):
+            return none
+        finally:
+            if proc is not None:
+                _kill(proc)
 
 
 class _Fail(Exception):
@@ -561,6 +750,52 @@ def grade_assertion(code: str, assertion: str, timeout: float) -> bool:
         return check(values)
     except (_Fail, TypeError, ValueError, RecursionError, OverflowError, ZeroDivisionError, MemoryError, KeyError, IndexError, AttributeError):
         return False
+
+
+def grade_assertions(code: str, tests: List[str], timeout: float) -> List[bool]:
+    """Whether each assert in ``tests`` holds for values produced by ``code``, using ONE child process.
+
+    Same answers as ``[grade_assertion(code, t, timeout) for t in tests]`` for honest code, at the cost of
+    at most one idle ``timeout`` for a hang instead of one per assert. Each assert gets the candidate run
+    afresh in a new namespace, so a global the code changes in one assert doesn't reach the next.
+    Behaviour that differs from one child per assert:
+
+    * process-level state is shared between asserts: ``sys.modules``, attributes set on builtins or on
+      imported modules, and files in the working directory;
+    * the candidate's module-level code runs once per assert, in the same process;
+    * the memory limit and the result-file limit cover the whole child, so the results of all asserts count
+      together (a result too big for the remaining room kills the child: later asserts get no record);
+    * the timeout is an idle timeout: ``timeout`` seconds without a new record kills the child, so an
+      assert gets the same budget as before, and a hang costs one ``timeout`` after the last answered
+      assert, with a backstop of ``timeout * len(tests) + 1`` seconds on the whole child;
+    * asserts answered before a hang or a crash keep their result; the others fail.
+
+    The child still returns plain values only and the comparison still happens here.
+    """
+    results = [False] * len(tests)
+    runnable: List[Tuple[int, Tuple[str, ...], Callable[[List[Any]], bool]]] = []
+    for i, assertion in enumerate(tests):
+        plan = _plan_assert(assertion)
+        if plan is None:
+            logger.warning("Can't grade test, counting it as failed: %.80s", assertion)
+            continue
+        calls, check = plan
+        used = {n.id for n in ast.walk(ast.parse(assertion.strip())) if isinstance(n, ast.Name)}
+        if used & (set(_FUNCS) | {"math"}) & _bound_names(code):
+            logger.warning("Test uses a builtin's name that the candidate defines, counting it as failed: %.80s", assertion)
+            continue
+        runnable.append((i, tuple(calls), check))
+    if not runnable:
+        return results
+    answers = run_candidate_many(code, [calls for _, calls, _ in runnable], timeout)
+    for (i, _, check), values in zip(runnable, answers):
+        if values is None:
+            continue
+        try:
+            results[i] = bool(check(values))
+        except (_Fail, TypeError, ValueError, RecursionError, OverflowError, ZeroDivisionError, MemoryError, KeyError, IndexError, AttributeError):
+            results[i] = False
+    return results
 
 
 def grade_io(code: str, test_case: Dict[str, Any], timeout: float) -> bool:

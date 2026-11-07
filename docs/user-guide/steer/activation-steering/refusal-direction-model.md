@@ -2,6 +2,10 @@
 
 Extract a single refusal direction and steer (add) or ablate (project out) at inference time.
 
+Layer numbering: `layer l` is the output of decoder block `l`, which the official code calls layer `l + 1`
+(a paper `pick_layer` of `l` is `l - 1` here). `steer` mode is a SafeTune addition: the paper adds the
+unnormalised mean difference once, at one layer; here `alpha * unit direction` is added at every selected layer.
+
 Ref: Arditi et al., "Refusal in Language Models Is Mediated by a Single Direction,"
 NeurIPS 2024, arXiv:2406.11717.
 

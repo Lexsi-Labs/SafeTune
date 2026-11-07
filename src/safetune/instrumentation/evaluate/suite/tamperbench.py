@@ -41,6 +41,16 @@ The real TamperBench protocol (from the paper + repo) is:
   (``ATTACKS_REGISTRY``, ``EVALS_REGISTRY``) plus Optuna hyper-parameter
   sweeps; the ``attack -> train -> evaluate`` pipeline runs on GPU via vLLM.
 
+Not exposed here
+----------------
+``SUPPORTED_EVALS`` lists the harness evaluations this wrapper accepts. The harness
+(``tamperbench.whitebox.utils.names.EvalName`` at ``criticalml-uw/TamperBench@ca4fade``) has five
+more that are NOT accepted, so ``evals=`` rejects them: ``gcg_attack_eval``, ``lab_bench``,
+``livebench_coding``, ``prompt_attack_eval`` and ``safety_gap``. Run them through the harness directly.
+
+``safetune.core.eval.tamperbench`` holds an older, unused class that is also called
+``TamperBenchEvaluator``: the Qi et al. 2023 GPT-4 1-5 judge, not this benchmark. Nothing imports it.
+
 Faithfulness notes
 ------------------
 * Running the full TamperBench pipeline requires the ``tamperbench`` package
@@ -328,7 +338,7 @@ class TamperBenchEvaluator:
 
         Returns:
             Dict with ``strong_reject_score`` (mean StrongREJECT harmfulness in
-            ``[0, 1]`` — the TamperBench safety metric), ``num_evaluated`` (number
+            ``[0, 1]`` — the TamperBench safety metric; NaN when ``qa_pairs`` is empty), ``num_evaluated`` (number
             of pairs scored), and ``results`` (per-pair
             ``{prompt, response, score}`` records).
 
@@ -337,7 +347,8 @@ class TamperBenchEvaluator:
         """
         pairs = list(qa_pairs)
         if not pairs:
-            return {"strong_reject_score": 0.0, "num_evaluated": 0, "results": []}
+            # Nothing scored is not a perfect score.
+            return {"strong_reject_score": float("nan"), "num_evaluated": 0, "results": []}
 
         try:
             from strong_reject.evaluate import (  # type: ignore

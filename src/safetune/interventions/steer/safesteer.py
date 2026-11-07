@@ -1,6 +1,6 @@
 """SafeSteer inference-time steering model wrapper.
 
-Faithful re-implementation of SafeSteer — "SafeSteer: Interpretable Safety
+Variant of SafeSteer — "SafeSteer: Interpretable Safety
 Steering with Refusal-Evasion in LLMs" (Ghosh et al., arXiv:2506.04250) and its
 precursor "Towards Inference-time Category-wise Safety Steering for Large
 Language Models" (arXiv:2410.01174).
@@ -26,10 +26,10 @@ here:
 
 2. **Multi-layer steering.** SafeSteer intervenes on a *set* of intermediate
    layers (the paper tests ``{14, 16, 20, 25, 31}`` for a 32-layer Llama-2-7B),
-   not a single layer. Steering is additive on the self-attention sub-block
-   output of each intervention layer:
-       theta_l^attn  ->  theta_l^attn + m * omega_l^(c)
-   with multiplier ``m`` ~ 0.5-1.0.
+   not a single layer. The paper adds the vector to the self-attention output of
+   each intervention layer (theta_l^attn -> theta_l^attn + m * omega_l^(c));
+   this wrapper adds it to the decoder block's output instead. The multiplier
+   ``m`` is ~ 0.5-1.0 in the paper.
 
 The old wrapper did a plain ``mean(safe) - mean(unsafe)`` at a single fixed
 ``layer_id=20`` with no pruning. Both gaps are closed here without depending on
@@ -44,6 +44,8 @@ unaffected.
 """
 
 from __future__ import annotations
+
+from safetune.interventions.steer._hooks import claim, release_previous
 
 from typing import Any, Callable, Dict, List, Optional, Sequence
 from safetune._refusal_helpers import _get_decoder_layers
@@ -146,10 +148,10 @@ class SafeSteerModel:
         ``{category -> steering tensor}``. A tensor may be:
           * a single ``(hidden,)`` vector — applied (as-is) to every layer in
             ``layers``; or
-          * a ``(num_layers, hidden)`` matrix — row ``i`` applied to the i-th
+          * a ``(len(layers), hidden)`` matrix — row ``i`` applied to the i-th
             layer in ``layers`` (per-layer vectors, the paper's preferred form
-            since ``omega`` is computed and applied at the *same* layer).
-        Pass ``per_layer_vectors=True`` to force per-layer interpretation.
+            since ``omega`` is computed and applied at the *same* layer). A
+            matrix whose row count differs from ``len(layers)`` raises ``ValueError``.
     classifier:
         Optional ``prompt_text -> category`` router. ``None`` always routes to
         ``default_category``.
@@ -173,7 +175,7 @@ class SafeSteerModel:
         **Optional.** Force per-layer interpretation of 2-D category tensors.
     """
 
-    # expose the pruning-aware extractor as a classmethod (paper-faithful)
+    # expose the pruning-aware extractor as a classmethod (the paper's pruning; the runner does not call it)
     compute_category_vectors = staticmethod(compute_category_vectors)
     prune_by_median_norm = staticmethod(prune_by_median_norm)
 
@@ -213,6 +215,17 @@ class SafeSteerModel:
         if not self.layers:
             raise ValueError("SafeSteerModel: 'layers' must be non-empty")
 
+        for cat, vec in self.category_vectors.items():
+            ndim = getattr(vec, "ndim", None)
+            if ndim is None:
+                ndim = torch.as_tensor(vec).ndim
+            if ndim == 2 and len(vec) != len(self.layers):
+                raise ValueError(
+                    f"SafeSteerModel: category {cat!r} is a per-layer matrix with {len(vec)} rows but "
+                    f"{len(self.layers)} intervention layers {self.layers}; row i is applied to the i-th "
+                    "layer of ``layers``. Pass one row per layer, or a single (hidden,) vector."
+                )
+
         self._hooks: List[Any] = []
         self._current_category: Optional[str] = None
 
@@ -244,12 +257,8 @@ class SafeSteerModel:
         if not isinstance(v, torch.Tensor):
             v = torch.as_tensor(v)
         if v.ndim == 2:
-            # per-layer matrix: row i -> i-th intervention layer
-            if v.shape[0] == len(self.layers) or self.per_layer_vectors:
-                idx = min(layer_pos, v.shape[0] - 1)
-                return v[idx]
-            # 2-D but not aligned to layer set — collapse to its mean vector
-            return v.mean(dim=0)
+            # per-layer matrix: row i -> i-th intervention layer (checked in ``__init__``)
+            return v[layer_pos]
         return v
 
     # ------------------------------------------------------------------
@@ -274,6 +283,7 @@ class SafeSteerModel:
 
     def register_hooks(self) -> None:
         self.remove_hooks()
+        release_previous(self, "safesteer", "_hooks")
         decoder = self._decoder_layers()
         n = len(decoder)
         for pos, layer_idx in enumerate(self.layers):
@@ -284,6 +294,7 @@ class SafeSteerModel:
                 )
             h = decoder[layer_idx].register_forward_hook(self._make_hook(pos))
             self._hooks.append(h)
+        claim(self, "safesteer", self._hooks)
 
     def remove_hooks(self) -> None:
         for h in self._hooks:
@@ -313,9 +324,14 @@ class SafeSteerModel:
     ) -> Any:
         if prompt_text is not None:
             self.set_current_prompt(prompt_text)
-        if input_ids is not None:
-            return self.model.generate(input_ids, **kwargs)
-        return self.model.generate(**kwargs)
+        try:
+            if input_ids is not None:
+                return self.model.generate(input_ids, **kwargs)
+            return self.model.generate(**kwargs)
+        finally:
+            # A category (from ``prompt_text`` or an earlier ``set_current_prompt``) applies to
+            # this call only; the next call starts from ``default_category``.
+            self._current_category = None
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self.model(*args, **kwargs)

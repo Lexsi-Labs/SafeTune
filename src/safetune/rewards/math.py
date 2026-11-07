@@ -30,9 +30,11 @@ class MathCorrectnessReward(RewardFunction):
     
     def _extract_math_expressions(self, text: str) -> List[str]:
         pattern = r'\d+\.?\d*\s*[+\-*/]\s*\d+\.?\d*'
-        expressions = re.findall(pattern, text)
         equation_pattern = r'\d+\.?\d*\s*[+\-*/]\s*\d+\.?\d*\s*=\s*\d+\.?\d*'
         equations = re.findall(equation_pattern, text)
+        # Skip each equation's left side: on its own it always evaluates, so it
+        # would score a wrong equation as half right.
+        expressions = re.findall(pattern, re.sub(equation_pattern, " ", text))
         return expressions + equations
     
     def _evaluate_math_expression(self, expr: str) -> bool:
@@ -116,7 +118,7 @@ class LogicalConsistencyReward(RewardFunction):
         text_lower = text.lower()
         contradictions = [("always", "never"), ("all", "none"), ("true", "false")]
         for pos, neg in contradictions:
-            if pos in text_lower and neg in text_lower: score -= 0.2
+            if re.search(rf"\b{pos}\b", text_lower) and re.search(rf"\b{neg}\b", text_lower): score -= 0.2
         logical_connectors = ["therefore", "thus", "hence", "because"]
         score += min(0.3, sum(1 for c in logical_connectors if c in text_lower) * 0.1)
         return max(0.0, min(1.0, score))

@@ -14,9 +14,10 @@ repo):
 
    (``compute_safelora_projection_matrices``: ``C = vec @ vec.T / fro_norm``.)
 
-2. For each fine-tuned layer, take its update ``ΔW_f^i = W_ft^i - W_base^i``,
-   project it through ``C^i`` and measure the cosine similarity between the
-   raw update and its projection onto the safety subspace::
+2. For each fine-tuned layer, take its update ``ΔW_f^i = W_ft^i - W_aligned^i``
+   (the LoRA update the task fine-tune added to the aligned model, paper
+   Eq. 2), project it through ``C^i`` and measure the cosine similarity
+   between the raw update and its projection onto the safety subspace::
 
        ρ^i = cos( ΔW_f^i ,  C^i ΔW_f^i )
 
@@ -25,9 +26,9 @@ repo):
 3. A layer is *unsafe* when ``ρ^i < τ``; only unsafe layers are **merged**
    (linearly interpolated) with the safe model — safe layers keep the
    fine-tuned weights untouched. The merge for unsafe layers is, on the
-   *deltas*::
+   *deltas* from the base::
 
-       ΔW_merge^i = (1-α)·ΔW_f^i + α·ΔW_s^i ,   ΔW_s^i = W_aligned^i - W_base^i
+       ΔW_merge^i = (1-α)·(W_ft^i - W_base^i) + α·ΔW_s^i ,   ΔW_s^i = W_aligned^i - W_base^i
 
    which, added back onto ``W_base^i``, equals the weight-space form
    ``(1-α)·W_ft^i + α·W_aligned^i``. ``"dare_linear"`` additionally drops a
@@ -115,7 +116,14 @@ def apply_safemerge(
     density: Optional[float] = None,
     only_2d: bool = True,
 ) -> nn.Module:
-    """Selectively merge unsafe fine-tuned layers toward the safety-aligned model."""
+    """Selectively merge unsafe fine-tuned layers toward the safety-aligned model.
+
+    ``finetuned`` must have been fine-tuned *from* ``aligned`` (the SafeMERGE setting, Eq. 2): each
+    layer's cosine is taken on ``W_ft - W_aligned`` against the safety vector ``W_aligned - W_base``.
+    If ``finetuned`` was trained from ``base`` directly, ``W_ft - W_aligned`` still contains the
+    negated safety vector, the cosine comes out high for nearly every layer, and few or no layers
+    are merged; a warning is logged when none is.
+    """
     if merge_type not in ("linear", "dare_linear"):
         raise ValueError(
             f"merge_type must be 'linear' or 'dare_linear', got {merge_type!r}"
@@ -151,7 +159,9 @@ def apply_safemerge(
         delta_task = w_ft.float() - w_base_device.float()
         delta_safety = w_aligned_device.float() - w_base_device.float() # Define delta_safety
 
-        rho = _projection_cosine(delta_safety, delta_task)
+        # rho is measured on the fine-tuning update alone. ft - base also holds the
+        # safety vector V, and C V stays in the safety subspace, so it would push rho up.
+        rho = _projection_cosine(delta_safety, w_ft.float() - w_aligned_device.float())
         if rho is None:
             continue
             
@@ -178,6 +188,11 @@ def apply_safemerge(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
+    if considered and not merged:
+        logger.warning(
+            "apply_safemerge: no layer was merged out of %d eligible. The fine-tune must start from "
+            "`aligned`; if it started from `base`, W_ft - W_aligned holds the negated safety vector "
+            "and every layer looks safe.", considered)
     logger.info(
         "apply_safemerge: merged %d / %d eligible layers (threshold=%.3f, "
         "alpha=%.3f, merge_type=%s)",

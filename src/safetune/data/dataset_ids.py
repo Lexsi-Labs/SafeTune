@@ -45,6 +45,15 @@ HARMBENCH = "walledai/HarmBench"
 AILUMINATE_URL = ("https://raw.githubusercontent.com/mlcommons/ailuminate/main/"
                   "airr_official_1.0_demo_en_us_prompt_set_release.csv")
 
+# Checked against the dataset metadata (columns, splits, row counts): or-bench, AgentHarm, Salad-Data,
+# air-bench-2024, CARES-18K, JBB-Behaviors, MUSE, RWKU, SafeDialBench, the AILuminate CSV. NOT checked against
+# the data, only against this code (gated: no metadata or card without a login): walledai/HarmBench,
+# walledai/AdvBench, walledai/XSTest, sorry-bench/sorry-bench-202503, allenai/wildjailbreak.
+# No dataset revision is pinned: every entry follows the Hub's default branch.
+# SORRY-Bench: the "sorrybench_v1" key loads sorry-bench/sorry-bench-202503 and the judge is
+# sorry-bench/ft-mistral-7b-instruct-v0.2-sorry-bench-202406. That IS the official pairing
+# (SORRY-Bench/SORRY-Bench@7da10ad README: dataset 202503, judge ...-202406); only the key name
+# "v1" is historical and is kept because it appears in the default benchmark list and result keys.
 DATASETS: dict[str, dict] = {
     # Safety benchmarks: evaluate(), trainer.evaluate(), load_bench_prompts()
     # The SafeTune paper's suite sizes: HarmBench 400 = standard 200 + contextual

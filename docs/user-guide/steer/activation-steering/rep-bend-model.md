@@ -9,7 +9,10 @@
     `RepBendTrainer.calibrate` wraps the model in `RepBendModel` and returns it; it
     does not run a training loop. `RepBendModel.compute_repbend_loss` exposes the
     five-term objective so you can optimise it inside your own LoRA fine-tuning loop.
-    `generate` on the wrapper passes straight through to the base model.
+    `generate` on the wrapper passes straight through to the base model: the Steer wrapper is a
+    pass-through, and the method lives in the loss helper. `safe_loss` / `unsafe_loss` average
+    per-token norms; `cosine_loss` pools tokens by their mean by default; pass `request_positions` (the
+    last request token of each unsafe prompt) to read it at one position, as the official trainer does.
 
 Five-term loss: $L = \alpha \cdot L_{\text{safe}} + \beta \cdot L_{\text{unsafe}} + \gamma \cdot L_{\text{cosine}} + \varepsilon \cdot L_{\text{KL}} + \eta \cdot L_{\text{safe\_unsafe}}$,
 measured by comparing the fine-tuned model against a frozen copy of the original.

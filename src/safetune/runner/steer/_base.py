@@ -35,9 +35,17 @@ def _derive_model_id(model_id, model=None, tokenizer=None) -> str:
     return str(cand) if cand else "model"
 
 
+PASS_THROUGH_WARNING = (
+    "This trainer evaluates the model as given and applies no method-specific change at inference."
+)
+
+
 class _SteerBase:
     PILLAR = "steer"
     METHOD: str = ""
+    # True for the trainers whose wrapper is a pass-through (the method is a training-time loss
+    # elsewhere): constructing one warns, so its evaluation is not mistaken for the method's.
+    PASS_THROUGH: bool = False
 
     def __init__(
         self,
@@ -56,6 +64,9 @@ class _SteerBase:
         self.drift_task = drift_task
         self._extra = kwargs
         warn_unknown_kwargs(self, kwargs)
+        if self.PASS_THROUGH:
+            import warnings
+            warnings.warn(PASS_THROUGH_WARNING, UserWarning, stacklevel=3)
 
     @property
     def model(self):

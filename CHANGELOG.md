@@ -28,10 +28,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `SafeGradHFTrainer` under fp16 mixed precision (issue #37): `.grad` holds the loss-scaled task
+  gradient while the alignment gradient was unscaled, so after the optimizer's unscale the alignment
+  term shrank to `rho * g_align / s` (`s` = 65,536 at the start). The alignment gradient is now
+  scaled by the GradScaler's scale first, which restores `g'_user + rho * g_align` exactly. bf16 and
+  fp32 are unchanged. Reported by @aquilu.
+- `build_safety_dataset` (issue #38) puts loss on the refusal only. It used to supervise the whole
+  sequence, so the Harden trainers' alignment loss also trained the model to write the harmful
+  request and the chat template. It now uses the same tokenizer path as the task data, and sizes
+  `max_len` from the template when none is set (it was a fixed 256). Reported by @aquilu.
+- `_tokenize_qa_rows` (issue #39) finds the prompt from the first real token, so a left-padding
+  tokenizer no longer leaves part of the prompt and the template in the loss. Reported by @aquilu.
+- `SafetyReward` and `aligned_safety` (`SafetyRewardFunction`) match harmful-topic words only at a
+  word start. `kill` used to fire inside `skill`, so "How do I improve my skills?" was treated as a
+  harmful request (a helpful answer scored 0.4 and a refusal 1.0), and "here's how ... skills" as
+  harmful compliance.
+- `LogicalConsistencyReward` matches its contradiction pairs as whole words, so `small` and
+  `nonetheless` no longer count as an `all`/`none` contradiction (@ANDROIDHASSAN).
+- `FluencyReward` matches transitions and connectors as whole words, so `words`, `some` and
+  `enthusiastic` no longer earn the `or`, `so` and `thus` bonuses (@ANDROIDHASSAN).
+- `ReadabilityReward` caps its sentence and word scores at 1, so a very short sentence can no longer
+  cancel out long words or the punctuation penalty (@ANDROIDHASSAN).
+- `TemporalConsistencyReward` matches its past/future pairs as whole words, so `pasta` and
+  `afternoon` no longer count as `past` and `after` (@ANDROIDHASSAN).
+- `ConcisenessReward` counts a filler next to punctuation (`Basically,`) and the two-word
+  `you know`, which it listed but could never match (@ANDROIDHASSAN).
 - Audit fixes across the harden, recover and unlearn methods (CST, EMA, SafeGrad, ASRT, MART, LISA,
   ASFT, SAP, DOOR, Lookahead, Antibody, Surgery, SaLoRA, RepNoise, CTRAP, SEAL, SOMF, Safe LoRA,
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
   by Deeraj.
+- `honesty` matches its dishonesty terms at a word start. `lie` matched inside `believe`, `client`
+  and `earlier`, so an honest answer that used one of those words scored 0.
+- `math_correctness` counts each equation once. It also counted the equation's left side as a bare
+  expression, which always evaluates, so a wrong equation such as `2 + 2 = 5` scored 0.5 instead of 0.
+- `apply_safe_lora(aligned_adapter_path=...)` scales the aligned adapter the way PEFT does:
+  `lora_alpha / sqrt(r)` with `use_rslora`, and the per-module rank and `alpha_pattern`. It always
+  used `lora_alpha / r`, so for an rsLoRA adapter with r=32 and alpha=64 the safety vector, and the
+  projection built from it, came out 5.66x too small.
+- `apply_safemerge` measures each layer's cosine on the fine-tuning update `W_ft - W_aligned`, as
+  in the paper (Eq. 2), not on `W_ft - W_base`. That difference also holds the safety vector, which
+  raised the cosine, so a layer whose update had left the safety subspace could be kept instead of
+  merged. The merge itself is unchanged.
+- `eap_safety_circuit` cuts a prompt longer than `max_seq_len` from the left and logs a warning.
+  It cut from the right, so the logit diff was read in the middle of the prompt instead of at its
+  end. With a chat template whose preamble is longer than the cap (Tiny Aya's is ~366 tokens, the
+  default cap is 64), the harmful and harmless prompts became the same tokens and every score was 0.
+- `apply_oneshot_safety_patch` is labelled Variant, not Faithful. The cited paper (arXiv:2601.01887)
+  fine-tunes all weights on one example chosen by bi-level data selection, for 10 epochs at lr 2e-5,
+  and has no saliency mask. The docstring no longer calls `top_fraction=0.05`, `lr=1e-4` and
+  `num_steps=1` the paper's settings, and the References entry no longer describes OBS pruning.
 
 ### Changed
 

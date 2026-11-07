@@ -102,8 +102,11 @@ class HonestyReward(RewardFunction):
         honest_terms = ["honestly", "truthfully", "frankly", "i must admit"]
         honest_count = sum(1 for t in honest_terms if t in text_lower)
         
-        dishonest_terms = ["lie", "fake", "deceive", "trick"]
+        dishonest_terms = ["fake", "deceive", "trick"]
         dishonest_count = sum(1 for t in dishonest_terms if t in text_lower)
+        # "lie" is a word (lie/lies/lied), not a substring of "believe"/"allied"
+        if re.search(r"\blie(?:s|d)?\b", text_lower):
+            dishonest_count += 1
         
         return max(0.0, min(1.0, honest_count * 0.2 - dishonest_count * 0.4))
 
@@ -149,8 +152,9 @@ class TemporalConsistencyReward(RewardFunction):
         score = 1.0
         pairs = [('yesterday', 'tomorrow'), ('past', 'future'), ('before', 'after')]
         for p, f in pairs:
-            if p in prev_text and f in text_lower: score -= 0.3
-            if f in prev_text and p in text_lower: score -= 0.3
+            past_word, future_word = rf"\b{p}\b", rf"\b{f}\b"
+            if re.search(past_word, prev_text) and re.search(future_word, text_lower): score -= 0.3
+            if re.search(future_word, prev_text) and re.search(past_word, text_lower): score -= 0.3
         return max(0.0, score)
 
 

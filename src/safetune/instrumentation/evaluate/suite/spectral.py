@@ -16,7 +16,10 @@ residual stream itself. For every prompt we:
    distribution ``p_i = sigma_i^2 / sum(sigma_j^2)``.
 4. Compute the spectral entropy ``H = -sum(p_i log p_i)``.
 
-H is bounded in ``[0, log(rank)]``. High H means the layer uses many
+H is bounded in ``[0, log(rank)]`` and is NOT divided by log(rank): it grows with the
+number of tokens (isotropic data: about 2.1 nats at 10 tokens, 3.8 at 100, 4.0 at 300 for a
+64-dim stream). Calibrate on prompts of a similar length to the ones you scan, or a short
+prompt reads as an anomaly. High H means the layer uses many
 orthogonal directions (rich representation). Low H means the layer has
 collapsed onto a few directions, the spectral fingerprint of:
 
@@ -68,8 +71,10 @@ class SpectralMonitorConfig:
         z_threshold: A prompt-layer pair is flagged when its entropy z-score
             against the calibrated baseline drops below ``-z_threshold``.
             Two standard deviations is a reasonable default.
-        eigenvalue_floor: Numerical floor on singular values squared before
-            normalization. Stops ``log(0)`` blowups on rank-deficient inputs.
+        eigenvalue_floor: Numerical floor on the squared singular values, RELATIVE to the
+            largest one, applied before normalization. Stops ``log(0)`` blowups on
+            rank-deficient inputs without depending on the activation scale. An input with
+            no variance at all (every row identical) has entropy 0.
         batch_size: Batch size for forward passes during calibration / scan.
         skip_first_token: Leave each prompt's first token out of the SVD. It is
             the attention sink: on Qwen2.5-0.5B its hidden state is ~100x the
@@ -120,7 +125,7 @@ def _spectral_entropy(
         skip_first: drop the first real token (the attention sink).
     """
     if activation.dim() < 2:
-        return 0.0
+        return float("nan")
     a = activation.detach().float()
     if a.dim() > 2:
         a = a.reshape(-1, a.shape[-1])
@@ -134,17 +139,20 @@ def _spectral_entropy(
     if skip_first:
         a = a[1:]
     # Need at least two real tokens for a meaningful covariance spectrum.
-    if a.shape[0] < 2:
-        return 0.0
+    if a.shape[0] < 2 or not bool(torch.isfinite(a).all()):
+        return float("nan")
     a = a - a.mean(dim=0, keepdim=True)
     # Singular values of (seq, hidden) live on the residual stream's
     # principal axes; their squares are eigenvalues of A^T A.
     try:
         s = torch.linalg.svdvals(a)
     except RuntimeError:
-        # Degenerate: zero rows or NaNs. Treat as zero entropy.
-        return 0.0
-    eig = s.pow(2).clamp_min(floor)
+        return float("nan")
+    s2 = s.pow(2)
+    top = s2.max()
+    if not bool(top > 0):
+        return 0.0                      # no variance: rank 0, nothing is spread over directions
+    eig = s2.clamp_min(floor * top)
     p = eig / eig.sum()
     return float(-(p * p.log()).sum().item())
 
@@ -202,6 +210,12 @@ class SpectralEntropyMonitor:
         for idx in target:
             if 0 <= idx < len(layers):
                 self._hooks.append(layers[idx].register_forward_hook(self._make_hook(idx)))
+        if not self._hooks:
+            raise ValueError(
+                f"SpectralEntropyMonitor: target_layers={target!r} selects no layer of this "
+                f"{len(layers)}-layer model (valid indices are 0..{len(layers) - 1}); "
+                "nothing would be monitored."
+            )
 
     def _remove(self) -> None:
         for h in self._hooks:
@@ -282,21 +296,35 @@ class SpectralEntropyMonitor:
 
         Returns the baseline dict. Also stores it on ``self.baseline``.
         """
-        if not benign_prompts:
-            raise ValueError("calibrate() requires at least one benign prompt.")
+        if len(benign_prompts) < 2:
+            raise ValueError(
+                "calibrate() requires at least 2 benign prompts (a standard deviation needs two)."
+            )
         per_prompt = self._run_prompts(benign_prompts)
 
         # Aggregate per-layer.
         layer_values: Dict[int, List[float]] = {}
+        n_nan = 0
         for ent in per_prompt:
             for li, v in ent.items():
+                if v != v:                      # NaN: non-finite activations or fewer than 2 tokens
+                    n_nan += 1
+                    continue
                 layer_values.setdefault(li, []).append(v)
+        if n_nan:
+            logger.warning(
+                "SpectralEntropyMonitor.calibrate: %d (prompt, layer) entropies were NaN "
+                "(non-finite activations or fewer than 2 tokens) and are left out of the baseline.",
+                n_nan,
+            )
 
         baseline: Dict[int, Tuple[float, float]] = {}
         for li, vals in layer_values.items():
+            if len(vals) < 2:
+                continue
             t = torch.tensor(vals, dtype=torch.float64)
             mu = float(t.mean().item())
-            sigma = float(t.std(unbiased=False).item()) if len(vals) > 1 else 1e-6
+            sigma = float(t.std(unbiased=False).item())
             baseline[li] = (mu, max(sigma, 1e-9))
         self.baseline = baseline
         logger.info(
@@ -316,14 +344,21 @@ class SpectralEntropyMonitor:
             raise RuntimeError("Call .calibrate(...) before .scan(...).")
         per_prompt = self._run_prompts(prompts)
         flags: List[Tuple[int, int, float, float]] = []
+        n_nan = 0
         for pi, ent in enumerate(per_prompt):
             for li, v in ent.items():
                 if li not in self.baseline:
+                    continue
+                if v != v:
+                    n_nan += 1                  # cannot be scored; never flagged, but not silent
                     continue
                 mu, sigma = self.baseline[li]
                 z = (v - mu) / sigma
                 if z < -self.config.z_threshold:
                     flags.append((pi, li, v, z))
+        if n_nan:
+            logger.warning("SpectralEntropyMonitor.scan: %d (prompt, layer) pairs had NaN entropy "
+                           "and were not scored.", n_nan)
         logger.info(
             "SpectralEntropyMonitor: scanned %d prompts, flagged %d (prompt, layer) pairs.",
             len(prompts),

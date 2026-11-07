@@ -56,15 +56,20 @@ class ProxyTuningProcessor(GuidedLogitsProcessor):
         tokenizer_target: Any,
         tokenizer_proxy: Optional[Any] = None,
         config: Optional[ProxyTuningConfig] = None,
+        *,
+        target: Optional[Any] = None,
     ) -> None:
         super().__init__(guide=proxy_tuned, tokenizer_target=tokenizer_target,
-                         tokenizer_guide=tokenizer_proxy)
+                         tokenizer_guide=tokenizer_proxy, target=target)
         self.proxy_base = proxy_base
         self.config = config or ProxyTuningConfig()
 
     @torch.no_grad()
     def _proxy_base_logits(self, input_ids: torch.Tensor) -> torch.Tensor:
-        out = self.proxy_base(input_ids=input_ids, use_cache=False)
+        # the same mask the tuned proxy gets: leading pad tokens of a left-padded batch must not be attended
+        attn = self._attention_mask(input_ids)
+        kw = {} if attn is None else {"attention_mask": attn}
+        out = self.proxy_base(input_ids=input_ids, use_cache=False, **kw)
         native = out.logits[:, -1, :].float()
         if self._target_to_guide.numel() == 0:
             return native

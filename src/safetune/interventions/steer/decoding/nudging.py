@@ -96,8 +96,11 @@ class NudgingProcessor(GuidedLogitsProcessor):
         tokenizer_target: Any,
         tokenizer_guide: Optional[Any] = None,
         config: Optional[NudgingConfig] = None,
+        *,
+        target: Optional[Any] = None,
     ) -> None:
-        super().__init__(guide=guide, tokenizer_target=tokenizer_target, tokenizer_guide=tokenizer_guide)
+        super().__init__(guide=guide, tokenizer_target=tokenizer_target, tokenizer_guide=tokenizer_guide,
+                         target=target)
         self.config = config or NudgingConfig()
 
     @staticmethod

@@ -188,6 +188,7 @@ class RepBendModel:
         orig_retain_logits: Optional[Any] = None,
         unsafe_response_hidden: Optional[Dict[int, Any]] = None,
         safe_response_target_hidden: Optional[Dict[int, Any]] = None,
+        request_positions: Optional[Any] = None,
     ) -> Any:
         """Faithful RepBend fine-tuning loss (arXiv:2504.01550, ``_calc_loss``).
 
@@ -202,7 +203,12 @@ class RepBendModel:
         All hidden-state arguments are dicts ``{layer_idx -> tensor}``; per the
         paper the layer index keys the residual stream at the output of that
         transformer block.  Tensors are ``(batch, seq, dim)`` (or already
-        pooled to ``(batch, dim)``).  ``M'`` denotes the *fine-tuned* model
+        pooled to ``(batch, dim)``); ``safe_loss`` / ``unsafe_loss`` average the per-token norm over
+        all given positions and layers, so pass unpadded tensors (or trim the padding first).
+        ``cosine_loss`` pools the tokens by their mean by default; the official trainer
+        (``trainer.py:354``) reads one position, the last request token, which needs
+        ``request_positions``.
+        ``M'`` denotes the *fine-tuned* model
         currently being trained; ``orig_*`` denotes the *frozen original*
         model ``M``.
 
@@ -226,6 +232,11 @@ class RepBendModel:
             prompt, and the frozen-model hidden states of the *safe* response
             to that same unsafe prompt.  Their L2 difference is the
             ``safe_unsafe_loss`` term.  Optional (needs ``loss_eta > 0``).
+        request_positions
+            Optional ``(batch,)`` integer tensor (or an int) with the index of each unsafe
+            prompt's last request token. When given, the cosine term reads the unsafe hidden
+            states at that position, as the official trainer does; when absent (the default)
+            it uses the token mean, exactly as before.
 
         Returns
         -------
@@ -243,6 +254,11 @@ class RepBendModel:
             # already-pooled (batch, dim) tensors untouched.
             t = t.float()
             return t.mean(dim=1) if t.dim() == 3 else t
+
+        def _diff_norm(a: Any, b: Any) -> Any:
+            # mean ||a - b||_2: per token for (batch, seq, dim) tensors (the official trainer takes the norm
+            # of every token's difference, then averages), per row for already-pooled (batch, dim) ones.
+            return (a.float() - b.float()).norm(p=2, dim=-1).mean()
 
         def _common_layers(a: Dict[int, Any], b: Dict[int, Any]) -> List[int]:
             return [l for l in self.target_layers if l in a and l in b] or [
@@ -264,8 +280,7 @@ class RepBendModel:
         if s_layers:
             acc = zero
             for l in s_layers:
-                v_s = _pool(safe_hidden[l]) - _pool(orig_safe_hidden[l])
-                acc = acc + v_s.norm(p=2, dim=-1).mean()
+                acc = acc + _diff_norm(safe_hidden[l], orig_safe_hidden[l])
             safe_loss = acc / len(s_layers)
 
         # ── unsafe_loss: mean ||v_u|| = ||M'(unsafe) - M(unsafe)|| ────
@@ -275,8 +290,7 @@ class RepBendModel:
         if u_layers:
             acc = zero
             for l in u_layers:
-                v_u = _pool(unsafe_hidden[l]) - _pool(orig_unsafe_hidden[l])
-                acc = acc + v_u.norm(p=2, dim=-1).mean()
+                acc = acc + _diff_norm(unsafe_hidden[l], orig_unsafe_hidden[l])
             unsafe_loss = acc / len(u_layers)
 
         # ── cosine_loss: 1 - mean pairwise cos_sim of unsafe reps ─────
@@ -287,7 +301,13 @@ class RepBendModel:
             acc = zero
             n = 0
             for l in u_layers:
-                h = _pool(unsafe_hidden[l])              # (B, D)
+                if request_positions is not None and unsafe_hidden[l].dim() == 3:
+                    hl = unsafe_hidden[l].float()
+                    pos = torch.as_tensor(request_positions, device=hl.device).long()
+                    pos = pos.expand(hl.shape[0]) if pos.dim() == 0 else pos
+                    h = hl[torch.arange(hl.shape[0], device=hl.device), pos]    # (B, D) at the request position
+                else:
+                    h = _pool(unsafe_hidden[l])          # (B, D)
                 if h.shape[0] < 2:
                     continue
                 hn = h / (h.norm(dim=-1, keepdim=True) + 1e-8)

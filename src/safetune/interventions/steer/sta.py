@@ -298,6 +298,7 @@ class STAModel:
                 "steer attention heads or arbitrary residual-stream slices."
             )
 
+        self._validate_layer_vectors(layer_vectors)
         self.layer_vectors = layer_vectors
 
         # Keep a (configured but un-hooked) core STAWrapper for API parity /
@@ -319,6 +320,32 @@ class STAModel:
 
         self._hooks: List[Any] = []
         self._install_hooks()
+
+    def _validate_layer_vectors(self, layer_vectors: Dict[int, Any]) -> None:
+        """Reject steering vectors that would do nothing or corrupt the run: non-finite, all zero,
+        of the wrong width, on a layer the model does not have, or no hook at all."""
+        if not layer_vectors:
+            return                      # the "no SAE, no vectors" case keeps its own warning
+        import torch
+
+        n_layers = len(_get_decoder_layers(self.model))
+        hidden = None
+        cfg = getattr(self.model, "config", None)
+        try:
+            hidden = int(cfg.get_text_config().hidden_size)
+        except Exception:
+            hidden = getattr(cfg, "hidden_size", None)
+        for layer_idx, vec in layer_vectors.items():
+            v = torch.as_tensor(vec)
+            where = f"STAModel: steering vector for layer {layer_idx}"
+            if not 0 <= layer_idx < n_layers:
+                raise ValueError(f"{where} is out of range for a model with {n_layers} decoder layers.")
+            if not bool(torch.isfinite(v.float()).all()):
+                raise ValueError(f"{where} has NaN or infinite entries.")
+            if not bool((v.float() != 0).any()):
+                raise ValueError(f"{where} is all zero, so it would not steer anything.")
+            if hidden is not None and v.shape[-1] != hidden:
+                raise ValueError(f"{where} has width {v.shape[-1]} but the model's hidden size is {hidden}.")
 
     # ----------------------------------------------------------------------
     # STA residual-stream steering hooks (h_hat = h + lambda * v_STA).
