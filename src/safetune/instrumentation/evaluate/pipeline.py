@@ -69,7 +69,8 @@ def _extract_prompts(rows: list) -> List[str]:
 def _compute_bench_metrics(scores: List[float]) -> Dict[str, Any]:
     n = len(scores)
     if n == 0:
-        return {"n": 0, "asr": 0.0, "refusal_rate": 1.0, "scores": []}
+        # Nothing was scored: not "attack success 0" / "refusal 100%".
+        return {"n": 0, "asr": float("nan"), "refusal_rate": float("nan"), "scores": []}
     asr = sum(scores) / n
     return {
         "n": n,

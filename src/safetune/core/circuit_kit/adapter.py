@@ -31,7 +31,11 @@ def load_circuit_info_from_file(filepath: str, *, top_fraction: float = 0.2) -> 
       ``*_scores.json`` from CircuitKIT < 0.2): both are then derived from the
       top ``top_fraction`` of nodes by score (see ``circuit_info_from_node_scores``).
 
-    Raises ``ValueError`` when the file has none of these keys.
+    A missing file returns ``None`` (with a warning). Any unreadable or invalid file raises
+    ``ValueError`` naming the path and the reason: it cannot be parsed, it is not a mapping (an
+    empty file, a list, a scalar), it has an unknown key inside ``safety_units`` /
+    ``layer_suggestions``, ``layer_indices`` / ``layer_subset`` are not non-negative integers, or it
+    has none of the keys above. An empty mapping ``{}`` loads as an empty ``CircuitInfo``.
     """
     path = Path(filepath)
     if not path.exists():
@@ -49,9 +53,13 @@ def load_circuit_info_from_file(filepath: str, *, top_fraction: float = 0.2) -> 
             except ImportError:
                 data = json.loads(raw)
     except Exception as e:
-        logger.warning(f"Failed to parse circuit file {filepath}: {e}")
-        return None
+        raise ValueError(f"Cannot read circuit file {filepath}: {type(e).__name__}: {e}") from e
 
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"Circuit file {filepath} must hold a mapping of circuit keys, got "
+            f"{'nothing (empty file)' if data is None else type(data).__name__}."
+        )
     return _dict_to_circuit_info(data, raw_output_path=filepath, top_fraction=top_fraction)
 
 
@@ -115,9 +123,49 @@ def circuit_info_from_node_scores(
     )
 
 
+_SU_KEYS = {"layer_indices", "module_names", "unit_ids", "activation_correlation", "metadata"}
+_LS_KEYS = {"target_modules", "layer_subset", "priority", "metadata"}
+
+
+def _check_section(sec: Dict[str, Any], allowed: set, name: str, where: str,
+                   int_lists: tuple, str_lists: tuple, num_maps: tuple) -> None:
+    unknown = sorted(set(sec) - allowed)
+    if unknown:
+        raise ValueError(f"{where}: unknown key(s) {unknown} in {name!r} (allowed: {sorted(allowed)}).")
+    for k in int_lists:
+        v = sec.get(k)
+        if v is None:
+            continue
+        if not isinstance(v, list) or not all(isinstance(i, int) and not isinstance(i, bool) and i >= 0 for i in v):
+            raise ValueError(f"{where}: {name}.{k} must be a list of non-negative integers, got {v!r}.")
+    for k in str_lists:
+        v = sec.get(k)
+        if v is not None and (not isinstance(v, list) or not all(isinstance(i, str) for i in v)):
+            raise ValueError(f"{where}: {name}.{k} must be a list of strings, got {v!r}.")
+    for k in num_maps:
+        v = sec.get(k)
+        if v is not None and (not isinstance(v, dict) or not all(
+                isinstance(a, str) and isinstance(b, (int, float)) and not isinstance(b, bool) for a, b in v.items())):
+            raise ValueError(f"{where}: {name}.{k} must map strings to numbers, got {v!r}.")
+    if "metadata" in sec and sec["metadata"] is not None and not isinstance(sec["metadata"], dict):
+        raise ValueError(f"{where}: {name}.metadata must be a mapping.")
+
+
 def _dict_to_circuit_info(data: Dict[str, Any], raw_output_path: Optional[str] = None,
                           top_fraction: float = 0.2) -> CircuitInfo:
     """Convert dict (e.g. from JSON/YAML) to CircuitInfo."""
+    where = f"Circuit data {raw_output_path}" if raw_output_path else "Circuit data"
+    if not isinstance(data, dict):
+        raise ValueError(f"{where} must be a mapping, got {type(data).__name__}.")
+    if not data:
+        return CircuitInfo(raw_output_path=raw_output_path)      # {} is an empty CircuitInfo
+    for name in ("safety_units", "safety_relevant_units"):
+        if isinstance(data.get(name), dict):
+            _check_section(data[name], _SU_KEYS, name, where, ("layer_indices",),
+                           ("module_names", "unit_ids"), ("activation_correlation",))
+    for name in ("layer_suggestions", "lora_suggestions"):
+        if isinstance(data.get(name), dict):
+            _check_section(data[name], _LS_KEYS, name, where, ("layer_subset",), ("target_modules",), ("priority",))
     safety_units = None
     su = data.get("safety_units") or data.get("safety_relevant_units")
     if su and isinstance(su, dict):
@@ -164,19 +212,24 @@ def get_circuit_info(
     **kwargs: Any,
 ) -> Optional[CircuitInfo]:
     """
-    Get circuit info from file path or (future) API.
+    Get circuit info from a file path.
+
+    Only ``source`` and the ``top_fraction`` keyword are used. ``model_name`` and every other
+    keyword are accepted and IGNORED (there is no API lookup); this function is not a
+    :class:`CircuitInfoProvider` implementation.
 
     Args:
-        source: Path to CircuitKIT output file, or None to return None.
-        model_name: Optional model name for API lookup (not used for file).
-        **kwargs: Passed to future API adapter.
+        source: Path to a CircuitKIT-format file, or None to return None.
+        model_name: ignored.
+        **kwargs: only ``top_fraction`` (for ``node_scores`` files) is read.
 
     Returns:
-        CircuitInfo or None if unavailable.
+        CircuitInfo; ``None`` for no source or a missing file. An unreadable or invalid file
+        raises ``ValueError`` (see :func:`load_circuit_info_from_file`).
     """
     if not source:
         return None
-    # Warns and returns None when the file is missing; raises when it has no circuit keys.
+    # Warns and returns None when the file is missing; raises when it is unreadable or invalid.
     return load_circuit_info_from_file(source, top_fraction=kwargs.get("top_fraction", 0.2))
 
 
@@ -190,12 +243,29 @@ def get_circuit_info(
 # when non-empty, matching the reader's ``.get(..., {})`` defaults.
 
 
+def _plain(obj: Any, where: str) -> Any:
+    """Plain-Python copy of ``obj``: numpy / torch scalars and arrays become Python numbers and lists,
+    tuples become lists, dict keys become strings; a non-finite float raises ``ValueError`` (JSON has no
+    NaN, and a NaN score would read back as a real one)."""
+    if isinstance(obj, dict):
+        return {str(k): _plain(v, f"{where}.{k}") for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_plain(v, f"{where}[{i}]") for i, v in enumerate(obj)]
+    if hasattr(obj, "tolist") and not isinstance(obj, (str, bytes)):      # numpy scalar / array, torch tensor
+        return _plain(obj.tolist(), where)
+    if isinstance(obj, float) and (obj != obj or obj in (float("inf"), float("-inf"))):
+        raise ValueError(f"CircuitInfo contains a non-finite value ({obj}) at {where.lstrip('.')}; it cannot be saved.")
+    return obj
+
+
 def circuit_info_to_dict(info: CircuitInfo) -> Dict[str, Any]:
     """
     Serialise a :class:`CircuitInfo` to a plain dict.
 
     The result is the canonical (preferred-spelling) form accepted by
-    :func:`_dict_to_circuit_info` / :func:`load_circuit_info_from_file`.
+    :func:`_dict_to_circuit_info` / :func:`load_circuit_info_from_file`. numpy / torch scalars
+    are cast to Python numbers, tuples become lists, keys become strings, and a non-finite value
+    raises ``ValueError``.
     """
     data: Dict[str, Any] = {}
 
@@ -228,7 +298,7 @@ def circuit_info_to_dict(info: CircuitInfo) -> Dict[str, Any]:
     if info.metadata:
         data["metadata"] = dict(info.metadata)
 
-    return data
+    return _plain(data, "")
 
 
 def save_circuit_info_to_file(

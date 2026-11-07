@@ -39,7 +39,7 @@ lora_config = apply_circuit_to_safety_lora(circuit, safety_lora_config)
 
 # read the module targeting the circuit suggests
 targeting = get_lora_targeting_from_circuit(circuit)
-print(targeting.target_modules)  # e.g. ["mlp.act_fn"]
+print(targeting.target_modules)  # e.g. ["mlp.down_proj"]
 print(targeting.layer_subset)    # layers the circuit's safety units span
 ```
 
@@ -58,3 +58,18 @@ print(targeting.layer_subset)    # layers the circuit's safety units span
 CircuitInfo is the bridge between Interpret and Steer/Recover. Every method
 that discovers safety-relevant structure returns a CircuitInfo that other
 methods can consume.
+
+## Who reads a `CircuitInfo`, and file handling
+
+- **Readers:** C-ΔΘ (`apply_ctheta`, `apply_ctheta_from_state_dicts`, `sweep_ctheta_strength`) reads
+  `layer_suggestions.layer_subset` and `target_modules`; SafetyLoRA reads `layer_suggestions.target_modules`.
+  LSSF, PKE, NLSR and DeepRefusal do not read it. No consumer reads the per-neuron `unit_ids`, so for C-ΔΘ the "circuit"
+  is a set of layers and modules. `layer_subset` lists only the layers that kept units. `circuit_info=None` in C-ΔΘ
+  means "every weight" (a Recover-pillar behaviour, unchanged).
+- **Loading:** a missing file returns `None`; an unreadable or invalid file (bad JSON/YAML, an empty file, a list or scalar,
+  an unknown key inside `safety_units` / `layer_suggestions`, `layer_indices` that are not non-negative integers) raises
+  `ValueError` with the path and the reason. `{}` loads as an empty `CircuitInfo`. Unknown top-level keys of a CircuitKIT file are ignored.
+- **Saving:** numpy / torch scalars are written as plain numbers, dict keys as strings; a NaN or infinite value raises
+  `ValueError` and no file is written. `raw_output_path` is not saved.
+- **`CircuitInfoProvider`** is a typing `Protocol` that nothing implements; `get_circuit_info` is a file loader that ignores
+  `model_name` and every keyword except `top_fraction`.

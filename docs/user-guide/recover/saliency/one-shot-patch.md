@@ -5,6 +5,11 @@ selects the `top_fraction` most safety-salient coordinates, and runs `num_steps`
 of Adam optimisation on those coordinates only. Effective even with a single
 example because the saliency signal focuses the update on the highest-impact weights.
 
+Audit status: **Variant**. The cited paper (Zhang et al., arXiv:2601.01887)
+fine-tunes all weights on one example chosen by bi-level data selection, for 10
+epochs at lr 2e-5, with no saliency mask. Don't cite this method as that paper's
+algorithm.
+
 ## Signature
 
 ```python
@@ -55,5 +60,5 @@ trainer.save_results(metrics, variant="1-example")
 ## When to use
 
 - **Best for:** rapid patching from minimal data; a single example pair suffices for a first pass.
-- **`num_steps`:** the trainer defaults to `5`. Set `num_steps=1` for the paper's headline "one-shot" setting, or higher for a stronger (but less targeted) patch.
+- **`num_steps`:** the trainer defaults to `5`. Lower is a lighter patch, higher a stronger (but less targeted) one. "One-shot" in the paper means one example, not one step.
 - **Compare to GradSelectiveRecoverTrainer:** both use gradient saliency, but GradSelective restores from an aligned reference; OneShotPatch runs an Adam update with a safe target — no aligned model needed.

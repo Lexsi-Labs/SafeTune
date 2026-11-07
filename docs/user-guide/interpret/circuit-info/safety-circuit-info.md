@@ -23,7 +23,7 @@ print(circuit.safety_units.unit_ids[:5])  # e.g. ["L0.mlp.down_proj.50", ...]
 | `top_k_per_layer` | `int` | `16` | Top-k neurons per layer |
 | `target_module` | `str` | `"mlp.down_proj"` | Module to inspect |
 | `target_layers` | `Optional[List[int]]` | `None` | Layers to score |
-| `activation_module` | `str` | `"mlp.act_fn"` | Module for activation hooks |
+| `activation_module` | `str` | `"mlp.down_proj"` | Where activations are read (an `nn.Linear` at its input) |
 | `activation_score` | `str` | `"mean_abs_diff"` | Activation score variant |
 
 ## When to use

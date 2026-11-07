@@ -5,6 +5,7 @@ Basic text quality reward functions for SafeTune.
 from typing import Optional
 import numpy as np
 import logging
+import re
 from .base import RewardFunction
 
 logger = logging.getLogger(__name__)
@@ -120,12 +121,12 @@ class FluencyReward(RewardFunction):
             transitions = ['however', 'therefore', 'moreover', 'furthermore', 
                           'additionally', 'consequently', 'thus', 'hence', 
                           'meanwhile', 'similarly', 'in contrast', 'for example']
-            has_transitions = any(trans in text.lower() for trans in transitions)
+            has_transitions = any(re.search(rf"\b{trans}\b", text.lower()) for trans in transitions)
             if has_transitions:
                 score += 0.2
             
             connectors = ['and', 'but', 'or', 'because', 'so', 'then', 'when', 'if']
-            connector_count = sum(1 for conn in connectors if conn in text.lower())
+            connector_count = sum(1 for conn in connectors if re.search(rf"\b{conn}\b", text.lower()))
             score += min(connector_count / 10, 0.2)
         
         return min(score, 1.0)
@@ -149,8 +150,8 @@ class ReadabilityReward(RewardFunction):
         avg_sentence_length = len(words) / len(sentences)
         avg_word_length = sum(len(word) for word in words) / len(words)
         
-        sentence_score = 1.0 - min(1.0, (avg_sentence_length - 15) / 30)
-        word_score = 1.0 - min(1.0, (avg_word_length - 4.5) / 5)
+        sentence_score = 1.0 - max(0.0, min(1.0, (avg_sentence_length - 15) / 30))
+        word_score = 1.0 - max(0.0, min(1.0, (avg_word_length - 4.5) / 5))
         
         complex_punct = text.count(';') + text.count(':') + text.count('—')
         punct_penalty = min(0.2, complex_punct * 0.05)
@@ -174,7 +175,8 @@ class ConcisenessReward(RewardFunction):
         
         filler_words = ['um', 'uh', 'like', 'you know', 'actually', 'basically', 
                        'literally', 'really', 'very', 'quite', 'rather', 'somewhat']
-        filler_count = sum(1 for word in words if word.lower() in filler_words)
+        # Search the text, not its split words: "Basically," and "you know" are not split words.
+        filler_count = len(re.findall(r"\b(?:" + "|".join(filler_words) + r")\b", text.lower()))
         filler_ratio = filler_count / word_count if word_count > 0 else 0.0
         
         information_density = unique_words / word_count if word_count > 0 else 0.0

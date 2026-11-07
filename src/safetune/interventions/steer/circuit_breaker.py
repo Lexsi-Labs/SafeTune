@@ -39,7 +39,11 @@ flagged for RRFA), this wrapper makes the *real* RR objective the primary,
 honest API:
 
   * ``CircuitBreakerModel.compute_rr_loss(...)`` implements the paper's RR loss
-    exactly (L2 retain term + ReLU-cosine rerouting term + linear schedule).
+    (L2 retain term + ReLU-cosine rerouting term + linear schedule), with two
+    differences from the official code: the retain mean divides by the real
+    tokens where the official one divides by every position including padded
+    ones, and the coefficient schedule is clamped to [0, 1] where the official
+    ``progress`` is unbounded (its coefficients go negative past step T).
     Drive it inside your own LoRA fine-tuning loop to obtain a circuit-broken
     model — this is the faithful procedure.
 
@@ -79,8 +83,10 @@ class CircuitBreakerModel:
     unsafe_directions:
         Optional per-layer directions. Only used by the legacy runtime hook.
     target_layers:
-        Hidden layers at which the RR loss is measured (paper measures RR at a
-        set of mid/late decoder layers). Defaults to the core config default.
+        Hidden layers at which the rerouting term is measured (the official script uses 10 and 20).
+        The retain term uses every layer given for the retain batch, as the official ``compute_loss``
+        stacks all hidden states; it averages over real tokens, where the official code divides by
+        all positions including padded ones. Defaults to the core config default.
     threshold:
         Legacy runtime-hook parameter (projection threshold). Unused by the RR
         training path; kept for signature compatibility.
@@ -128,7 +134,18 @@ class CircuitBreakerModel:
         self._runtime_hook_active = False
 
         # Legacy / non-faithful runtime path: only activated on explicit opt-in.
-        if runtime_hook and unsafe_directions is not None:
+        if runtime_hook:
+            from safetune._refusal_helpers import _get_decoder_layers
+
+            n_layers = len(_get_decoder_layers(model))
+            hookable = [int(l) for l in (unsafe_directions or {})
+                        if int(l) in self.target_layers and 0 <= int(l) < n_layers]
+            if not hookable:
+                raise ValueError(
+                    "CircuitBreakerModel(runtime_hook=True) would install no hook: none of the "
+                    f"layers of unsafe_directions ({sorted(unsafe_directions or {})}) is in target_layers "
+                    f"({self.target_layers}) and in the model's {n_layers} decoder layers."
+                )
             self._impl.set_unsafe_directions(unsafe_directions)
             self._impl.register_hooks()
             self._runtime_hook_active = True
@@ -166,8 +183,10 @@ class CircuitBreakerModel:
     ) -> Any:
         """Faithful Circuit Breakers RR loss (Zou et al. 2024).
 
-        Mirrors ``compute_loss`` in
-        ``GraySwanAI/circuit-breakers/src/lorra_circuit_breaker.py``.
+        Follows ``compute_loss`` in
+        ``GraySwanAI/circuit-breakers/src/lorra_circuit_breaker.py`` except for the retain
+        denominator (real tokens, not all positions) and the clamped schedule (see the
+        module docstring).
 
         Parameters
         ----------
@@ -193,25 +212,25 @@ class CircuitBreakerModel:
         except ImportError:  # pragma: no cover
             raise ImportError("Circuit Breakers RR loss requires PyTorch.")
 
-        layers = [
-            l for l in self.target_layers
-            if l in orig_retain_hidden and l in lora_retain_hidden
-            and l in orig_cb_hidden and l in lora_cb_hidden
-        ]
-        if not layers:
+        # The rerouting term is measured at the target layers; the retain term, as in the official
+        # ``compute_loss`` (it stacks every hidden state), over every layer given for the retain batch.
+        layers = [l for l in self.target_layers if l in orig_cb_hidden and l in lora_cb_hidden]
+        retain_layers = sorted(l for l in orig_retain_hidden if l in lora_retain_hidden)
+        if not layers or not retain_layers:
             raise ValueError(
-                "compute_rr_loss: no target layer present in all four hidden "
-                f"-state dicts (target_layers={self.target_layers})."
+                "compute_rr_loss: need hidden states for at least one target layer on the "
+                f"circuit-breaker batch (target_layers={self.target_layers}) and at least one layer "
+                "present in both retain dicts."
             )
 
-        def _stack(hd: Dict[int, Any]) -> Any:
-            # (L, B, S, D) — one slice per target layer.
-            return torch.stack([hd[l].float() for l in layers], dim=0)
+        def _stack(hd: Dict[int, Any], ls: List[int]) -> Any:
+            # (L, B, S, D) — one slice per layer.
+            return torch.stack([hd[l].float() for l in ls], dim=0)
 
-        orig_retain = _stack(orig_retain_hidden)
-        lora_retain = _stack(lora_retain_hidden)
-        orig_cb = _stack(orig_cb_hidden)
-        lora_cb = _stack(lora_cb_hidden)
+        orig_retain = _stack(orig_retain_hidden, retain_layers)
+        lora_retain = _stack(lora_retain_hidden, retain_layers)
+        orig_cb = _stack(orig_cb_hidden, layers)
+        lora_cb = _stack(lora_cb_hidden, layers)
 
         # ── retain loss: keep benign reps L2-close to the original model ──
         diff = lora_retain - orig_retain
@@ -219,7 +238,7 @@ class CircuitBreakerModel:
         if retain_mask is not None:
             m = retain_mask.to(retain_norm.dtype)  # (B, S)
             retain_norm = retain_norm * m.unsqueeze(0)
-            denom = m.sum().clamp_min(1.0) * len(layers)
+            denom = m.sum().clamp_min(1.0) * len(retain_layers)   # real tokens, not the padded positions
             retain_loss = retain_norm.sum() / denom
         else:
             retain_loss = retain_norm.nanmean()

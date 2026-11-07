@@ -59,7 +59,7 @@ Two changes affect how you call the fixed methods:
 | apply_wise_ft | Faithful |
 | apply_safety_vector_restore | Faithful |
 | apply_grad_selective_recover | Faithful |
-| apply_oneshot_safety_patch | Faithful |
+| apply_oneshot_safety_patch | Variant |
 | apply_antidote_v2 | Faithful |
 | apply_repnoise_recover | Faithful |
 
@@ -123,24 +123,24 @@ Harden notes (second-pass audit):
 | Method | Faithful? |
 |---|---|
 | extract_refusal_direction + RefusalDirectionModel + orthogonalize/restore | Faithful |
-| CAA (extract_caa_vectors + CAAModel) | Faithful |
+| CAA (extract_caa_vectors + CAAModel) | Variant |
 | LinearProbeGuardModel | Faithful |
 | ContrastiveDecodingProcessor | Faithful |
 | ProxyTuningProcessor | Faithful |
 | SafeDecodingProcessor | Faithful |
 | AlphaSteerModel | Faithful |
 | RepBendModel | Faithful |
-| TARModel | Faithful |
-| SafeSteerModel | Faithful |
-| SafeSwitchModel | Faithful |
-| SCANSModel | Faithful |
+| TARModel | Stub |
+| SafeSteerModel | Variant |
+| SafeSwitchModel | Variant |
+| SCANSModel | Variant |
 | STAModel | Faithful |
 | CircuitBreakerModel | Faithful |
 | CircuitBreakerRRModel | Faithful |
 | NudgingProcessor | Faithful |
-| AdaSteerModel | Faithful |
-| RRFAEnsemble | Faithful |
-| CASTModel + fit_cast_condition | Faithful |
+| AdaSteerModel | Variant |
+| RRFAEnsemble | Stub |
+| CASTModel + fit_cast_condition | Simplified |
 
 ## Evaluate — Redteam
 
@@ -153,26 +153,28 @@ Harden notes (second-pass audit):
 
 | Feature | Faithful? |
 |---|---|
-| StringMatchJudge | Faithful |
+| StringMatchJudge (mode="gcg", the llm-attacks check) | Faithful |
+| StringMatchJudge (mode="prefix", the default 12-prefix starts-with match) | Variant |
 | HFJudge (HarmBench classifier) | Faithful |
 | OpenAIJudge (StrongREJECT) | Faithful |
 | JudgeAdapter | Faithful |
 | SpectralEntropyMonitor | Faithful |
 | evaluate.suite.evaluate | Faithful |
 | TamperBenchEvaluator | Faithful |
+| PTSTEvaluator | Variant |
 | Loader: advbench | Faithful |
 | Loader: xstest | Faithful |
 | Loader: sorrybench | Faithful |
 | Loader: orbench | Faithful |
-| Loader: harmbench | Faithful |
-| Loader: agentharm | Faithful |
+| Loader: harmbench | Simplified |
+| Loader: agentharm | Simplified |
 | Loader: saladbench | Faithful |
 | Loader: airbench | Faithful |
 | Loader: cares | Faithful |
 | Loader: wildjailbreak | Faithful |
 | Loader: jailbreakbench | Faithful |
 | Loader: muse | Faithful |
-| Loader: rwku | Faithful |
+| Loader: rwku | Simplified |
 | Loader: safedialbench | Faithful |
 | Pareto utilities | Faithful |
 
@@ -180,12 +182,12 @@ Harden notes (second-pass audit):
 
 | Feature | Faithful? |
 |---|---|
-| identify_safety_neurons (weight mode) | Faithful |
+| identify_safety_neurons (weight mode) | Variant |
 | identify_safety_neurons (activation mode) | Variant |
 | safety_circuit_info | Faithful |
 | CircuitInfo (+ JSON/YAML reader+writer) | Faithful |
 | CircuitInfoProvider + save_circuit_info_to_file | Faithful |
-| eap_safety_circuit (EAP / EAP-IG) | Faithful |
+| eap_safety_circuit (EAP / EAP-IG) | Simplified |
 
 ## Rewards
 

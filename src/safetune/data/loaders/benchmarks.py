@@ -21,6 +21,15 @@ from safetune.data.dataset_ids import load, spec
 def load_harmbench(split: str = None, subset=None, **overrides):
     """HarmBench (Mazeika et al., 2024): the 400 text behaviours.
 
+    Badge: Simplified. The original (HarmBench@8e1604d) judges contextual rows with
+    ``LLAMA2_CLS_PROMPT['prompt_contextual']``, the context in its own ``[CONTEXT]`` slot
+    (``eval_utils.py:401-403``), and the copyright rows (100 of the 400) with a hash check, a MinHash
+    sliding-window match against the reference text (``compute_results_hashing``, ``eval_utils.py:367-391``,
+    selected by the ``hash_check`` tag at ``evaluate_completions.py:78``), not with the classifier. Here the
+    context is joined to the behavior and ALL rows, copyright included, go to the classifier with the standard
+    template, so contextual and copyright ASRs are not the HarmBench numbers.
+
+
     Default: walledai/HarmBench, configs 'standard' (200), 'contextual' (100)
     and 'copyright' (100), in that order, split 'train'. A contextual row's
     context goes before its behaviour, as HarmBench's DirectRequest baseline
@@ -169,7 +178,15 @@ def load_muse(domain: str = "news", split: str = None, config: str = None, **ove
     their true continuation in 'gt'."""
     if domain not in ("news", "books"):
         raise ValueError(f"MUSE domain must be 'news' or 'books', got {domain!r}")
-    return load(f"muse_{domain}", split=split, config=config, **overrides)
+    ds = load(f"muse_{domain}", split=split, config=config, **overrides)
+    if "prompt" not in ds.column_names:
+        raise ValueError(
+            f"load_muse: no 'prompt' column in MUSE-{domain.title()} config {config!r}; it has "
+            f"{ds.column_names}. Only the 'verbmem' config has 'prompt' (the forget passages); "
+            "'privleak' has 'text' and 'knowmem' has 'question' / 'answer'. Point prompt_col at one "
+            "of them with configure(datasets={'muse_%s': {...}})." % domain
+        )
+    return ds
 
 
 def load_rwku(split: str = None, config: str = None, **overrides):

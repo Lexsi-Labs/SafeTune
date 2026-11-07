@@ -4,7 +4,7 @@ Training-time method built around a retain + rerouting (RR) objective. The rerou
 
 **Loss:** $L = c_{\text{retain}} \cdot \|h_{\text{lora, retain}} - h_{\text{orig, retain}}\|_2 + c_{\text{cb}} \cdot \mathrm{ReLU}(\cos(h_{\text{lora, cb}}, h_{\text{orig, cb}}))$, with a linear schedule $c_{\text{retain}} = \alpha \cdot (\text{step}/T)$ and $c_{\text{cb}} = \alpha \cdot (1 - \text{step}/T)$.
 
-> **Note:** This is a training-time method — it modifies weights. It appears under activation-steering because it targets hidden representations. `calibrate()` returns a `CircuitBreakerModel` wrapper that exposes the RR loss (`compute_rr_loss`) and coefficient schedule (`rr_coefficients`) so you can run the fine-tuning loop yourself; it does not train inside `calibrate` and installs no inference-time hook by default.
+> **Note:** This is a training-time method — it modifies weights. It appears under activation-steering because it targets hidden representations. `calibrate()` returns a `CircuitBreakerModel` wrapper that exposes the RR loss (`compute_rr_loss`) and coefficient schedule (`rr_coefficients`) so you can run the fine-tuning loop yourself; it does not train inside `calibrate` and installs no inference-time hook by default. The Steer wrapper is a pass-through; the method lives in the loss helper. `compute_rr_loss` takes the retain term over every layer given for the retain batch (as the official code does) and averages over real tokens, where the official code divides by all positions including padded ones; the rerouting term uses the target layers.
 
 Ref: Zou et al., "Improving Alignment and Robustness with Circuit Breakers," NeurIPS 2024, arXiv:2406.04313.
 

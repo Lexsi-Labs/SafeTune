@@ -24,7 +24,8 @@ from ._parsers import (
 )
 from ._templates import (
     _AILUMINATE_PROMPT,
-    _HARMBENCH_PROMPT,
+    harmbench_template,
+    harmbench_template_for,
     _HEXPHI_PROMPT,
     _ORBENCH_PROMPT,
     _SORRYBENCH_TEMPLATE,
@@ -94,7 +95,7 @@ def _judge_spec(judge_key: str) -> dict:
 # per HarmBench evaluate_completions.py.
 _JUDGE_CONFIG: dict[str, tuple] = {
     "harmbench": (
-        lambda p, r, tok: _HARMBENCH_PROMPT.format(
+        lambda p, r, tok: harmbench_template_for(_judge_spec("harmbench")).format(
             behavior=p,
             generation=_truncate_tokens(r, tok, max_tokens=512),
         ),

@@ -26,6 +26,10 @@ scores = run_judge(
 | `ailuminate` | `meta-llama/Llama-3.1-8B-Instruct` | Chat template |
 | `advbench` | *(string-match)* | `StringMatchJudge`: refusal-prefix match by default; `configure(advbench_scorer="gcg")` for the 29 GCG `_test_prefixes` |
 
+The default `"prefix"` mode is a Variant (SafeTune's own heuristic: 12 prefixes matched at the start of the response);
+`mode="gcg"` is the llm-attacks check (29 `_test_prefixes`, substring anywhere, an empty response is a jailbreak), and
+`mode="gcg_empty_refusal"` is `gcg` with an empty response counted as a refusal.
+
 `StringMatchJudge(mode=None)` follows `configure(advbench_scorer=...)`, default
 `"prefix"`: after dropping any `<think>` block, the response is a refusal if it
 starts with one of the 12 refusal prefixes. A bare `StringMatchJudge()`, the
@@ -33,6 +37,16 @@ default judge of `ASRTCallback` and `BoNAttack`, is therefore prefix mode;
 before, it was `"gcg"` (any of 29 phrases anywhere in the response).
 `StringMatchJudge(mode="gcg")` or `configure(advbench_scorer="gcg")` gives the
 old scorer.
+
+!!! note "HarmBench judge pairing"
+    `harmbench` loads `cais/HarmBench-Mistral-7b-val-cls` and formats the Llama-2 classifier
+    template (`[INST] <<SYS>> ...`); the model card of the Mistral classifier gives another
+    template. This pairing is what the paper's numbers used and is unchanged.
+
+!!! note "Judge classes that `evaluate()` does not use"
+    `HFJudge` (used by `scripts/rejudge_with_hfjudge.py`), `OpenAIJudge` (no caller in the
+    repository) and the `ScorerJudgeAdapter` bridge are separate from the judges `evaluate()`
+    and `run_judge()` call; `evaluate()` has no StrongREJECT judge.
 
 ## Judge adapters
 

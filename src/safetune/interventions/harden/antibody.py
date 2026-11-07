@@ -134,6 +134,21 @@ class AntibodyTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # 
                 "safetune.core.optim.antibody is unavailable"
             ) from _ANTIBODY_IMPORT_ERROR
 
+        # The SAM steps call .backward() themselves and write the combined gradient into
+        # .grad, so the fp16 GradScaler never scales the loss and the Trainer's later
+        # unscale_ raises. Run these steps without it (fp32 master weights, no loss scaling).
+        # Trainer's second parameter is `args`: handle it positionally or by keyword.
+        pos = len(args) > 1
+        train_args = args[1] if pos else kwargs.get("args")
+        if train_args is not None and getattr(train_args, "fp16", False):
+            import dataclasses
+            logger.warning("AntibodyTrainer does not support fp16 loss scaling; training with fp16=False.")
+            train_args = dataclasses.replace(train_args, fp16=False)
+            if pos:
+                args = (args[0], train_args, *args[2:])
+            else:
+                kwargs["args"] = train_args
+
         super().__init__(*args, **kwargs)
 
         self._wrapper = AntibodyWrapper(self.model)

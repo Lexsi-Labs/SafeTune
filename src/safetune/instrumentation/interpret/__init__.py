@@ -10,13 +10,15 @@ Closes the Interpret pillar gap in the original plan. Two entry points:
   directly into the existing CircuitKit adapter chain.
 
 * :func:`safety_circuit_info`: convenience wrapper that runs refusal-direction
-  extraction + safety-neuron localization in one call, suitable for handing
-  directly to LSSF / PKE / DeepRefusal.
+  extraction + safety-neuron localization in one call; the result is read by
+  C-ΔΘ and SafetyLoRA.
 
-The "safety neuron" definition matches the convention of Chen et al.
-(NeurIPS 2024) and the Arditi et al. appendix: a neuron is safety-relevant
-when its output projection has high cosine with the refusal direction in
-that layer.
+Both neuron-scoring modes are SafeTune heuristics (badge Variant), not the metric of Chen et al.,
+"Towards Understanding Safety Alignment: A Mechanistic Perspective from Safety Neurons"
+(arXiv:2406.14144, NeurIPS 2025), which compares two checkpoints; see
+:mod:`safetune.instrumentation.interpret.safety_neurons` for what differs. The weight mode (cosine of
+a ``down_proj`` column with the refusal direction) has no source in that paper.
+:func:`eap_safety_circuit` is node-level EAP / EAP-IG (badge Simplified).
 """
 from .safety_neurons import (
     SafetyNeuronConfig,

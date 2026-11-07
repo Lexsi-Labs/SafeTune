@@ -1,45 +1,43 @@
 """
-Safety-neuron localization.
+Safety-neuron localization (SafeTune heuristics; neither mode is the metric of a paper).
 
-Definition: a unit at position ``(layer, neuron_idx)`` is "safety-relevant"
-if it either (a) has an output direction (a row/column of the layer's output
-projection) with high absolute cosine against a known refusal direction at
-that layer, or (b) activates *differentially* on harmful vs. harmless prompts.
+A unit at ``(layer, neuron_idx)`` is scored in one of two ways:
 
-Two paths supported:
+* ``"weight"`` (default, no forward passes): rank each unit by
+  ``|col(W_out) . refusal_dir|`` for the layer's output projection (``mlp.down_proj``
+  by default). Each column of ``down_proj`` is one MLP intermediate neuron's write
+  direction into the residual stream; the refusal direction lives in the same space.
+  **Badge Variant.** This is SafeTune's own heuristic: no paper defines it. Chen et al.
+  (arXiv:2406.14144) define no weight-space metric, and Arditi et al. (arXiv:2406.11717)
+  define the refusal direction, not a neuron score. It needs only a refusal direction.
 
-* ``"weight"`` (default, no extra forward passes): rank each unit by
-  ``|col(W_out) . refusal_dir|`` for the layer's output projection
-  (``mlp.down_proj`` by default). Each column of ``down_proj`` is one MLP
-  intermediate neuron's write-direction into the residual stream; the refusal
-  direction lives in that same residual-stream space, so the cosine is a
-  weight-space proxy for "this neuron writes refusal." Cheap and exact.
+* ``"activation"``: run the model on a contrast corpus (harmful vs. harmless prompts),
+  capture each layer's per-neuron MLP intermediate activation (the INPUT of
+  ``mlp.down_proj``, ``sigma(W_gate x) * W_up x``), and rank units by a per-neuron
+  contrast between the two sets. **Badge Variant.**
 
-* ``"activation"``: run the model on a contrast corpus (harmful vs. harmless
-  prompts), capture each layer's per-neuron MLP activations, and rank units by
-  a per-neuron *activation contrast* between the two sets. This is the
-  feed-forward activation-analysis localization used by the safety-neuron
-  literature -- e.g. Wei et al., "Assessing the Brittleness of Safety
-  Alignment via Pruning and Low-Rank Modifications" (ICML 2024,
-  arXiv:2402.05162), whose Wanda-style importance score multiplies a weight
-  by the L2 norm of the neuron's input activations; Chen et al., "Finding
-  Safety Neurons in Large Language Models" (arXiv:2406.14144); and the
-  feed-forward activation-analysis localization of Wu et al., "NeuroStrike"
-  (arXiv:2509.11864). The contrast score implemented here -- mean activation
-  magnitude on harmful minus harmless prompts, optionally standardized --
-  measures harmful-input *selectivity* on a SINGLE model.
+What the activation mode is not. Chen et al., "Towards Understanding Safety Alignment: A
+Mechanistic Perspective from Safety Neurons" (arXiv:2406.14144, NeurIPS 2025; first
+posted as "Finding Safety Neurons in Large Language Models") score a neuron by the root
+mean square of the activation DIFFERENCE between two CHECKPOINTS (their SFT and DPO
+models) on the same prompt-plus-generation sequences (Eq. 3), over the generated
+tokens, then rank all neurons of the model together (a global top percentage). Their
+neurons are the same ``down_proj`` inputs used here (Eq. 2). Wei et al. (arXiv:2402.05162)
+use Wanda/SNIP weight importance with a safety-vs-utility set difference. Neither is
+implemented. The declared deviations of this module from Chen et al.:
 
-  ⚠️ FIDELITY: this is NOT the metric of the cited papers. Chen et al.
-  (2406.14144) score a neuron by its RMS activation difference between two
-  CHECKPOINTS (e.g. SFT vs DPO-aligned) on the *same* sequences; Wei et al.
-  (2402.05162) use Wanda/SNIP weight-importance with a safety-vs-utility
-  SET-DIFFERENCE. Our one-model harmful-vs-harmless contrast is a related but
-  distinct localization heuristic; the papers are cited for context, not as the
-  source of this exact formula.
+1. one model, harmful vs. harmless prompts, instead of two checkpoints on the same sequences;
+2. prompt tokens (every non-pad prompt token, BOS included, no chat template) instead of
+   generated tokens;
+3. a top-k PER LAYER (default 16) instead of one global ranking over all neurons;
+4. the difference of ``mean |a|`` (or a ``tstat`` / signed ``mean_diff`` variant) instead of
+   the RMS of the difference.
 
-Either path produces a :class:`SafetyNeuronReport` which converts cleanly
-to a :class:`safetune.core.circuit_kit.CircuitInfo` so downstream Recover
-methods (PKE, NLSR, LSSF, DeepRefusal) can target the located neurons.
+Either path produces a :class:`SafetyNeuronReport` which converts to a
+:class:`safetune.core.circuit_kit.CircuitInfo`. The readers of that object are C-ΔΘ
+(``apply_ctheta`` and friends, via ``layer_suggestions.layer_subset`` /
+``target_modules``) and SafetyLoRA (``layer_suggestions.target_modules``); LSSF, PKE, NLSR and
+DeepRefusal do not read it. No consumer reads the per-neuron ids.
 """
 from __future__ import annotations
 
@@ -74,12 +72,16 @@ class SafetyNeuronConfig:
             (head_dim slices of the concatenated heads), not whole heads; the
             per-column cosine is still well defined but a "unit" is then an
             o_proj input channel, not an attention head.
-        activation_module: in ``"activation"`` mode, which sub-module's output
-            is captured as the per-neuron activation vector. ``"mlp.act_fn"``
-            captures the post-activation MLP intermediate (gate) neurons --
-            these are the canonical "neurons" of the safety-neuron literature.
-            If that hook point is unavailable the implementation falls back to
-            ``"mlp"`` (the MLP block output, i.e. residual-stream units).
+        activation_module: in ``"activation"`` mode, where the per-neuron activation
+            vector is captured. ``"mlp.down_proj"`` (default) captures the INPUT of the
+            down projection, ``sigma(W_gate x) * (W_up x)``: the MLP intermediate
+            neurons of Chen et al. (arXiv:2406.14144, Eq. 2: "activation before down
+            projection"; the official code hooks ``hook_post``). Any other
+            ``nn.Linear`` path also captures its input. A non-Linear module
+            (``"mlp.act_fn"``: only ``sigma(W_gate x)``; ``"mlp"``: the block output,
+            residual-stream units) captures its OUTPUT. If the requested point is
+            unavailable the implementation falls back through
+            ``mlp.down_proj``, ``mlp.c_proj``, ``mlp.act_fn``, ``mlp.act``, ``mlp``.
         activation_score: how to turn captured activations into a per-neuron
             contrast. ``"mean_abs_diff"`` (default): mean |act| on harmful minus
             mean |act| on harmless. ``"tstat"``: a Welch-style standardized
@@ -88,8 +90,9 @@ class SafetyNeuronConfig:
             signed mean (not magnitude) difference.
         activation_batch_size: forward-pass batch size for the contrast corpus.
         activation_max_tokens: truncate each prompt to this many tokens.
-        abs_rank: rank units by absolute score (``True``, default) so that
-            strongly *suppressed*-on-harmful neurons are also surfaced.
+        abs_rank: weight mode: return the absolute cosine (``True``, default). Activation mode
+            always ranks by ``|score|`` (strongly *suppressed*-on-harmful neurons are surfaced
+            too) and returns the signed score. (``False`` changes nothing in the ranking.)
     """
 
     method: str = "weight"
@@ -97,7 +100,7 @@ class SafetyNeuronConfig:
     target_layers: Optional[List[int]] = None
     score_floor: float = 0.0
     target_module: str = "mlp.down_proj"
-    activation_module: str = "mlp.act_fn"
+    activation_module: str = "mlp.down_proj"
     activation_score: str = "mean_abs_diff"
     activation_batch_size: int = 8
     activation_max_tokens: int = 64
@@ -154,7 +157,7 @@ class SafetyNeuronReport:
             layer_suggestions=LayerModuleSuggestions(
                 target_modules=[self.target_module],
                 layer_subset=layer_indices,
-                metadata={"source": "safetune.core.interpret"},
+                metadata={"source": "safetune.instrumentation.interpret.safety_neurons"},
             ),
             raw_output_path=None,
             metadata={"method": self.method, "score_kind": score_kind},
@@ -202,11 +205,17 @@ def _score_by_weight(
 
     for li in targets:
         if not (0 <= li < len(layers)):
-            continue
+            raise ValueError(
+                f"identify_safety_neurons: target layer {li} is out of range for a "
+                f"{len(layers)}-layer model (valid: 0..{len(layers) - 1})."
+            )
         proj = _resolve_linear(layers[li], cfg.target_module)
         if proj is None:
-            logger.debug("interpret: layer %d missing %s; skipping.", li, cfg.target_module)
-            continue
+            raise ValueError(
+                f"identify_safety_neurons: layer {li} has no nn.Linear at {cfg.target_module!r} "
+                f"(found {type(_resolve_module(layers[li], cfg.target_module)).__name__}). A LoRA-wrapped "
+                "model needs merge_and_unload() first; check target_module for this architecture."
+            )
         # proj.weight has shape (hidden_out, hidden_in). Each COLUMN is one
         # input unit and its column is that unit's contribution direction in
         # the output (residual-stream) space. For ``mlp.down_proj`` a column is
@@ -215,21 +224,20 @@ def _score_by_weight(
         # refusal direction lives in the output space, so the safety-relevance
         # score is the absolute cosine of column[j] with d.
         d = refusal_direction_per_layer.get(li)
-        if d is None and refusal_direction_per_layer:
-            d = next(iter(refusal_direction_per_layer.values()))
         if d is None:
-            continue
+            raise ValueError(
+                f"identify_safety_neurons: no refusal direction for layer {li} "
+                f"(have {sorted(refusal_direction_per_layer)}). Pass a direction for every target layer, "
+                "or restrict target_layers to the layers you have."
+            )
         d_unit = d.detach().float()
         d_unit = d_unit / d_unit.norm().clamp_min(1e-12)
         cols = proj.weight.detach().float()
         if cols.shape[0] != d_unit.shape[0]:
-            # Output dim does not match the refusal direction's hidden size;
-            # something is wrong with the layer choice. Skip rather than crash.
-            logger.debug(
-                "interpret: layer %d module %s has out_dim=%d != hidden=%d; skipping.",
-                li, cfg.target_module, cols.shape[0], d_unit.shape[0],
+            raise ValueError(
+                f"identify_safety_neurons: the refusal direction of layer {li} has width {d_unit.shape[0]}, "
+                f"but {cfg.target_module} writes {cols.shape[0]} dimensions."
             )
-            continue
         col_norms = cols.norm(dim=0).clamp_min(1e-12)
         cosines = (d_unit.to(cols.device) @ cols) / col_norms
         scored = (
@@ -250,15 +258,15 @@ def _score_by_weight(
 def _resolve_activation_point(
     layer: nn.Module, cfg: SafetyNeuronConfig
 ) -> Tuple[Optional[nn.Module], str]:
-    """Pick the sub-module whose output is the per-neuron activation vector.
+    """Pick the sub-module whose input (an ``nn.Linear``) or output (anything else) is the
+    per-neuron activation vector.
 
-    Tries ``cfg.activation_module`` first (``mlp.act_fn`` -> the post-activation
-    MLP intermediate / gate neurons, the canonical "neurons"), then falls back
-    through a small list of architecture-portable hook points so the routine
-    works on Llama/Mistral/Qwen/Gemma (``mlp``) and GPT-style (``mlp`` /
-    ``mlp.act``) models without the caller having to know the layout.
+    Tries ``cfg.activation_module`` first (default ``mlp.down_proj``: its INPUT is the
+    gated MLP intermediate of Chen et al.), then falls back through architecture-portable
+    points so the routine works on Llama/Mistral/Qwen/Gemma (``mlp.down_proj``), GPT-style
+    (``mlp.c_proj``, ``mlp.act``) and anything with an ``mlp`` block.
     """
-    candidates = [cfg.activation_module, "mlp.act_fn", "mlp.act", "mlp"]
+    candidates = [cfg.activation_module, "mlp.down_proj", "mlp.c_proj", "mlp.act_fn", "mlp.act", "mlp"]
     seen: set = set()
     for name in candidates:
         if name in seen:
@@ -281,7 +289,7 @@ def _score_by_activation(
     """Per-neuron activation contrast between harmful and harmless prompts.
 
     For each target layer we capture the per-neuron activation of a chosen
-    feed-forward hook point (post-activation MLP intermediate by default),
+    feed-forward hook point (the input of ``mlp.down_proj`` by default),
     pool over non-pad tokens, and accumulate per-neuron running statistics
     over the harmful and the harmless corpus separately. The contrast score
     is then one of:
@@ -315,13 +323,14 @@ def _score_by_activation(
         raise RuntimeError(
             "_score_by_activation: could not locate decoder layers."
         )
-    targets = [
-        li
-        for li in (cfg.target_layers if cfg.target_layers is not None else range(len(layers)))
-        if 0 <= li < len(layers)
-    ]
-    if not targets:
-        return {}, cfg.activation_module
+    wanted = list(cfg.target_layers) if cfg.target_layers is not None else list(range(len(layers)))
+    bad = [li for li in wanted if not (0 <= li < len(layers))]
+    if bad or not wanted:
+        raise ValueError(
+            f"identify_safety_neurons: target layers {bad or wanted} are out of range for a "
+            f"{len(layers)}-layer model (valid: 0..{len(layers) - 1})."
+        )
+    targets = wanted
 
     # Resolve one hook point per target layer; require a consistent label.
     hook_points: Dict[int, nn.Module] = {}
@@ -356,6 +365,12 @@ def _score_by_activation(
             _captured[li] = t.detach()
         return _hook
 
+    def _make_pre_hook(li: int):
+        # An nn.Linear hook point is read at its INPUT (down_proj input = the MLP intermediate).
+        def _pre(_m: nn.Module, args: Any) -> None:
+            _captured[li] = args[0].detach()
+        return _pre
+
     def _accumulate(label: str, prompts: List[str]) -> None:
         bs = max(1, int(cfg.activation_batch_size))
         for start in range(0, len(prompts), bs):
@@ -376,7 +391,9 @@ def _score_by_activation(
             )
             _captured.clear()
             handles = [
-                hook_points[li].register_forward_hook(_make_hook(li))
+                hook_points[li].register_forward_pre_hook(_make_pre_hook(li))
+                if isinstance(hook_points[li], nn.Linear)
+                else hook_points[li].register_forward_hook(_make_hook(li))
                 for li in hook_points
             ]
             try:
@@ -449,10 +466,9 @@ def _score_by_activation(
             score = mean_abs_h - mean_abs_b
 
         vals = score.tolist()
-        scored = (
-            (j, abs(float(v))) if cfg.abs_rank else (j, float(v))
-            for j, v in enumerate(vals)
-        )
+        # Ranked by |score|; the returned score keeps its sign (positive: more active on the harmful
+        # prompts, negative: suppressed on them) so a consumer can tell the two apart.
+        scored = ((j, float(v)) for j, v in enumerate(vals))
         ranked = sorted(scored, key=lambda x: abs(x[1]), reverse=True)
         kept = [
             (j, s) for j, s in ranked if abs(s) > cfg.score_floor
@@ -485,8 +501,9 @@ def identify_safety_neurons(
       and the layer's refusal direction. Needs only
       ``refusal_direction_per_layer``; no forward passes.
     * ``"activation"`` -- rank units by a per-neuron *activation contrast*
-      between harmful and harmless prompts (feed-forward activation analysis,
-      cf. Wei et al. arXiv:2402.05162, Chen et al. arXiv:2406.14144). Needs
+      between harmful and harmless prompts, read at the input of ``mlp.down_proj``
+      (the MLP intermediate neurons of Chen et al. arXiv:2406.14144, but NOT their
+      two-checkpoint RMS metric; see the module docstring). Needs
       ``tokenizer``, ``harmful_prompts`` and ``harmless_prompts``; does not use
       ``refusal_direction_per_layer``.
 
@@ -508,6 +525,10 @@ def identify_safety_neurons(
         :class:`SafetyNeuronReport` with per-layer top-k unit indices and scores.
     """
     cfg = config or SafetyNeuronConfig()
+    if int(cfg.top_k_per_layer) <= 0:
+        raise ValueError(
+            f"identify_safety_neurons: top_k_per_layer must be a positive integer, got {cfg.top_k_per_layer!r}."
+        )
     if cfg.method == "weight":
         per_layer = _score_by_weight(model, refusal_direction_per_layer, cfg)
         target_module = cfg.target_module
@@ -521,6 +542,12 @@ def identify_safety_neurons(
         )
     else:
         raise ValueError(f"Unknown method: {cfg.method!r}")
+    if not per_layer:
+        raise ValueError(
+            "identify_safety_neurons: the selection scored no unit (nothing survived score_floor="
+            f"{cfg.score_floor} on method={cfg.method!r}, target_layers={cfg.target_layers!r}); an empty "
+            "CircuitInfo would read as 'no safety neurons'."
+        )
     rep = SafetyNeuronReport(
         per_layer=per_layer,
         direction_layer=None,
@@ -548,21 +575,22 @@ def safety_circuit_info(
     target_module: str = "mlp.down_proj",
     target_layers: Optional[List[int]] = None,
     method: str = "weight",
-    activation_module: str = "mlp.act_fn",
+    activation_module: str = "mlp.down_proj",
     activation_score: str = "mean_abs_diff",
 ):
     """Convenience: locate safety neurons end-to-end and return a ``CircuitInfo``.
 
     In ``method="weight"`` mode (default) this extracts a refusal direction
     from the contrast corpus and ranks units by weight-direction cosine. In
-    ``method="activation"`` mode it skips the refusal-direction step and ranks
-    units directly by the harmful-vs-harmless activation contrast -- the
-    refusal direction is still extracted so that ``direction_layer`` is
-    populated for downstream consumers, but it does not affect the scores.
+    ``method="activation"`` mode it does not extract a refusal direction at all and ranks
+    units directly by the harmful-vs-harmless activation contrast (``direction_layer`` is
+    then ``None``).
 
     Returns the :class:`CircuitInfo` produced by
-    :meth:`SafetyNeuronReport.as_circuit_info`. Plug directly into LSSF, PKE,
-    NLSR, or DeepRefusal for targeted patching.
+    :meth:`SafetyNeuronReport.as_circuit_info`. Its readers are C-ΔΘ
+    (``layer_suggestions.layer_subset`` and ``target_modules``) and SafetyLoRA
+    (``target_modules``); ``layer_subset`` lists only the layers that kept units, and no
+    consumer reads the per-neuron ids. LSSF, PKE, NLSR and DeepRefusal do not read it.
 
     Args:
         method: ``"weight"`` or ``"activation"`` (see
@@ -572,11 +600,6 @@ def safety_circuit_info(
         activation_score: activation contrast score when ``method="activation"``;
             forwarded to :class:`SafetyNeuronConfig`.
     """
-    from ...steer.refusal_direction import (  # type: ignore[attr-defined]
-        RefusalDirectionConfig,
-        extract_refusal_direction,
-    )
-
     layers = _get_decoder_layers(model)
     if not layers:
         raise RuntimeError("safety_circuit_info: cannot locate decoder layers.")
@@ -584,14 +607,22 @@ def safety_circuit_info(
         raise ValueError(f"safety_circuit_info: unknown method {method!r}.")
     target = target_layers if target_layers is not None else list(range(len(layers)))
 
-    rd_cfg = RefusalDirectionConfig(
-        target_layers=target,
-        pick_layer=target[len(target) // 2],
-        normalize=True,
-    )
-    _, picked, all_layer = extract_refusal_direction(
-        model, tokenizer, harmful_prompts, harmless_prompts, rd_cfg
-    )
+    picked, all_layer = None, {}
+    if method == "weight":
+        # Only the weight mode uses a refusal direction; the activation mode does not extract one.
+        from ...steer.refusal_direction import (  # type: ignore[attr-defined]
+            RefusalDirectionConfig,
+            extract_refusal_direction,
+        )
+
+        rd_cfg = RefusalDirectionConfig(
+            target_layers=target,
+            pick_layer=target[len(target) // 2],
+            normalize=True,
+        )
+        _, picked, all_layer = extract_refusal_direction(
+            model, tokenizer, harmful_prompts, harmless_prompts, rd_cfg
+        )
     sn_cfg = SafetyNeuronConfig(
         method=method,
         top_k_per_layer=top_k_per_layer,

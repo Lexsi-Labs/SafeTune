@@ -47,7 +47,7 @@ class LinearProbeConfig:
 
     Attributes:
         pick_layer: layer to probe. Default is the model's middle layer.
-        pool_method: ``"last_token"`` (paper-faithful) or ``"mean"``.
+        pool_method: ``"last_token"`` (the last real token of the prompt) or ``"mean"``.
         C: sklearn LogisticRegression inverse-regularization strength.
         threshold: prompt is flagged when probe_score >= threshold.
             ``None`` means auto-calibrate to the midpoint between class-mean
@@ -94,12 +94,28 @@ class LinearProbe:
         return self.score(pooled) >= self.threshold
 
 
-def _pool_hidden(h: torch.Tensor, method: str) -> torch.Tensor:
-    """Pool a (batch, seq, hidden) tensor down to (batch, hidden)."""
+def _pool_hidden(h: torch.Tensor, method: str, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    """Pool a (batch, seq, hidden) tensor down to (batch, hidden).
+
+    With an attention ``mask`` that has padding, ``last_token`` is the last real token of
+    each row and ``mean`` / ``max`` skip the padded positions, so the pooled vector does not
+    depend on the tokenizer's padding side or on the batch. A batch with no padding, and a
+    left-padded batch's ``last_token``, are unchanged.
+    """
+    padded = mask is not None and not bool(mask.all())
     if method == "last_token":
+        if padded:
+            m = mask.to(h.device).long()
+            last = (m * torch.arange(m.shape[1], device=h.device)).argmax(dim=1)
+            return h[torch.arange(h.shape[0], device=h.device), last, :]
         return h[:, -1, :]
     if method == "max":
+        if padded:
+            return h.masked_fill(~mask.to(h.device).bool().unsqueeze(-1), float("-inf")).max(dim=1).values
         return h.max(dim=1).values
+    if padded:
+        keep = mask.to(device=h.device, dtype=h.dtype).unsqueeze(-1)
+        return (h * keep).sum(dim=1) / keep.sum(dim=1).clamp_min(1)
     return h.mean(dim=1)
 
 
@@ -117,10 +133,11 @@ def _collect_pooled(
         raise IndexError(f"layer_idx {layer_idx} out of range for {len(layers)} layers.")
 
     captured: List[torch.Tensor] = []
+    current_mask: List[Any] = [None]
 
     def _hook(_m, _i, out):
         h = out[0] if isinstance(out, tuple) else out
-        captured.append(_pool_hidden(h, pool_method).detach().cpu())
+        captured.append(_pool_hidden(h, pool_method, current_mask[0]).detach().cpu())
 
     handle = layers[layer_idx].register_forward_hook(_hook)
     try:
@@ -137,6 +154,7 @@ def _collect_pooled(
                 enc = enc.to(device)
             else:
                 enc = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in dict(enc).items()}
+            current_mask[0] = enc["attention_mask"] if "attention_mask" in enc else None
             with torch.no_grad():
                 model(**enc)
             if captured:
@@ -285,7 +303,12 @@ class LinearProbeGuardModel:
         return [bool(s.item() >= self.probe.threshold) for s in scores]
 
     def guard(self, prompt: str) -> str:
-        """Return either a canned refusal or the result of ``on_pass``."""
+        """Return the canned refusal (or ``on_refuse``'s result) for a flagged prompt.
+
+        An unflagged prompt returns ``on_pass(prompt)``, or ``""`` when ``on_pass`` is not given:
+        the guard does not generate by itself. ``generate`` / ``__call__`` forward to the model
+        and are not guarded; route prompts through ``guard`` / ``guard_batch``.
+        """
         flagged = self.predict([prompt])[0]
         if flagged:
             if self.on_refuse is not None:

@@ -2,6 +2,13 @@
 
 Scores each neuron by `|col(W_out) · refusal_dir|` — no forward passes needed.
 
+!!! note "Variant"
+    This score is SafeTune's own heuristic. No paper defines it (Chen et al., arXiv:2406.14144, define a
+    two-checkpoint activation metric; Arditi et al. define the refusal direction, not a neuron score). It
+    needs only a refusal direction **for every target layer**: a missing layer, a wrong-width direction, a
+    non-`nn.Linear` target (e.g. a LoRA-wrapped `down_proj`: `merge_and_unload()` first) or `top_k_per_layer <= 0`
+    raises `ValueError`.
+
 ```python
 from safetune.steer import extract_refusal_direction
 from safetune.interpret import identify_safety_neurons, SafetyNeuronConfig

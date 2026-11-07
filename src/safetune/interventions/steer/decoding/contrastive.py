@@ -1,9 +1,14 @@
 """
-Contrastive Decoding (Li et al., 2023, arXiv:2210.15097).
+Contrastive Decoding (O'Brien & Lewis, "Contrastive Decoding Improves Reasoning in Large Language
+Models", arXiv:2309.09117; after Li et al., arXiv:2210.15097).
 
-At each generation step:
+At each generation step this computes
 
-    final_logits = (1 + alpha) * strong_logits - alpha * weak_logits
+    final_logits = strong_logits - alpha * weak_logits
+
+on raw logits (a per-row constant against log-probabilities, which the softmax removes): the expert's score
+minus ``alpha`` times the amateur's, as in Li et al. with a coefficient. O'Brien & Lewis use
+``(1 + beta) * expert - beta * amateur`` (beta = 0.5); that form is not what this module computes.
 
 with an optional adaptive plausibility constraint: only tokens whose
 strong-model probability is at least ``adaptive_eps * max_prob`` are
@@ -48,8 +53,11 @@ class ContrastiveDecodingProcessor(GuidedLogitsProcessor):
         tokenizer_target: Any,
         tokenizer_guide: Optional[Any] = None,
         config: Optional[ContrastiveDecodingConfig] = None,
+        *,
+        target: Optional[Any] = None,
     ) -> None:
-        super().__init__(guide=guide, tokenizer_target=tokenizer_target, tokenizer_guide=tokenizer_guide)
+        super().__init__(guide=guide, tokenizer_target=tokenizer_target, tokenizer_guide=tokenizer_guide,
+                         target=target)
         self.config = config or ContrastiveDecodingConfig()
 
     def combine(
@@ -62,10 +70,9 @@ class ContrastiveDecodingProcessor(GuidedLogitsProcessor):
         target = scores.float()
         # Replace -inf in guide (untranslated tokens) with 0 so subtraction is a no-op there.
         finite_guide = torch.where(torch.isinf(guide_scores), torch.zeros_like(guide_scores), guide_scores)
-        # Canonical Contrastive Decoding (Li et al. 2210.15097): expert minus a
-        # scaled amateur, `target - alpha*guide` (official repo uses st_coef=0.5).
-        # NOT `(1+alpha)*target - alpha*guide` (a DExperts-family amplification
-        # that matches neither the CD paper nor the repo).
+        # `target - alpha*guide`: the expert minus a scaled amateur (Li et al. 2210.15097 with a
+        # coefficient). O'Brien & Lewis 2309.09117 use `(1+beta)*target - beta*guide`; that form is
+        # not computed here.
         out = target - cfg.alpha * finite_guide
 
         if cfg.adaptive_eps > 0:

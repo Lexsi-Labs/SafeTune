@@ -372,10 +372,10 @@ def test_safety_refusals_override(tmp_path):
     from transformers import AutoTokenizer
     from safetune.runner.utils.data_utils import build_safety_dataset
     tok = AutoTokenizer.from_pretrained("HuggingFaceTB/SmolLM2-135M-Instruct")
-    assert len(build_safety_dataset(tok, max_len=32)) == 6
+    assert len(build_safety_dataset(tok, max_len=128)) == 6
     path = _jsonl(tmp_path / "ref.jsonl", [{"prompt": "p", "response": "नहीं"}] * 3)
     configure(datasets={"safety_refusals": path})
-    assert len(build_safety_dataset(tok, max_len=32)) == 3
+    assert len(build_safety_dataset(tok, max_len=128)) == 3
 
 
 def test_device_order_and_dtype_fallbacks(monkeypatch):

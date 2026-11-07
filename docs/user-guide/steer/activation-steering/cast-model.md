@@ -72,7 +72,7 @@ to every prompt, without the gate.
 ```bibtex
 @article{cast2024,
   title  = {Programming Refusal with Conditional Activation Steering},
-  author = {Wu, Bruce W. and others},
+  author = {Lee, Bruce W. and others},
   year   = {2024},
   note   = {ICLR 2025, arXiv:2409.05907},
 }

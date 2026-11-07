@@ -2,7 +2,7 @@
 
 Per weight matrix, builds a Safe-LoRA-style safety subspace projection matrix from
 the aligned-minus-base delta, then measures the cosine similarity between the
-fine-tuning task delta (`W_ft − W_base`) and its projection onto that subspace.
+fine-tuning update (`W_ft − W_aligned`) and its projection onto that subspace.
 Layers whose cosine falls below `threshold` are considered "unsafe" and are merged
 toward the aligned model by `alpha`; layers above the threshold keep the fine-tuned
 weights untouched.

@@ -170,8 +170,12 @@ def _tokenize_qa_rows(tok, rows: list, max_len: Optional[int] = None,
         prompt_len = _prompt_len(tok, msgs)
         longest = max(longest, prompt_len)
         labels = list(enc["input_ids"])
+        # A left-padding tokenizer puts the pad tokens first, so the prompt starts at
+        # the first real token, not at position 0.
+        mask = enc["attention_mask"]
+        start = mask.index(1) if 1 in mask else len(mask)
         for i in range(len(labels)):
-            if i < prompt_len or enc["attention_mask"][i] == 0:
+            if i < start + prompt_len or mask[i] == 0:
                 labels[i] = -100
         n_empty += all(t == -100 for t in labels)
         out.append({
@@ -369,26 +373,13 @@ def build_safety_dataset(tok, *, max_len: int = None):
     ``safetune.configure(datasets=...)`` (rows need ``prompt``/``response``).
     """
     from datasets import Dataset
-    max_len = max_len or get_config().max_len or 256
+    max_len = max_len or get_config().max_len
     rows = _REFUSAL_QA
     if spec("safety_refusals").get("source"):
         rows = [(r["prompt"], r["response"]) for r in load("safety_refusals")]
-    out = []
-    for u, a in rows:
-        text = _chat_text(tok, u, a)
-        enc = tok(text, truncation=True, max_length=max_len, padding="max_length",
-                  add_special_tokens=False)
-        # Mask pad positions to -100 so the aux refusal loss isn't trained to
-        # predict pad tokens across the max_length padding (which is most of the
-        # sequence). Without this, `labels = input_ids` teaches the model to
-        # emit pad.
-        labels = [tid if m == 1 else -100
-                  for tid, m in zip(enc["input_ids"], enc["attention_mask"])]
-        out.append({
-            "input_ids": enc["input_ids"],
-            "attention_mask": enc["attention_mask"],
-            "labels": labels,
-        })
+    # Same path as the task data: loss on the refusal only, not on the (harmful)
+    # prompt or the chat template, and padding on either side is masked.
+    out = _tokenize_qa_rows(tok, list(rows), max_len)
     return Dataset.from_list(out)
 
 

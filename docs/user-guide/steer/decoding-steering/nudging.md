@@ -7,7 +7,8 @@ from safetune.runner import steer
 
 trainer = steer.NudgingTrainer(
     model, tokenizer,
-    nudge_strength=1.0,   # 1.0 = full hand-over; <1 softer, >1 amplified
+    guide_model=aligned_guide,   # required: the small aligned model that takes over uncertain steps
+    nudge_strength=1.0,          # 1.0 = full hand-over; <1 softer, >1 amplified
 )
 wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompts)
 

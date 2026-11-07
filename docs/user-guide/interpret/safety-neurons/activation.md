@@ -25,7 +25,7 @@ circuit = report.as_circuit_info()
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `activation_module` | `str` | `"mlp.act_fn"` | Module to hook for activations |
+| `activation_module` | `str` | `"mlp.down_proj"` | Where to read activations: an `nn.Linear` is read at its INPUT (`down_proj` input = `sigma(W_gate x) * W_up x`, the MLP neurons of Chen et al.), any other module at its output |
 | `activation_score` | `str` | `"mean_abs_diff"` | `"mean_abs_diff"`, `"tstat"`, or `"mean_diff"` |
 | `activation_batch_size` | `int` | `8` | Forward-pass batch size |
 | `activation_max_tokens` | `int` | `64` | Max tokens per prompt |
@@ -52,7 +52,7 @@ single model; it is not identical to the metrics in the papers cited below.
   note   = {ICML 2024, arXiv:2402.05162},
 }
 
-@article{chen2024safetyneurons,
+@article{chen2025safetyneurons,
   title  = {Towards Understanding Safety Alignment: A Mechanistic Perspective from Safety Neurons},
   author = {Chen, Jianhui and Wang, Xiaozhi and Yao, Zijun and others},
   year   = {2024},

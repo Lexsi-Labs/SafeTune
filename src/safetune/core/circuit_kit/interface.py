@@ -59,7 +59,12 @@ class CircuitInfo:
 
 
 class CircuitInfoProvider(Protocol):
-    """Protocol for providing circuit info (file, API, or mock)."""
+    """Protocol for providing circuit info (file, API, or mock).
+
+    Only a typing ``Protocol``: nothing in SafeTune implements it. The function
+    :func:`safetune.core.circuit_kit.get_circuit_info` is a file loader, not an implementation (it
+    ignores ``model_name`` and all keywords but ``top_fraction``).
+    """
 
     def get_circuit_info(self, model_name: str, **kwargs: Any) -> Optional[CircuitInfo]:
         """Return circuit info for the given model, or None if unavailable."""
