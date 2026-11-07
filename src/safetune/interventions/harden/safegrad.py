@@ -278,6 +278,17 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         if not params:
             return
 
+        # Under fp16 AMP the Trainer has already run ``loss.backward()`` through the
+        # GradScaler, so ``.grad`` holds ``s * g_user`` while ``g_align`` is unscaled;
+        # the optimizer step then divides both by ``s`` and rho * g_align shrinks to
+        # rho * g_align / s. The projection is degree 1 in g_user and degree 0 in
+        # g_align, so scaling g_align by ``s`` gives ``s * (g'_user + rho * g_align)``
+        # and the single unscale restores Eq. 3-5. bf16 and fp32 have no scaler.
+        scaler = getattr(getattr(self, "accelerator", None), "scaler", None)
+        if scaler is not None and scaler.is_enabled():
+            scale = float(scaler.get_scale())
+            g_align = [ga * scale for ga in g_align]
+
         flat_user: List[Any] = []
         flat_align: List[Any] = []
         for p, ga in zip(params, g_align):

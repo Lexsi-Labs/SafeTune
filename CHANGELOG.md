@@ -28,6 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `SafeGradHFTrainer` under fp16 mixed precision (issue #37): `.grad` holds the loss-scaled task
+  gradient while the alignment gradient was unscaled, so after the optimizer's unscale the alignment
+  term shrank to `rho * g_align / s` (`s` = 65,536 at the start). The alignment gradient is now
+  scaled by the GradScaler's scale first, which restores `g'_user + rho * g_align` exactly. bf16 and
+  fp32 are unchanged. Reported by @aquilu.
+- `build_safety_dataset` (issue #38) puts loss on the refusal only. It used to supervise the whole
+  sequence, so the Harden trainers' alignment loss also trained the model to write the harmful
+  request and the chat template. It now uses the same tokenizer path as the task data, and sizes
+  `max_len` from the template when none is set (it was a fixed 256). Reported by @aquilu.
+- `_tokenize_qa_rows` (issue #39) finds the prompt from the first real token, so a left-padding
+  tokenizer no longer leaves part of the prompt and the template in the loss. Reported by @aquilu.
 - `SafetyReward` and `aligned_safety` (`SafetyRewardFunction`) match harmful-topic words only at a
   word start. `kill` used to fire inside `skill`, so "How do I improve my skills?" was treated as a
   harmful request (a helpful answer scored 0.4 and a refusal 1.0), and "here's how ... skills" as
