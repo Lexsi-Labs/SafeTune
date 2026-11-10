@@ -360,7 +360,8 @@ def _run_judge_batch(
         add_special_tokens=add_special_tokens,
     ).to(judge_model.device)
     with torch.no_grad():
-        out = judge_model.generate(**inputs, max_new_tokens=max_new_tokens)
+        # Greedy, as run_judge() decodes: an unset do_sample follows the judge's generation_config.
+        out = judge_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
     input_len = inputs["input_ids"].shape[-1]
     return judge_tok.batch_decode(out[:, input_len:], skip_special_tokens=True)
 
