@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `evaluate()` decodes its judge greedily (`do_sample=False`), as `run_judge()` does. A judge whose generation
+  config enables sampling is no longer sampled. The three default judges are unaffected.
+- `run_judge()` and `evaluate()` keep the end of the judge template when an input is longer than the judge's
+  window. They cut from the right, which dropped the tokens that cue the answer (WildGuard's `Answers: [/INST]`,
+  HarmBench's `Answer: [/INST]`), so the judge continued the response text and a refusal was scored as compliance.
+- `identify_safety_neurons(method="activation")` keeps the end of a prompt longer than `activation_max_tokens`.
+  With a chat template whose preamble is longer than the default 64 (Tiny Aya: about 366 tokens) every prompt kept
+  only the start of the preamble, so the harmful and harmless sets were the same tokens.
+- `eap_safety_circuit` pads the clean and the corrupted batch on the left. With a right-padded tokenizer prompts of
+  different lengths were compared at different positions, so the last token of a short prompt was not the one read.
+- `sweep_ctheta_strength` scores the model `apply_ctheta` produces. It added `step * delta` to the previous strength's
+  weights, so rounding in a low-precision dtype accumulated and the scored model was not `target + k * delta`.
+- `apply_ctheta` raises when it steers none of the matched parameters (a key missing from the positive or negative
+  weights, or with another shape, was skipped silently), instead of returning the unchanged target.
 - `SafeGradHFTrainer` under fp16 mixed precision (issue #37): `.grad` holds the loss-scaled task
   gradient while the alignment gradient was unscaled, so after the optimizer's unscale the alignment
   term shrank to `rho * g_align / s` (`s` = 65,536 at the start). The alignment gradient is now
