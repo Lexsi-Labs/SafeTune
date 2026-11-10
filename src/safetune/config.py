@@ -67,7 +67,7 @@ class SafeTuneConfig:
     # Training
     epochs: int = 1
     batch_size: int = 1
-    lr: float = 5e-5
+    lr: Optional[float] = None  # None: each trainer keeps its own default
     # None → derive from the runtime dtype (bf16 where supported); "bf16",
     # "fp16" or "fp32" force it.
     precision: Optional[str] = None

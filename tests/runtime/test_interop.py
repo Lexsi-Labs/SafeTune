@@ -269,7 +269,7 @@ def test_save_checkpoint_writes_provenance_with_the_model_lineage(tmp_path, tok)
     assert p["schema"] == "lexsi.provenance/1" and p["library"] == "safetune"
     assert p["method"] == "recover.Test" and p["params"] == {"alpha": 0.5}
     assert p["inputs"][0] == {"kind": "model", "ref": str(src), "provenance": parent}
-    assert p["base_model"] == "CohereLabs/aya-expanse-8b"  # follows the lineage
+    assert p["base_model"] == str(src)  # the immediate parent; the root is in inputs[0].provenance
 
 
 def test_results_and_vectors_dirs_get_provenance(tmp_path, tok):

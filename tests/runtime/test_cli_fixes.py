@@ -243,3 +243,11 @@ class TestMethodKwargsForwarding:
                             ["safetune", "train", "--config", str(cfg_file)])
         args = parse_args()
         assert getattr(args, "method_kwargs", None) == {"lisa_rho": 0.9}
+
+
+def test_train_passes_lr_only_when_given(monkeypatch):
+    from safetune import cli
+    monkeypatch.setattr("sys.argv", ["safetune", "train"])
+    assert "lr" not in cli._trainer_kwargs(cli.parse_args())
+    monkeypatch.setattr("sys.argv", ["safetune", "train", "--lr", "2e-5"])
+    assert cli._trainer_kwargs(cli.parse_args())["lr"] == 2e-5

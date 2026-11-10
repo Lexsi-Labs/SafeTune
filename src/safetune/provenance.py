@@ -41,13 +41,14 @@ def input_entry(kind: str, ref: Any, config: Optional[str] = None) -> dict:
 
 def make_provenance(method: Optional[str], *, inputs: Optional[list] = None,
                     base_model: Optional[str] = None, params: Optional[dict] = None) -> dict:
-    """A ``lexsi.provenance/1`` record. ``base_model`` defaults to the lineage of the
-    first model input (its own ``base_model``, else its ref)."""
+    """A ``lexsi.provenance/1`` record. ``base_model`` defaults to the ref of the
+    first model input: the immediate parent. Its own lineage stays reachable through
+    that input's ``provenance`` record."""
     inputs = list(inputs or [])
     if base_model is None:
         model = next((i for i in inputs if i.get("kind") == "model"), None)
         if model:
-            base_model = (model.get("provenance") or {}).get("base_model") or model.get("ref")
+            base_model = model.get("ref")
     try:
         version = importlib.metadata.version("safetune")
     except importlib.metadata.PackageNotFoundError:
