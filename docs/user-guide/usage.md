@@ -60,7 +60,7 @@ safetune train --config run.yaml --epochs 5
 | `--output` | `./results` | Output / checkpoint directory |
 | `--epochs` | `1` | Training epochs |
 | `--batch-size` | `1` | Per-device batch size |
-| `--lr` | `5e-5` | Learning rate |
+| `--lr` | the method's own | Learning rate; sent to the trainer only when given |
 | `--base` | — | Base model path (for `patch`) |
 | `--aligned` | — | Aligned model path (for `patch`) |
 | `--alpha` | — | Strength for `patch` methods (the trainer's `alpha`); unset: the method's default |
@@ -126,7 +126,7 @@ ns = cfg.to_namespace()
 | `output` | `"./results"` | Checkpoint output dir |
 | `epochs` | `1` | Training epochs |
 | `batch_size` | `1` | Per-device batch size |
-| `lr` | `5e-5` | Learning rate |
+| `lr` | `None` | Learning rate; `None` keeps the method's own default |
 | `precision` | `None` | `fp16` / `bf16` / `fp32`; `None`: the runtime dtype (bf16 where supported) |
 | `optimizer` | `"adamw_torch"` | Optimizer name |
 | `logging_steps` | `10` | Log every N steps |
