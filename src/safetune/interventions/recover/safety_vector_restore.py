@@ -61,10 +61,15 @@ def _truncated_svd_project(delta: torch.Tensor, rank: int) -> torch.Tensor:
         projected = U[:, :r] @ diag(S[:r]) @ Vh[:r, :]
 
     For 1-D (bias/embedding row) tensors, the projection is skipped and the
-    original delta is returned unchanged.
+    original delta is returned unchanged. A tensor with more than two dimensions
+    (a conv kernel) is projected as the matrix ``(shape[0], -1)``.
     """
     if delta.dim() < 2:
         return delta
+    if delta.dim() > 2:
+        # A conv kernel (out, in, *kernel) is the matrix (out, in * kernel). Left as it is, the SVD
+        # below would run batched over the last two dimensions, one small SVD per output channel.
+        return _truncated_svd_project(delta.reshape(delta.shape[0], -1), rank).reshape(delta.shape)
     d_out, d_in = delta.shape[0], delta.shape[1]
     eff_rank = min(rank, d_out, d_in)
     if eff_rank <= 0:
