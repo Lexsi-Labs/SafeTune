@@ -120,13 +120,20 @@ def _old_resta(ft, base, aligned, alpha, param_filter, dare, drop, seed):
     a_sd, b_sd = aligned.state_dict(), base.state_dict()
     sv = {k: a_sd[k].float() - b_sd[k].float() for k in a_sd
           if k in b_sd and (not param_filter or any(f in k for f in param_filter))}
-    if dare:
+    f_sd = ft.state_dict()
+    if dare:  # DARE on the fine-tuning delta ft - aligned (paper Eq. 7-9), safety vector added whole
         g = torch.Generator(device="cpu")
         g.manual_seed(seed)
-        sv = {k: (v * (torch.rand(v.shape, generator=g) < 1 - drop) * (1 / (1 - drop)))
-              for k, v in sv.items()}
-    new = {k: ((v.float() + alpha * sv[k]).to(v.dtype) if k in sv else v)
-           for k, v in ft.state_dict().items()}
+        kept = {}
+        for k in sv:
+            if k in f_sd:
+                d = f_sd[k].float() - a_sd[k].float()
+                kept[k] = d * (torch.rand(d.shape, generator=g) < 1 - drop) * (1 / (1 - drop))
+        new = {k: ((a_sd[k].float() + kept[k] + alpha * sv[k]).to(v.dtype) if k in sv else v)
+               for k, v in f_sd.items()}
+    else:
+        new = {k: ((v.float() + alpha * sv[k]).to(v.dtype) if k in sv else v)
+               for k, v in f_sd.items()}
     ft.load_state_dict(new, strict=False)
     return ft
 

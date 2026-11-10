@@ -6,13 +6,14 @@ Arithmetic", arXiv:2402.11746; repo https://github.com/declare-lab/resta).
 
 RESTA adds a *safety vector* ``v = theta_aligned - theta_unaligned`` to a
 compromised fine-tuned model: ``theta_safe = theta_finetuned + alpha * v``.
-The paper's headline contribution is pairing this with **DARE**
-(Drop-And-Rescale, Yu et al. 2024) sparsification of the safety vector before
-addition, which reduces interference with the fine-tuned task. The RESTA repo
-performs the safety-vector addition with ``mergekit``; the optional ``dare``
-mode here reproduces mergekit's ``dare`` pre-processing step: randomly drop a
-fraction ``p`` of the safety-vector entries and rescale the survivors by
-``1 / (1 - p)`` so the expected magnitude is preserved.
+The paper pairs this with **DARE** (Drop-And-Rescale, Yu et al. 2024) on the
+*fine-tuning* delta (section 2, Eq. 7-9; section 4: "DARE applies drop and rescale
+to the delta parameters of the SFT model"): a fraction ``p`` of the entries of
+``theta_finetuned - theta_aligned`` is dropped and the rest rescaled by
+``1 / (1 - p)``, which removes redundant fine-tuning changes, and the safety
+vector is then added whole (the paper's ``RESTA_d``)::
+
+    theta_safe = theta_aligned + DARE(theta_finetuned - theta_aligned, p) + alpha * v
 
 The bare ``dare=False`` path is the RESTA-without-DARE baseline.
 """
@@ -69,6 +70,9 @@ def apply_resta(
     Streams one tensor at a time: for each parameter, ``aligned - base`` is
     computed in fp32, DARE is applied to it, ``alpha * delta`` is added to the
     fine-tuned weight in place (cast back to its dtype), and the delta is freed.
+    With ``dare`` the fine-tuned weight's difference from ``aligned`` is dropped and
+    rescaled first (see the module docstring); ``finetuned`` must then have been
+    fine-tuned from ``aligned``.
     Extra memory is a few copies of the largest tensor, not of the model.
 
     Args:
@@ -77,11 +81,10 @@ def apply_resta(
         aligned: the safety-aligned model (``theta_aligned``).
         alpha: scaling coefficient ``b`` for the safety-vector addition.
         param_filter: optional substring include-filter over parameter names.
-        dare: if True, apply DARE (Drop-And-Rescale) sparsification to the
-            safety vector before adding it -- the paper's central technique for
-            reducing interference with the fine-tuned task. If False (default,
-            for backward compatibility) the plain RESTA-without-DARE addition
-            is performed.
+        dare: if True, apply DARE (Drop-And-Rescale) to the fine-tuning delta
+            ``finetuned - aligned`` before the safety vector is added (the
+            paper's ``RESTA_d``). If False (default, for backward
+            compatibility) the plain RESTA addition is performed.
         dare_drop_rate: DARE drop probability ``p``. ``None``: 0.3, the RESTA
             paper's value ("we keep hyperparameters p = 0.3 and gamma = 0.5",
             Bhardwaj et al. 2024, Sec. 4), or the old 0.9 with
@@ -114,13 +117,13 @@ def apply_resta(
     if dare_drop_rate is None:
         from safetune.config import get_config
         dare_drop_rate = 0.9 if get_config().legacy_resta_drop_rate else 0.3
-    # ``dare`` reproduces the RESTA repo's mergekit ``dare`` pre-processing:
-    # drop a fraction of the safety-vector entries and rescale the survivors.
+    # ``dare``: drop a fraction of the fine-tuning delta's entries and rescale the survivors.
     generator: Optional[torch.Generator] = None
     if dare and dare_seed is not None:
         generator = torch.Generator(device="cpu")
         generator.manual_seed(int(dare_seed))
 
+    aligned_sd = aligned.state_dict()
     ft_sd = finetuned.state_dict()  # views of the live weights
     # A tied weight (embed / lm_head) appears under several names. The old
     # load_state_dict path let the last name win; keep that (it matters under
@@ -130,15 +133,22 @@ def apply_resta(
     with torch.no_grad():
         for key in wrapper.keys:  # aligned order: the DARE masks match a seed
             val = ft_sd.get(key)
-            delta = wrapper.delta(key, device if device is not None
-                                  else (val.device if val is not None else None))
-            if dare:
-                delta = _dare_drop_and_rescale(delta, drop_rate=dare_drop_rate,
-                                               generator=generator)
-            if val is None or owner[val.data_ptr()] != key:
+            if val is None:
                 continue
-            val.copy_((val.float() + alpha * delta.to(val.device)).to(val.dtype))
-            del delta
+            delta = wrapper.delta(key, device if device is not None else val.device)
+            if dare:
+                # DARE acts on the fine-tuning delta (paper Eq. 7-9), not on the safety vector:
+                # theta = aligned + DARE(ft - aligned) + alpha * (aligned - base).
+                a = aligned_sd[key].to(delta.device).float()
+                sft = _dare_drop_and_rescale(val.to(delta.device).float() - a,
+                                             drop_rate=dare_drop_rate, generator=generator)
+                new = a + sft + alpha * delta
+            else:
+                new = val.float() + alpha * delta.to(val.device)
+            if owner[val.data_ptr()] != key:
+                continue
+            val.copy_(new.to(val.device).to(val.dtype))
+            del delta, new
     return finetuned
 
 __all__ = ["apply_resta"]
