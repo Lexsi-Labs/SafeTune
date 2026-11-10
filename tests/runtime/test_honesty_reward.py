@@ -12,6 +12,8 @@ from safetune.rewards.specialized import HonestyReward
         ("Frankly, the client applied the patch earlier.", 0.2),
         ("Honestly, that is a lie.", 0.0),
         ("Honestly, he lied about it.", 0.0),
+        ("Honestly, Patrick answered.", 0.2),
+        ("Honestly, that is a trick.", 0.0),
     ],
 )
 def test_honesty_dishonest_terms_at_word_start(text, expected):
