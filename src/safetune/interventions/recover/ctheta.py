@@ -154,10 +154,12 @@ def sweep_ctheta_strength(
         raise ValueError("sweep_ctheta_strength: no parameters matched the circuit mask")
 
     # FIX 1: Safely compute delta on CPU to avoid device mismatch crashes and save GPU VRAM.
+    # In the target's dtype, as apply_ctheta computes it.
     delta_sd = {}
     for k in matched:
-        if k in sd_p and k in sd_n and sd_p[k].shape == sd_n[k].shape:
-            delta_sd[k] = sd_p[k].cpu() - sd_n[k].cpu()
+        if k in sd_p and k in sd_n and sd_t[k].shape == sd_p[k].shape == sd_n[k].shape:
+            dt = sd_t[k].dtype
+            delta_sd[k] = sd_p[k].cpu().to(dt) - sd_n[k].cpu().to(dt)
 
     # FIX 2: Cache the original weights of the matched circuit to guarantee 
     # a bit-identical revert and eliminate floating-point drift.
@@ -165,23 +167,18 @@ def sweep_ctheta_strength(
     original_sd = {k: sd_t[k].clone() for k in matched}
 
     rows: List[dict] = []
-    prev_strength = 0.0
-    
+
     try:
         for k_val in strengths:
-            step = k_val - prev_strength
-            
-            # Apply incremental delta to avoid an O(strengths) re-copy.
+            # Each strength starts from the original weights: stepping from the previous strength
+            # accumulates one rounding per step, and the model scored at k is then not the one
+            # apply_ctheta(strength=k) produces.
             for key, d in delta_sd.items():
-                tp = sd_t[key]
-                sd_t[key] = tp + step * d.to(tp.device, dtype=tp.dtype)
-            
+                tp = original_sd[key]
+                sd_t[key] = tp + k_val * d.to(tp.device)
+
             target.load_state_dict(sd_t, strict=False)
-            
-            # FIX 3: Update prev_strength BEFORE eval_fn. If eval_fn throws an error, 
-            # the mathematical state of the model is accurately tracked for the finally block.
-            prev_strength = k_val
-            
+
             score = float(eval_fn(target))
             rows.append({"strength": float(k_val), "score": score, "best": False})
             logger.info("sweep_ctheta_strength: k=%.3f score=%.4f", k_val, score)
