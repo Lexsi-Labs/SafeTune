@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `apply_resta(dare=True)` applies DARE to the fine-tuning delta `finetuned - aligned` and adds the safety
+  vector whole, as in the RESTA paper (Eq. 7-9). It used to drop entries of the safety vector instead and leave
+  the fine-tuning delta alone. `dare=True` now expects `finetuned` to have been fine-tuned from `aligned`.
+  The default `dare=False` is unchanged.
 - `apply_safe_lora` finds the weight a LoRA layer wraps in a PEFT model, which keeps it under
   `<module>.base_layer.weight`. Those keys were not matched, so the aligned adapter was not added to them.
 - `extract_refusal_direction` fits the directions on the prompts the selection sweep does not score: the first
