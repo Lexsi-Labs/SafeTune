@@ -88,10 +88,10 @@ def apply_resta(
         dare_drop_rate: DARE drop probability ``p``. ``None``: 0.3, the RESTA
             paper's value ("we keep hyperparameters p = 0.3 and gamma = 0.5",
             Bhardwaj et al. 2024, Sec. 4), or the old 0.9 with
-            ``safetune.configure(legacy_resta_drop_rate=True)``. At 0.9 (90% of
-            entries dropped, the rest scaled by 10) Qwen2.5-0.5B's full
-            base-to-instruct safety vector breaks the model (2/16 HarmBench
-            refusals, garbled answers); at 0.3 it restores 13/16.
+            ``safetune.configure(legacy_resta_drop_rate=True)``. The kept entries
+            of the delta are scaled by ``1/(1-p)``, so a high ``p`` scales the
+            fine-tuning delta by 10x or more (p=0.9). ``p=0`` matches
+            ``dare=False`` up to float rounding (about 1e-8), not bit for bit.
         dare_seed: optional seed for reproducible DARE drop masks.
         device: where each delta is computed. ``None`` (default): the
             fine-tuned weight's device. ``"cpu"`` keeps the extra memory off
