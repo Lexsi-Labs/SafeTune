@@ -513,16 +513,21 @@ def _tokenize_batch(tokenizer: Any, prompts: List[str], cfg: EAPSafetyCircuitCon
 
     # Cut long prompts from the left: the metric is read at the final token, and
     # a chat template's system preamble alone can be longer than max_seq_len.
+    # Pad on the left too, whatever the tokenizer's own side: the clean and the corrupted batch are
+    # compared position by position, so their last tokens (where the metric is read) must line up.
+    from ..._refusal_helpers import _left_padding
+
     truncation_side = tokenizer.truncation_side
     tokenizer.truncation_side = "left"
     try:
-        enc = tokenizer(
-            prompts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=cfg.max_seq_len,
-        )
+        with _left_padding(tokenizer):
+            enc = tokenizer(
+                prompts,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=cfg.max_seq_len,
+            )
     finally:
         tokenizer.truncation_side = truncation_side
     enc = {k: v.to(device) for k, v in enc.items()}
