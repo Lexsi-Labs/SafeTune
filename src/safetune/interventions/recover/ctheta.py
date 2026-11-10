@@ -43,6 +43,16 @@ def _matched_param_keys(
     return out
 
 
+def _require_applied(fn_name: str, n_applied: int, n_matched: int) -> None:
+    """A call that steers none of the matched keys returns the target unchanged: raise instead."""
+    if n_applied == 0:
+        raise ValueError(
+            f"{fn_name}: steered 0 of {n_matched} matched parameters; none of them is in both the "
+            "positive and the negative weights with the target's shape. The three models must share "
+            "parameter names (merge a PEFT adapter with merge_and_unload() first)."
+        )
+
+
 @assert_mutates("apply_ctheta")
 def apply_ctheta(
     target: nn.Module,
@@ -85,6 +95,7 @@ def apply_ctheta(
         sd_t[k] = tp + strength * delta
         n_applied += 1
 
+    _require_applied("apply_ctheta", n_applied, len(matched))
     target.load_state_dict(sd_t, strict=False)
     logger.info("apply_ctheta: applied steering to %d / %d matched keys", n_applied, len(matched))
     return target
@@ -123,6 +134,7 @@ def apply_ctheta_from_state_dicts(
         sd_t[k] = tp + strength * delta
         n_applied += 1
 
+    _require_applied("apply_ctheta_from_state_dicts", n_applied, len(matched))
     target.load_state_dict(sd_t, strict=False)
     return target
 
