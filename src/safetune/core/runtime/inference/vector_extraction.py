@@ -51,7 +51,7 @@ class SteeringVectorExtractor:
         self.config = config or VectorExtractionConfig()
         self._hooks: List[Any] = []
         self._activations: Dict[int, List[Any]] = {}
-        self._masks: List[Any] = []   # attention mask of each batch, in forward order
+        self._batch_mask: Any = None  # attention mask of the batch being run (read by the hooks)
 
     def _get_layers(self) -> list:
         return _get_decoder_layers(self.model)
@@ -62,7 +62,10 @@ class SteeringVectorExtractor:
                 h = out[0]
             else:
                 h = out
-            self._activations.setdefault(layer_idx, []).append(h.detach().cpu())
+            # Pool here, with the running batch's mask: keeping every token's hidden state until
+            # the end of the run costs prompts * layers * sequence length of memory.
+            self._activations.setdefault(layer_idx, []).append(
+                self._pool(h.detach(), self._batch_mask).cpu())
         return hook_fn
 
     def _register_hooks(self) -> None:
@@ -120,7 +123,6 @@ class SteeringVectorExtractor:
             raise ImportError("Vector extraction requires PyTorch.")
 
         self._register_hooks()
-        self._masks = []
         self.model.eval()
 
         use_chat = getattr(self.tokenizer, "chat_template", None) is not None
@@ -153,7 +155,7 @@ class SteeringVectorExtractor:
                 inputs = self.tokenizer(batch, **tok_kwargs)
                 device = next(self.model.parameters()).device
                 inputs = {k: v.to(device) for k, v in inputs.items()}
-                self._masks.append(inputs.get("attention_mask"))
+                self._batch_mask = inputs.get("attention_mask")
 
                 with torch.no_grad():
                     self.model(**inputs)
@@ -161,16 +163,12 @@ class SteeringVectorExtractor:
             if _prev_side is not None:
                 self.tokenizer.padding_side = _prev_side
             self._remove_hooks()
+            self._batch_mask = None
 
-        # aggregate: pool each batch, THEN concat. Batches are tokenized
-        # independently so their padded sequence lengths differ; pooling
-        # (which reduces the sequence dim) before the concat avoids a
-        # dim-1 size mismatch when there is more than one batch.
+        # Each batch was pooled in its hook to (batch, d); concat to (N, d).
         result: Dict[int, Any] = {}
         for layer_idx, act_list in self._activations.items():
-            pooled = [self._pool(a, self._masks[i].cpu() if self._masks[i] is not None else None)
-                      for i, a in enumerate(act_list)]   # each: (batch, d)
-            result[layer_idx] = torch.cat(pooled, dim=0)  # (N, d)
+            result[layer_idx] = torch.cat(act_list, dim=0)
 
         self._activations.clear()
         return result
