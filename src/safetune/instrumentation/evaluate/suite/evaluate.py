@@ -235,7 +235,7 @@ def evaluate(
         * ``n`` — deprecated alias of ``n_total``.
         * ``headline_metric`` — ``"refusal_rate"`` for over-refusal suites, else ``"asr"``.
         * ``xstest`` reports the metrics of its SAFE prompts at the top level (the over-refusal
-          rate) and both subsets under ``"safe"`` / ``"unsafe"`` (``"unsafe"``: refusing is right).
+            rate) and both subsets under ``"safe"`` / ``"unsafe"`` (``"unsafe"``: refusing is right).
         * ``drift_task`` — echoed from the parameter when set.
     """
     if benchmarks is None:
