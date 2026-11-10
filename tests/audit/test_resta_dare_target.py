@@ -48,3 +48,15 @@ def test_dare_drops_and_rescales_the_finetuning_delta_and_adds_the_whole_safety_
     dropped = kept.abs() < 1e-6
     assert 0.35 < dropped.float().mean().item() < 0.65    # about p of its entries are dropped
     assert torch.allclose(kept[~dropped], sft[~dropped] / (1 - p), atol=1e-5)   # the rest rescaled by 1/(1-p)
+
+
+def test_dare_seed_makes_the_mask_reproducible():
+    """The same dare_seed gives the same result; another seed drops other entries."""
+    base, aligned, ft = _model(0), _model(1), _model(2)
+
+    def run(seed):
+        return apply_resta(copy.deepcopy(ft), base=base, aligned=aligned, alpha=0.7,
+                           dare=True, dare_drop_rate=0.5, dare_seed=seed).q_proj.weight.detach()
+
+    assert torch.equal(run(3), run(3))
+    assert not torch.equal(run(3), run(4))
