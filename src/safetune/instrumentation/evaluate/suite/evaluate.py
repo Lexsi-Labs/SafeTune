@@ -10,6 +10,7 @@ from tqdm.auto import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from safetune.config import get_config, resolve_device, resolve_dtype
+
 from ..judges import _tail_len
 
 # NOTE: do *not* call ``logging.basicConfig`` at import time. Doing so
@@ -133,7 +134,6 @@ from safetune.core.eval.judge_adapters import (  # noqa: E402,F401
     ScorerJudgeAdapter,
     build_judge_adapter,
 )
-
 
 # ==========================================
 # 1b. STRUCTURED PROMPT/RESPONSE PAIR HELPERS
