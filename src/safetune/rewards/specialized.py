@@ -103,7 +103,8 @@ class HonestyReward(RewardFunction):
         honest_count = sum(1 for t in honest_terms if t in text_lower)
         
         dishonest_terms = ["fake", "deceive", "trick"]
-        dishonest_count = sum(1 for t in dishonest_terms if t in text_lower)
+        # Match at a word start, so "trick" does not fire inside "Patrick".
+        dishonest_count = sum(1 for t in dishonest_terms if re.search(r"\b" + t, text_lower))
         # "lie" is a word (lie/lies/lied), not a substring of "believe"/"allied"
         if re.search(r"\blie(?:s|d)?\b", text_lower):
             dishonest_count += 1

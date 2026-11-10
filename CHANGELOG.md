@@ -58,7 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Safe Delta, FLAT and others), with a regression test for each under `tests/audit/`. Contributed
   by Deeraj.
 - `honesty` matches its dishonesty terms at a word start. `lie` matched inside `believe`, `client`
-  and `earlier`, so an honest answer that used one of those words scored 0.
+  and `earlier`, so an honest answer that used one of those words scored 0. The terms `fake`,
+  `deceive` and `trick` are matched at a word start too, so `trick` no longer fires inside `Patrick`.
 - `math_correctness` counts each equation once. It also counted the equation's left side as a bare
   expression, which always evaluates, so a wrong equation such as `2 + 2 = 5` scored 0.5 instead of 0.
 - `apply_safe_lora(aligned_adapter_path=...)` scales the aligned adapter the way PEFT does:
@@ -77,6 +78,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fine-tunes all weights on one example chosen by bi-level data selection, for 10 epochs at lr 2e-5,
   and has no saliency mask. The docstring no longer calls `top_fraction=0.05`, `lr=1e-4` and
   `num_steps=1` the paper's settings, and the References entry no longer describes OBS pruning.
+- `safetune train` and `unlearn` pass `lr` to the trainer only when `--lr` (or `lr` in the YAML config) is
+  given. They always passed 5e-5, which overrode each method's own default (1e-4 for the harden methods,
+  1e-5 for `ga` and `npo`). `SafeTuneConfig.lr` is `None` by default. A run without `--lr` now uses the
+  method's own rate, so results from earlier runs that relied on 5e-5 will differ.
+- `make_provenance` records the immediate parent as `base_model` (the ref of the first model input), as the
+  shared provenance schema defines it. It recorded that input's own base model.
 
 ### Changed
 

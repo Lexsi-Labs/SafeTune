@@ -60,12 +60,14 @@ def _trainer_kwargs(args) -> dict:
     kw = dict(
         epochs=args.epochs,
         batch_size=args.batch_size,
-        lr=args.lr,
         # No --precision → None: the trainer derives it from the runtime dtype.
         bf16=(args.precision == "bf16") if args.precision else None,
         fp16=(args.precision == "fp16") if args.precision else None,
         wandb=bool(getattr(args, "wandb", False)),
     )
+    # Only an explicit --lr (or YAML lr) overrides; otherwise each trainer keeps its own default.
+    if getattr(args, "lr", None) is not None:
+        kw["lr"] = args.lr
     # Standard YAML config fields that land on the args namespace via --config
     # parser-default injection (they have no dedicated CLI flag).
     for field in ("optimizer", "logging_steps"):
@@ -286,7 +288,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output",      "--output-dir", type=str, default="./results", help="Output directory")
     parser.add_argument("--epochs",      type=int,   default=1,      help="Training epochs")
     parser.add_argument("--batch-size",  type=int,   default=1,      help="Batch size")
-    parser.add_argument("--lr",          "--learning-rate", type=float, default=5e-5, help="Learning rate (train/unlearn)")
+    parser.add_argument("--lr",          "--learning-rate", type=float, default=None,
+                        help="Learning rate (train/unlearn); default: the method's own")
     parser.add_argument("--base",        type=str, help="Base model path (for recover, and harden methods that take base_model_path)")
     parser.add_argument("--aligned",     type=str, help="Aligned model path (for recover)")
     parser.add_argument("--alpha",       type=float, default=None,
