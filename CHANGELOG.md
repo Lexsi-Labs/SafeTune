@@ -28,6 +28,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `apply_safe_lora` finds the weight a LoRA layer wraps in a PEFT model, which keeps it under
+  `<module>.base_layer.weight`. Those keys were not matched, so the aligned adapter was not added to them.
+- `extract_refusal_direction` fits the directions on the prompts the selection sweep does not score: the first
+  `n_val` prompts of each set score the candidates and the directions are fitted on the rest, as in the paper. It
+  fitted them on all prompts, so the selection was scored on prompts the directions had seen. Sets smaller than
+  `2 * n_val` are not split and a warning says so. Directions extracted with enough prompts differ from earlier releases.
+- `eap_safety_circuit` and `identify_safety_neurons` strip a BOS the chat template already wrote before tokenizing.
+  A prompt rendered through such a template started with two BOS tokens (`[2, 2, ...]` on Tiny Aya), a sequence the
+  model never saw in training, and every activation and gradient was read on it.
+- `safety_vector_restore` projects a conv weight as the matrix `(shape[0], -1)`. It ran one small SVD per output
+  channel over the last two dimensions.
+- `CASTModel.generate` works with `num_beams` or `num_return_sequences` above 1 for more than one prompt. The per-prompt
+  gate mask did not match the expanded batch and raised a `RuntimeError`; each prompt's gate now applies to all of its
+  consecutive expanded rows.
+- `SteeringVectorExtractor` pools each batch inside the hook with that batch's mask. It kept every token's hidden
+  state until the end of the run, which cost prompts x layers x sequence length of memory.
+- `evaluate()` decodes its judge greedily (`do_sample=False`), as `run_judge()` does. A judge whose generation
+  config enables sampling is no longer sampled. The three default judges are unaffected.
+- `run_judge()` and `evaluate()` keep the end of the judge template when an input is longer than the judge's
+  window. They cut from the right, which dropped the tokens that cue the answer (WildGuard's `Answers: [/INST]`,
+  HarmBench's `Answer: [/INST]`), so the judge continued the response text and a refusal was scored as compliance.
+- `identify_safety_neurons(method="activation")` keeps the end of a prompt longer than `activation_max_tokens`.
+  With a chat template whose preamble is longer than the default 64 (Tiny Aya: about 366 tokens) every prompt kept
+  only the start of the preamble, so the harmful and harmless sets were the same tokens.
+- `eap_safety_circuit` pads the clean and the corrupted batch on the left. With a right-padded tokenizer prompts of
+  different lengths were compared at different positions, so the last token of a short prompt was not the one read.
+- `sweep_ctheta_strength` scores the model `apply_ctheta` produces. It added `step * delta` to the previous strength's
+  weights, so rounding in a low-precision dtype accumulated and the scored model was not `target + k * delta`.
+- `apply_ctheta` raises when it steers none of the matched parameters (a key missing from the positive or negative
+  weights, or with another shape, was skipped silently), instead of returning the unchanged target.
 - `SafeGradHFTrainer` under fp16 mixed precision (issue #37): `.grad` holds the loss-scaled task
   gradient while the alignment gradient was unscaled, so after the optimizer's unscale the alignment
   term shrank to `rho * g_align / s` (`s` = 65,536 at the start). The alignment gradient is now

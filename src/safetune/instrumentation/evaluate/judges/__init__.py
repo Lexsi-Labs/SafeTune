@@ -130,6 +130,26 @@ _JUDGE_CONFIG: dict[str, tuple] = {
 }
 
 
+def _tail_len(render, encode) -> int:
+    """Number of tokens a judge input ends with after the response: the end of the template, which
+    cues the classifier's answer. ``render(response)`` builds the input text, ``encode`` tokenizes it."""
+    a, b = encode(render("a")), encode(render("b"))
+    n = 0
+    while n < min(len(a), len(b)) and a[-1 - n] == b[-1 - n]:
+        n += 1
+    return n
+
+
+def _fit_window(ids: List[int], max_len: int, tail: int) -> List[int]:
+    """Cut ``ids`` to ``max_len`` tokens by dropping the tokens before its last ``tail`` (the end of
+    the response). A plain right cut drops the end of the template, and the judge then continues
+    the response instead of classifying it."""
+    if len(ids) <= max_len:
+        return ids
+    tail = min(tail, max_len)
+    return ids[:max_len - tail] + ids[len(ids) - tail:]
+
+
 def _truncate_tokens(text: str, tokenizer, max_tokens: int = 512) -> str:
     """Right-truncate text to max_tokens using the given tokenizer."""
     tokenizer.truncation_side = "right"
@@ -222,34 +242,39 @@ def _run_vllm_judge(
     #   2. hexphi/orbench/ailuminate: wraps in Llama chat template
     #   3. wildguard: add_special_tokens=False — template already has <s> baked in;
     #      letting the tokenizer add another BOS would corrupt scoring
-    #   4. all: explicit right-truncation to (max_model_len - max_new_tokens)
-    #      before passing token IDs to vLLM (no silent vLLM-side truncation)
-    raw_inputs = [template_fn(p, r, tokenizer) for p, r in zip(prompts, responses)]
-    if needs_chat_template:
-        text_inputs = [
-            tokenizer.apply_chat_template(
+    #   4. all: explicit cut to (max_model_len - max_new_tokens) before passing token IDs
+    #      to vLLM (no silent vLLM-side truncation); the cut keeps the end of the template
+    def _render(p: str, r: str) -> str:
+        txt = template_fn(p, r, tokenizer)
+        if needs_chat_template:
+            txt = tokenizer.apply_chat_template(
                 [{"role": "user", "content": txt}],
                 tokenize=False,
                 add_generation_prompt=True,
             )
-            for txt in raw_inputs
-        ]
-    else:
-        text_inputs = raw_inputs
+        return txt
+
+    text_inputs = [_render(p, r) for p, r in zip(prompts, responses)]
 
     # wildguard template has literal "<s>" — skip add_special_tokens to avoid BOS dup
     add_special = (judge_key != "wildguard")
+
+    def _encode(text: str) -> List[int]:
+        return tokenizer.encode(text, add_special_tokens=add_special)
+
     max_input_len = max_model_len - max_new_tokens
+    tail = _tail_len(lambda r: _render("", r), _encode)   # the template's end: kept in every input
     n_truncated = 0
     vllm_token_ids: List[List[int]] = []
     for text in text_inputs:
-        ids = tokenizer.encode(text, add_special_tokens=add_special)
+        ids = _encode(text)
         if len(ids) > max_input_len:
-            ids = ids[:max_input_len]
+            ids = _fit_window(ids, max_input_len, tail)
             n_truncated += 1
         vllm_token_ids.append(ids)
     if n_truncated:
-        log.warning("[%s] %d/%d inputs right-truncated to %d tokens",
+        log.warning("[%s] %d/%d inputs cut to %d tokens (the end of the response is dropped, "
+                    "the end of the template is kept)",
                     judge_key, n_truncated, len(text_inputs), max_input_len)
 
     if use_hf:

@@ -92,7 +92,7 @@ def test_suite_wildguard_judge_single_bos(monkeypatch):
     calls = {}
     monkeypatch.setattr(ev, "get_wildguard", lambda: (None, None))
 
-    def _run(tok, model, formatted, max_new_tokens=32, add_special_tokens=True):
+    def _run(tok, model, formatted, max_new_tokens=32, add_special_tokens=True, **_kw):
         calls["add_special_tokens"] = add_special_tokens
         assert all(f.startswith("<s>") for f in formatted)
         return ["response refusal: yes"] * len(formatted)

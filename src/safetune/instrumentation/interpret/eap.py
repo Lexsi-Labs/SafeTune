@@ -513,16 +513,21 @@ def _tokenize_batch(tokenizer: Any, prompts: List[str], cfg: EAPSafetyCircuitCon
 
     # Cut long prompts from the left: the metric is read at the final token, and
     # a chat template's system preamble alone can be longer than max_seq_len.
+    # Pad on the left too, whatever the tokenizer's own side: the clean and the corrupted batch are
+    # compared position by position, so their last tokens (where the metric is read) must line up.
+    from ..._refusal_helpers import _left_padding
+
     truncation_side = tokenizer.truncation_side
     tokenizer.truncation_side = "left"
     try:
-        enc = tokenizer(
-            prompts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=cfg.max_seq_len,
-        )
+        with _left_padding(tokenizer):
+            enc = tokenizer(
+                prompts,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=cfg.max_seq_len,
+            )
     finally:
         tokenizer.truncation_side = truncation_side
     enc = {k: v.to(device) for k, v in enc.items()}
@@ -666,6 +671,13 @@ def _run_eap(
     refusal). Attribution then ranks components by how much patching them toward
     the harmless baseline shifts the compliance-minus-refusal logit diff.
     """
+    from ..._refusal_helpers import _strip_bos
+
+    # The prompts are tokenized with special tokens; one already rendered through a chat template
+    # that writes BOS would start with two.
+    harmful_prompts = _strip_bos(tokenizer, harmful_prompts)
+    harmless_prompts = _strip_bos(tokenizer, harmless_prompts)
+
     nodes = _enumerate_nodes(model, cfg.granularity)
     compliance_id = _first_token_id(tokenizer, cfg.compliance_token)
     refusal_id = _first_token_id(tokenizer, cfg.refusal_token)

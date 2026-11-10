@@ -89,7 +89,8 @@ class SafetyNeuronConfig:
             label-correlation form, robust to per-neuron scale. ``"mean_diff"``:
             signed mean (not magnitude) difference.
         activation_batch_size: forward-pass batch size for the contrast corpus.
-        activation_max_tokens: truncate each prompt to this many tokens.
+        activation_max_tokens: truncate each prompt to this many tokens. A longer prompt keeps
+            its last ``activation_max_tokens`` tokens and a warning is logged.
         abs_rank: weight mode: return the absolute cosine (``True``, default). Activation mode
             always ranks by ``|score|`` (strongly *suppressed*-on-harmful neurons are surfaced
             too) and returns the signed score. (``False`` changes nothing in the ranking.)
@@ -318,6 +319,12 @@ def _score_by_activation(
             "(expected 'mean_abs_diff', 'tstat', or 'mean_diff')."
         )
 
+    # The prompts are tokenized with special tokens; one already rendered through a chat template
+    # that writes BOS would start with two.
+    from ..._refusal_helpers import _strip_bos
+    harmful_prompts = _strip_bos(tokenizer, list(harmful_prompts))
+    harmless_prompts = _strip_bos(tokenizer, list(harmless_prompts))
+
     layers = _get_decoder_layers(model)
     if not layers:
         raise RuntimeError(
@@ -375,13 +382,22 @@ def _score_by_activation(
         bs = max(1, int(cfg.activation_batch_size))
         for start in range(0, len(prompts), bs):
             batch = prompts[start:start + bs]
-            enc = tokenizer(
-                batch,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=max(1, int(cfg.activation_max_tokens)),
-            )
+            # Cut long prompts from the left: a chat template's system preamble alone can be longer
+            # than activation_max_tokens, and the request that tells the two sets apart is at the end.
+            truncation_side = getattr(tokenizer, "truncation_side", None)
+            if truncation_side is not None:
+                tokenizer.truncation_side = "left"
+            try:
+                enc = tokenizer(
+                    batch,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=max_tokens,
+                )
+            finally:
+                if truncation_side is not None:
+                    tokenizer.truncation_side = truncation_side
             input_ids = enc["input_ids"].to(device)
             attn = enc.get("attention_mask")
             attn = (
@@ -435,6 +451,16 @@ def _score_by_activation(
                 acc["s1"] += s1.cpu()
                 acc["s1_abs"] += s1_abs.cpu()
                 acc["s2_abs"] += s2_abs.cpu()
+
+    max_tokens = max(1, int(cfg.activation_max_tokens))
+    all_prompts = list(harmful_prompts) + list(harmless_prompts)
+    n_long = sum(len(ids) > max_tokens for ids in tokenizer(all_prompts)["input_ids"])
+    if n_long:
+        logger.warning(
+            "identify_safety_neurons: %d of %d prompts are longer than activation_max_tokens=%d; "
+            "only their last %d tokens are used. Raise activation_max_tokens to keep them whole.",
+            n_long, len(all_prompts), max_tokens, max_tokens,
+        )
 
     try:
         _accumulate("harmful", list(harmful_prompts))
