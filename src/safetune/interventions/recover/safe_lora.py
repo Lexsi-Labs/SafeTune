@@ -64,11 +64,12 @@ def _compute_projection(a: torch.Tensor, b: torch.Tensor, device: torch.device) 
     return torch.mm(vec, vec.t()) / (fro_norm + 1e-12)
 
 def _find_sd_keys(sd: Dict[str, Any], module_key: str) -> Optional[str]:
-    exact = module_key + ".weight"
-    if exact in sd: return exact
+    # A PEFT model keeps the weight a LoRA layer wraps under <module>.base_layer.weight.
+    for exact in (module_key + ".weight", module_key + ".base_layer.weight"):
+        if exact in sd: return exact
     for k in sd.keys():
         if not k.endswith(".weight"): continue
-        base_k = k[: -len(".weight")]
+        base_k = k[: -len(".weight")].removesuffix(".base_layer")
         if module_key.endswith(base_k) or base_k.endswith(module_key): return k
     return None
 
@@ -294,9 +295,9 @@ def apply_safe_lora(
                     a_weight = adapter_sd[a_key].float()
                     
                     module_key = _module_key_for_lora(key)
-                    base_key = module_key + ".weight"
-                    
-                    if base_key in aligned_sd:
+                    base_key = _find_sd_keys(aligned_sd, module_key)
+
+                    if base_key is not None:
                         scaling = _lora_scaling(peft_config, module_key, a_weight.shape[0])
                         delta = torch.mm(b_weight, a_weight) * scaling
                         aligned_sd[base_key] = (aligned_sd[base_key].float() + delta).to(aligned_sd[base_key].dtype)
