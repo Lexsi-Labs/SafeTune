@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2335,7 +2335,7 @@
 <p>Training-time method built around a retain + rerouting (RR) objective. The rerouting loss pushes the model's hidden representations on harmful inputs away from their original directions, while the retain loss keeps benign representations close to the frozen original model.</p>
 <p><strong>Loss:</strong> <span class="arithmatex">\(L = c_{\text{retain}} \cdot \|h_{\text{lora, retain}} - h_{\text{orig, retain}}\|_2 + c_{\text{cb}} \cdot \mathrm{ReLU}(\cos(h_{\text{lora, cb}}, h_{\text{orig, cb}}))\)</span>, with a linear schedule <span class="arithmatex">\(c_{\text{retain}} = \alpha \cdot (\text{step}/T)\)</span> and <span class="arithmatex">\(c_{\text{cb}} = \alpha \cdot (1 - \text{step}/T)\)</span>.</p>
 <blockquote>
-<p><strong>Note:</strong> This is a training-time method — it modifies weights. It appears under activation-steering because it targets hidden representations. <code>calibrate()</code> returns a <code>CircuitBreakerModel</code> wrapper that exposes the RR loss (<code>compute_rr_loss</code>) and coefficient schedule (<code>rr_coefficients</code>) so you can run the fine-tuning loop yourself; it does not train inside <code>calibrate</code> and installs no inference-time hook by default.</p>
+<p><strong>Note:</strong> This is a training-time method — it modifies weights. It appears under activation-steering because it targets hidden representations. <code>calibrate()</code> returns a <code>CircuitBreakerModel</code> wrapper that exposes the RR loss (<code>compute_rr_loss</code>) and coefficient schedule (<code>rr_coefficients</code>) so you can run the fine-tuning loop yourself; it does not train inside <code>calibrate</code> and installs no inference-time hook by default. The Steer wrapper is a pass-through; the method lives in the loss helper. <code>compute_rr_loss</code> takes the retain term over every layer given for the retain batch (as the official code does) and averages over real tokens, where the official code divides by all positions including padded ones; the rerouting term uses the target layers.</p>
 </blockquote>
 <p>Ref: Zou et al., "Improving Alignment and Robustness with Circuit Breakers," NeurIPS 2024, arXiv:2406.04313.</p>
 <h2 id="signature">Signature<a class="headerlink" href="#signature" title="Permanent link">&para;</a></h2>
@@ -2594,10 +2594,10 @@ model, not on the trainer.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../assets/safetune.js"></script>
       

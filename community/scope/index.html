@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1020,10 +1020,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#not-faithful-the-5-variants" class="md-nav__link">
+  <a href="#not-faithful-the-22-variants" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Not Faithful — the 5 Variants
+        Not Faithful — the 22 Variants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stubs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stubs
       
     </span>
   </a>
@@ -1162,10 +1173,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#not-faithful-the-5-variants" class="md-nav__link">
+  <a href="#not-faithful-the-22-variants" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Not Faithful — the 5 Variants
+        Not Faithful — the 22 Variants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stubs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stubs
       
     </span>
   </a>
@@ -1301,7 +1323,18 @@ cited as the named method.</p>
 <li><strong>Check the verdict before relying on a method.</strong> Per-method verdicts are in
   the <a href="../../reference/feature-map/">Feature Map</a>.</li>
 <li><strong>Only Faithful methods may be cited as the named method</strong> from their paper.</li>
-<li>Simplified methods are usable but should be described as simplified.</li>
+<li>Simplified methods are usable but should be described as simplified. <code>CASTModel</code> (a mean-difference
+  condition vector where IBM uses PCA, and no norm rescale). The three Evaluate loaders badged Simplified:
+  <code>load_prompts('harmbench')</code> / the <code>harmbench</code> benchmark joins a contextual row's context to its behavior and sends it, like the 100
+  copyright rows, to the classifier with the standard template, where the original uses <code>prompt_contextual</code> for contextual rows
+  (<code>eval_utils.py:401-403</code>) and a MinHash hash check for copyright rows (<code>eval_utils.py:367-391</code>);
+  <code>load_prompts('agentharm')</code> keeps the prompt only, without the original's tool definitions
+  (<code>target_functions</code>) and grading functions (<code>grading_function</code>, <code>detailed_prompt</code>), so a refusal rate on it is not the
+  AgentHarm score; <code>load_prompts('rwku')</code> / the <code>rwku</code> benchmark loads the forget probes (<code>forget_level2</code>) only, without
+  the original's retain and neighbour sets. Interpret: <code>eap_safety_circuit</code> scores graph NODES (attention heads and MLPs)
+  with the true gradient, where EAP / EAP-IG (Syed et al.; Hanna et al.) score EDGES; a node score is the sum of its
+  outgoing-edge scores, so the edge ranking is lost. Its EAP-IG is the official "IG, inputs" variant. Pairs of unequal
+  length are aligned by index (the official code raises), and <code>ig_steps</code> defaults to 5 (official 30).</li>
 <li>Variant methods run but <strong>must not be cited</strong> as the named method — treat them
   as experimental / unverified.</li>
 </ul>
@@ -1314,47 +1347,106 @@ cited as the named method.</p>
   <code>apply_lssf</code>, <code>apply_antidote</code>, <code>apply_pke</code>, <code>apply_safereact</code>,
   <code>tracin_influence</code>, <code>apply_mscp</code>, <code>apply_wise_ft</code>,
   <code>apply_safety_vector_restore</code>, <code>apply_grad_selective_recover</code>,
-  <code>apply_oneshot_safety_patch</code>, <code>apply_antidote_v2</code>, <code>apply_repnoise_recover</code>.</li>
+  <code>apply_antidote_v2</code>, <code>apply_repnoise_recover</code>.</li>
 <li><strong>Unlearn:</strong> <code>RMU</code>, <code>NPO</code>, <code>Gradient-Ascent / GradDiff</code>,
-  <code>flat_unlearn</code>, <code>simdpo_unlearn</code>.</li>
+  <code>flat_unlearn</code>.</li>
 <li><strong>Harden:</strong> <code>CSTTrainer</code>, <code>EMACallback</code>, <code>SafeGradTrainer</code>, <code>SPPFTTrainer</code>,
-  <code>DeRTaTrainer</code>, <code>LisaTrainer</code>, <code>AsFTTrainer</code>, <code>STARDSSTrainer</code>, <code>SAPTrainer</code>,
-  <code>vaccine_loss</code>, <code>booster_project</code>, <code>SaLoRA</code>, <code>DOORTrainer</code>, <code>LookAheadTrainer</code>,
-  <code>tar_outer_loss</code>, <code>AntibodyTrainer</code>, <code>SurgeryTrainer</code>, <code>MARTTrainer</code>,
-  <code>DeepRefusalTrainer</code>, <code>SEAMTrainer</code>, <code>CTRAPTrainer</code>, <code>RepNoiseTrainer</code>,
-  <code>TVaccineTrainer</code>, <code>SEALTrainer</code>, <code>ConstrainedSFTTrainer</code>, <code>LoXHardenTrainer</code>.</li>
-<li><strong>Steer:</strong> <code>extract_refusal_direction</code>, <code>CAA</code>, <code>LinearProbeGuardModel</code>,
+  <code>DeRTaTrainer</code>, <code>LisaTrainer</code>, <code>AsFTTrainer</code>, <code>SAPTrainer</code>, <code>vaccine_loss</code>,
+  <code>booster_project</code>, <code>SaLoRA</code>, <code>tar_outer_loss</code>, <code>AntibodyTrainer</code>,
+  <code>SurgeryTrainer</code>, <code>MARTTrainer</code>, <code>SEAMTrainer</code>, <code>CTRAPTrainer</code>,
+  <code>RepNoiseTrainer</code>, <code>LoXHardenTrainer</code>.</li>
+<li><strong>Steer:</strong> <code>extract_refusal_direction</code>, <code>LinearProbeGuardModel</code>,
   <code>ContrastiveDecodingProcessor</code>, <code>ProxyTuningProcessor</code>, <code>SafeDecodingProcessor</code>,
-  <code>NudgingProcessor</code>, <code>AlphaSteerModel</code>, <code>RepBendModel</code>, <code>SafeSteerModel</code>,
-  <code>SafeSwitchModel</code>, <code>SCANSModel</code>, <code>STAModel</code>, <code>CircuitBreakerModel</code>,
-  <code>CircuitBreakerRRModel</code>, <code>TARModel</code>, <code>RRFAEnsemble</code>, <code>AdaSteerModel</code>,
-  <code>CASTModel</code>.</li>
+  <code>NudgingProcessor</code>, <code>AlphaSteerModel</code>, <code>RepBendModel</code>,
+  <code>STAModel</code>, <code>CircuitBreakerModel</code>,
+  <code>CircuitBreakerRRModel</code>.</li>
 <li><strong>Evaluate:</strong> <code>AbliterationAttack</code>, <code>BoNAttack</code>; all eval infra —
-  <code>StringMatchJudge</code>, <code>HFJudge</code>, <code>OpenAIJudge</code>, <code>JudgeAdapter</code>,
+  <code>StringMatchJudge(mode="gcg")</code>, <code>HFJudge</code>, <code>OpenAIJudge</code>, <code>JudgeAdapter</code>,
   <code>SpectralEntropyMonitor</code>, <code>evaluate</code>, <code>TamperBenchEvaluator</code>, <code>Pareto</code>
-  utilities, and all dataset loaders.</li>
-<li><strong>Interpret:</strong> <code>identify_safety_neurons</code> (weight mode), <code>safety_circuit_info</code>,
-  <code>CircuitInfo</code>, <code>eap_safety_circuit</code> (EAP / EAP-IG).</li>
+  utilities, and the dataset loaders other than the Simplified ones (HarmBench, AgentHarm, RWKU; see above).</li>
+<li><strong>Interpret:</strong> <code>safety_circuit_info</code>, <code>CircuitInfo</code> (+ JSON/YAML I/O) and
+  <code>CircuitInfoProvider</code> (the Protocol). Neither neuron-scoring mode of <code>identify_safety_neurons</code>
+  implements the paper's metric (see Variants); <code>eap_safety_circuit</code> is Simplified.</li>
 <li><strong>Runtime:</strong> the full guardrail family — <code>SafetyMiddleware</code>, <code>InputSanitizer</code>,
   <code>OutputVerifier</code>, <code>CoSAlignFormatter</code>, etc.</li>
 </ul>
-<h2 id="not-faithful-the-5-variants">Not Faithful — the 5 Variants<a class="headerlink" href="#not-faithful-the-5-variants" title="Permanent link">&para;</a></h2>
-<p>The 5 remaining Variant methods run correctly but must not be cited as the named
+<h2 id="not-faithful-the-22-variants">Not Faithful — the 22 Variants<a class="headerlink" href="#not-faithful-the-22-variants" title="Permanent link">&para;</a></h2>
+<p>The 22 remaining Variant methods run correctly but must not be cited as the named
 method:</p>
 <ul>
 <li><strong><code>deeprefusal</code></strong> (Harden) — incompatible API with the published paper;
-  use <code>DeepRefusalTrainer</code> instead, which is Faithful.</li>
-<li><strong><code>ASRTCallback</code></strong> (Harden) — heuristic callback; the cited MART method
-  requires 2 co-evolving LLMs; use <code>MARTTrainer</code> instead, which is Faithful.</li>
+  <code>DeepRefusalTrainer</code> is closer but is itself a Variant (see below).</li>
+<li><strong><code>DeepRefusalTrainer</code></strong> (Harden) — layer-level whole-sequence ablation at the
+  layer output instead of the paper's per-layer, per-token gating at the layer
+  input / attention / MLP, and BeaverTails safe responses instead of the paper's
+  harmful-prefix + refusal data. p = 0.5 and alpha = 0.2 are the paper's values.</li>
+<li><strong><code>ASRTCallback</code></strong> (Harden) — SafeTune-original heuristic callback with no paper
+  of its own; it is not MART. MART (arXiv:2311.07689) needs 2 co-evolving LLMs;
+  use <code>MARTTrainer</code> for it (no official repo exists, so its audit rests on the paper).</li>
+<li><strong><code>STARDSSTrainer</code></strong> (Harden) — the loss is the paper's Eq. 3, but the runner sets
+  V_safe from a per-row <code>kind</code> label (the paper's static binary baseline) and never
+  computes STAR scores from a guardrail model.</li>
+<li><strong><code>LookAheadTrainer</code></strong> (Harden) — the preview is inserted between the prompt and the
+  answer in the token stream (inside the assistant turn, without the connector), not into
+  the instruction text as in the paper, because the runner receives tokenised rows.</li>
+<li><strong><code>TVaccineTrainer</code></strong> (Harden) — deterministic top-k layers by the alignment batch's
+  gradient norm, instead of the paper's probability sampling from harmful-batch gradient
+  norms with the other layers frozen.</li>
+<li><strong><code>SEALTrainer</code></strong> (Harden) — gradient-cosine importance weighting; the paper's method
+  learns a data ranker by bilevel optimisation.</li>
+<li><strong><code>ConstrainedSFTTrainer</code></strong> (Harden) — additive forward-KL penalty with an exponentially
+  decaying per-position weight; the paper's loss uses a sigmoid-based per-token weight.</li>
+<li><strong><code>DOORTrainer</code></strong> (Harden) — refusal MLE + NPO only: no harmful-prefix augmentation
+  (paper Sec. 3.1) and no alpha-weighted retain term (Eq. 3, official <code>gd_npo_loss</code>).</li>
 <li><strong><code>crisp_unlearn</code></strong> (Unlearn) — single-layer squared-L2 variant vs. the
   paper's multi-layer raw-activation approach.</li>
+<li><strong><code>simdpo_unlearn</code></strong> (Unlearn) — SimPO's reference-free, length-normalised
+  loss applied to (safe refusal, harmful completion) pairs; SimPO is a
+  preference-optimisation method, not an unlearning method.</li>
 <li><strong><code>somf_merge</code></strong> (Recover) — magnitude-mask default vs. the paper's learned
   DPO/Concrete mask.</li>
-<li><strong><code>identify_safety_neurons</code> activation-mode</strong> (Interpret) — one-model
-  contrast vs. cross-model set-difference metric; use weight mode for a
-  Faithful result.</li>
+<li><strong><code>apply_oneshot_safety_patch</code></strong> (Recover) updates only the top-<code>top_fraction</code>
+  coordinates by gradient saliency, with a few Adam steps on one plain-text
+  (harmful prompt, safe response) pair. The paper (arXiv:2601.01887) fine-tunes
+  all weights on one chat-format example chosen by bi-level data selection, for
+  10 epochs at lr 2e-5, with no saliency mask.</li>
+<li><strong><code>CAA</code></strong> (Steer) — vectors come from harmful-vs-harmless prompts at the last prompt token and
+  are added at every position; the paper contrasts A/B answers to the same question at the
+  answer token and adds from the end of the instruction onward.</li>
+<li><strong><code>AdaSteerModel</code></strong> (Steer) — adaptive coefficients are a logistic fit in [0, max], applied at
+  every token; the official code uses a clipped linear law on the prefill pass only, and its
+  harmfulness vector is a projection onto RD where SafeTune orthogonalises.</li>
+<li><strong><code>SafeSteerModel</code></strong> (Steer) — the runner builds a unit refusal direction (last token, harmful minus
+  harmless); the paper uses token-averaged attention activations, safe minus unsafe, with median-norm
+  pruning, and the pruning code is not used by the runner.</li>
+<li><strong><code>SafeSwitchModel</code></strong> (Steer) — the runner path has no trained refusal head and no compliance prober;
+  a flagged prompt returns an empty completion, and the prober is a mean-pooled logistic regression
+  where the paper uses a last-token MLP.</li>
+<li><strong><code>SCANSModel</code></strong> (Steer) — the adaptive sign is armed only by <code>generate(prompt=...)</code>; the evaluation
+  path calls <code>generate(**inputs)</code> and steers every prompt toward refusal. The transition prompt is built
+  without the chat template.</li>
+<li><strong><code>StringMatchJudge(mode="prefix")</code></strong> (Evaluate; the default mode, used by <code>trainer.evaluate()</code>, <code>run_judge('advbench')</code>,
+  <code>ASRTCallback</code> and <code>BoNAttack</code>) — SafeTune's own heuristic, not the llm-attacks / GCG refusal check: 12 prefixes (4 shared
+  with the 29 of <code>_test_prefixes</code>) matched at the START of the response, where the original looks for any of 29 anywhere.
+  Use <code>mode="gcg"</code> for the llm-attacks check.</li>
+<li><strong><code>PTSTEvaluator</code></strong> (Evaluate) — runs one model over seven SafeTune-defined prompt formats and reports
+  cross-template refusal consistency (<code>passed</code> is consistency, not safety). It is not the PTST method of
+  Lyu et al. (arXiv:2402.18540, <code>vfleaking/PTST@134600f</code>), which fine-tunes without a safety prompt and tests with one.</li>
+<li><strong><code>identify_safety_neurons</code> weight mode</strong> (Interpret) — SafeTune's own heuristic: the absolute cosine of each
+  <code>down_proj</code> column with a refusal direction. No paper defines it; Chen et al. (arXiv:2406.14144) define no
+  weight-space metric. It needs only a refusal direction.</li>
+<li><strong><code>identify_safety_neurons</code> activation mode</strong> (Interpret) — a one-model harmful-vs-harmless contrast of the
+  <code>down_proj</code> input over PROMPT tokens, top-k per layer, mean|a| difference. Chen et al. take the RMS of the
+  activation difference between two CHECKPOINTS over generated tokens and rank all neurons together (Wei et al.
+  use a Wanda/SNIP safety-vs-utility set difference). Neither mode implements the cross-checkpoint metric.</li>
 </ul>
-<p>No remaining Wrong / Stub methods exist in the live audited surface.</p>
+<h2 id="stubs">Stubs<a class="headerlink" href="#stubs" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>TARModel</code></strong> and <strong><code>RRFAEnsemble</code></strong> (Steer) are pass-through wrappers: <code>generate</code> and <code>__call__</code> go straight to
+  the model, and the methods themselves are training-time (<code>tar_outer_loss</code> in Harden; RRFA's LoRA training in its
+  upstream repository). Their runner trainers warn on construction.</li>
+</ul>
+<p>No remaining Wrong methods exist in the live audited surface.</p>
 
 
 
@@ -1528,10 +1620,10 @@ method:</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../assets/safetune.js"></script>
       

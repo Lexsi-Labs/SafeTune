@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1648,6 +1648,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#known-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known limits
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1942,6 +1953,25 @@ combined <code>orbench</code> in the suite, whose <code>orbench_refusal</code> i
 run anything. To actually execute a benchmark end-to-end, call <code>evaluate()</code> (see the
 <a href="../">Evaluate overview</a> or <a href="../judges/">Judges</a> for a complete,
 runnable example).</p>
+<h2 id="known-limits">Known limits<a class="headerlink" href="#known-limits" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>max_prompts</code></strong> keeps the first k rows in file order (no shuffle, no seed). For benchmarks built from several
+  configs (HarmBench: standard, contextual, copyright; OR-Bench: hard-1k, toxic) a small cap only reaches the first.</li>
+<li><strong>Empty prompts:</strong> <code>evaluate()</code> drops them (<code>n_evaluated</code> can be below <code>n_total</code>); <code>run_safety_eval</code> keeps them and sends
+  the empty prompt to the model.</li>
+<li><strong>CLI:</strong> <code>safetune eval</code> has no <code>--judge</code>, seed or <code>max_prompts</code> option; it uses the default judge and the runtime settings.</li>
+<li><strong>XSTest:</strong> <code>evaluate()</code> reports the refusal rate on the 250 safe prompts at the top level and both subsets under <code>safe</code> /
+  <code>unsafe</code>. The combined <code>orbench</code> benchmark (<code>configure(orbench_in_safety_mean=True)</code>) is still one pooled number over
+  hard-1k and toxic; prefer <code>orbench_hard</code> and <code>orbench_toxic</code>.</li>
+<li><strong>Over-refusal benchmarks</strong> (<code>xstest</code>, <code>orbench</code>, <code>orbench_hard</code>) need <code>judge="wildguard"</code>; the other judges rate harm and
+  would call every benign prompt safe.</li>
+<li><strong>Datasets not checked against their data:</strong> the gated HarmBench, AdvBench, XSTest, SORRY-Bench and WildJailbreak
+  (checked against code only). No dataset revision is pinned.</li>
+<li><strong>Loaders that differ from the paper:</strong> AgentHarm keeps prompts only (no tool or grading fields); CARES level-0 (harmless)
+  rows have no polarity flag; MUSE loads the verbmem forget set only; RWKU loads forget probes only; the SafeDialBench <code>id</code>
+  is not unique and there is no label column; the HarmBench <code>copyright</code> rows go to the classifier, not a hash check; the
+  default <code>hexphi</code> mirror has 200 prompts, the original HEx-PHI has 330.</li>
+</ul>
 
 
 
@@ -2115,10 +2145,10 @@ runnable example).</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

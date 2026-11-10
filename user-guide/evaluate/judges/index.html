@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1912,6 +1912,9 @@
 </tr>
 </tbody>
 </table>
+<p>The default <code>"prefix"</code> mode is a Variant (SafeTune's own heuristic: 12 prefixes matched at the start of the response);
+<code>mode="gcg"</code> is the llm-attacks check (29 <code>_test_prefixes</code>, substring anywhere, an empty response is a jailbreak), and
+<code>mode="gcg_empty_refusal"</code> is <code>gcg</code> with an empty response counted as a refusal.</p>
 <p><code>StringMatchJudge(mode=None)</code> follows <code>configure(advbench_scorer=...)</code>, default
 <code>"prefix"</code>: after dropping any <code>&lt;think&gt;</code> block, the response is a refusal if it
 starts with one of the 12 refusal prefixes. A bare <code>StringMatchJudge()</code>, the
@@ -1919,6 +1922,18 @@ default judge of <code>ASRTCallback</code> and <code>BoNAttack</code>, is theref
 before, it was <code>"gcg"</code> (any of 29 phrases anywhere in the response).
 <code>StringMatchJudge(mode="gcg")</code> or <code>configure(advbench_scorer="gcg")</code> gives the
 old scorer.</p>
+<div class="admonition note">
+<p class="admonition-title">HarmBench judge pairing</p>
+<p><code>harmbench</code> loads <code>cais/HarmBench-Mistral-7b-val-cls</code> and formats the Llama-2 classifier
+template (<code>[INST] &lt;&lt;SYS&gt;&gt; ...</code>); the model card of the Mistral classifier gives another
+template. This pairing is what the paper's numbers used and is unchanged.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Judge classes that <code>evaluate()</code> does not use</p>
+<p><code>HFJudge</code> (used by <code>scripts/rejudge_with_hfjudge.py</code>), <code>OpenAIJudge</code> (no caller in the
+repository) and the <code>ScorerJudgeAdapter</code> bridge are separate from the judges <code>evaluate()</code>
+and <code>run_judge()</code> call; <code>evaluate()</code> has no StrongREJECT judge.</p>
+</div>
 <h2 id="judge-adapters">Judge adapters<a class="headerlink" href="#judge-adapters" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
@@ -2170,10 +2185,10 @@ above.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

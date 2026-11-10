@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1690,7 +1690,7 @@ needs them) and call <code>apply()</code>.</p>
 
 
 
-        <p>ReSta (DARE task arithmetic): DARE-masked safety vector restoration.</p>
+        <p>ReSta (DARE task arithmetic): safety vector restoration, with DARE on the fine-tuning delta.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1824,12 +1824,13 @@ the GPU.</p>
           </tr>
       </tbody>
     </table>
-        <p>Small models: DARE drops a fraction p of the safety vector's entries and
-scales the rest by 1/(1-p). On Qwen2.5-0.5B, with the full base-to-instruct
-delta as the safety vector, p=0.9 broke the model (HarmBench refusals 2/16
-and garbled benign answers) while p=0.3 restored 13/16 and <code>dare=False</code>
-14/16 (examples/notebooks/recover_comparison). The paper tunes on 7B
-models; on small ones check the benign answers after repair.</p>
+        <p>DARE drops a fraction p of the entries of the fine-tuning delta
+(<code>drifted - aligned</code>) and scales the rest by 1/(1-p), then adds the safety
+vector whole (the paper's RESTA_d, Eq. 7-9). The drifted model must have been
+fine-tuned from <code>aligned</code>. A high p scales the delta by 10x or more (p=0.9).
+The paper tunes on 7B models; on small ones check the benign answers after
+repair. Earlier versions applied DARE to the safety vector, so results with
+the default <code>dare=True</code> differ from those releases.</p>
 <p>Memory: the drifted, base and aligned models must be loaded, but the
 safety vector is streamed one tensor at a time, so the extra memory is a
 few fp32 copies of the largest tensor, not of the model. Keep <code>base</code> and
@@ -2032,7 +2033,39 @@ model on the GPU.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>state dict of the base model.</p>
+                <p>state dict of the base model (required for a non-PEFT model).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>base_model</code>
+            </td>
+            <td>
+                  <code><span title="torch.nn.Module">Module</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>model to take the base state dict from instead.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>aligned_model</code>
+            </td>
+            <td>
+                  <code><span title="torch.nn.Module">Module</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>model to take the aligned state dict from instead.</p>
               </div>
             </td>
             <td>
@@ -2275,10 +2308,10 @@ model on the GPU.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

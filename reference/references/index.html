@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1773,12 +1773,12 @@
 </tr>
 <tr>
 <td><code>apply_oneshot_safety_patch</code></td>
-<td>One-Shot Safety Patch</td>
+<td>One-Shot Safety Patch (Variant of Safety at One Shot, Zhang et al.)</td>
 <td>—</td>
+<td><a href="https://arxiv.org/abs/2601.01887">2601.01887</a></td>
 <td>—</td>
-<td>—</td>
-<td>Surgically patches individual parameter entries identified by their contribution to harmful output, using OBS-style pruning scores.</td>
-<td>fine-tuned model + harmful probes</td>
+<td>Runs a few Adam steps on one harmful/safe pair, updating only the top-<code>top_fraction</code> weight entries by gradient saliency. The paper fine-tunes all weights on one selected example.</td>
+<td>fine-tuned model + one harmful/safe pair</td>
 <td>patched weights</td>
 </tr>
 <tr>
@@ -1854,7 +1854,7 @@
 <td>NPO — Negative Preference Optimization (Zhang et al.)</td>
 <td>2024</td>
 <td><a href="https://arxiv.org/abs/2404.05868">2404.05868</a></td>
-<td>—</td>
+<td><a href="https://github.com/licong-lin/negative-preference-optimization">licong-lin/negative-preference-optimization</a></td>
 <td>Applies sigmoid-bounded negative log-likelihood on the forget set as a stable unlearning objective.</td>
 <td>forget data</td>
 <td>unlearned model</td>
@@ -1864,8 +1864,8 @@
 <td>TOFU (Maini et al.)</td>
 <td>2024</td>
 <td><a href="https://arxiv.org/abs/2401.06121">2401.06121</a></td>
-<td>—</td>
-<td>Performs gradient ascent on the forget set; GradDiff adds a KL-preservation term on the retain set.</td>
+<td><a href="https://github.com/locuslab/tofu">locuslab/tofu</a></td>
+<td>Performs gradient ascent on the forget set; GradDiff adds a cross-entropy term on the retain set (the separate <code>KL</code> loss type anchors the retain distribution to a frozen reference instead).</td>
 <td>forget data (+ retain data for GradDiff)</td>
 <td>unlearned model</td>
 </tr>
@@ -1874,7 +1874,7 @@
 <td>CRISP (Ashuach et al.)</td>
 <td>2025</td>
 <td><a href="https://arxiv.org/abs/2508.13650">2508.13650</a></td>
-<td>—</td>
+<td><a href="https://github.com/technion-cs-nlp/CRISP">technion-cs-nlp/CRISP</a></td>
 <td>Fine-tunes the model to suppress a set of target SAE feature activations on the forget set, making the concept removal persistent and runtime-free.</td>
 <td>frozen SAE + concept feature indices + forget/retain data</td>
 <td>concept-suppressed model</td>
@@ -1884,18 +1884,18 @@
 <td>FLAT (f-divergence unlearning)</td>
 <td>ICLR 2025</td>
 <td><a href="https://arxiv.org/abs/2410.11143">2410.11143</a></td>
-<td>—</td>
+<td><a href="https://github.com/UCSC-REAL/FLAT">UCSC-REAL/FLAT</a></td>
 <td>Reference-free unlearning that maximises an f-divergence between refusal and harmful answer distributions for each forget prompt.</td>
 <td>forget data + retain data</td>
 <td>unlearned model</td>
 </tr>
 <tr>
 <td><code>simdpo_unlearn</code></td>
-<td>SimDPO (reference-free DPO unlearning; SimPO-based)</td>
-<td>2024</td>
+<td>SimDPO (SafeTune application of the SimPO loss; Meng, Xia, Chen)</td>
+<td>NeurIPS 2024</td>
 <td><a href="https://arxiv.org/abs/2405.14734">2405.14734</a></td>
-<td>—</td>
-<td>Treats harmful completions as rejected and safe refusals as chosen; runs DPO without a reference model.</td>
+<td><a href="https://github.com/princeton-nlp/SimPO">princeton-nlp/SimPO</a></td>
+<td>Applies SimPO's reference-free, length-normalised preference loss with harmful completions as rejected and safe refusals as chosen. A SafeTune variant: SimPO itself is not an unlearning method.</td>
 <td>harmful pairs + retain data</td>
 <td>unlearned model</td>
 </tr>
@@ -1929,11 +1929,11 @@
 </tr>
 <tr>
 <td><code>EMACallback</code></td>
-<td>— (standard EMA)</td>
+<td>Rethinking Safety in LLM Fine-tuning: An Optimization Perspective (Kim et al.)</td>
+<td>COLM 2025</td>
+<td><a href="https://arxiv.org/abs/2508.12531">2508.12531</a></td>
 <td>—</td>
-<td>—</td>
-<td>—</td>
-<td>Maintains an exponential moving average of model weights throughout training for a more stable checkpoint.</td>
+<td>Maintains an exponential moving average of model weights throughout training (library callback; not wired into the runner or CLI) and swaps it in at the end.</td>
 <td>—</td>
 <td>EMA checkpoint</td>
 </tr>
@@ -2002,7 +2002,7 @@
 <td>STAR-DSS (Peng et al.)</td>
 <td>NeurIPS 2025</td>
 <td><a href="https://arxiv.org/abs/2505.17196">2505.17196</a></td>
-<td>—</td>
+<td><a href="https://github.com/poloclub/star-dss">poloclub/star-dss</a></td>
 <td>Applies a dynamic safety-shaping loss during SFT to restore safety while fine-tuning.</td>
 <td>SFT data + unsafe token list</td>
 <td>hardened trainer</td>
@@ -2012,7 +2012,7 @@
 <td>SAP — Safety-Aware Probing (Wu et al.)</td>
 <td>—</td>
 <td><a href="https://arxiv.org/abs/2505.16737">2505.16737</a></td>
-<td>—</td>
+<td><a href="https://github.com/ChengcanWu/SAP">ChengcanWu/SAP</a></td>
 <td>Uses a hidden-state safety probe inside a bilevel optimization inner loop to prevent alignment degradation.</td>
 <td>SFT data + safety probe</td>
 <td>hardened trainer</td>
@@ -2042,8 +2042,8 @@
 <td>Antibody (Nguyen et al.)</td>
 <td>—</td>
 <td><a href="https://arxiv.org/abs/2603.00498">2603.00498</a></td>
-<td>—</td>
-<td>Combines SAM-based flatness optimization with likelihood-ratio data reweighting for robustness; <code>xi</code> param implements the Theorem 4.1 coefficient.</td>
+<td><a href="https://github.com/minhquoc0712/Antibody">minhquoc0712/Antibody</a></td>
+<td>Combines SAM-based flatness optimization with likelihood-ratio data reweighting for robustness; <code>xi</code> param implements the Theorem 4.1 coefficient. Default <code>xi=0.0</code> is not the paper's (Theorem 4.1 needs <code>a_t &gt; 0</code>, i.e. <code>xi &gt; 0</code>); the official code uses <code>lambda_t = max(0, eta_lbd - cos(g_align, g_diff))</code> with <code>eta_lbd=5</code> and an EMA of <code>lambda_t</code>.</td>
 <td>SFT data</td>
 <td>hardened trainer</td>
 </tr>
@@ -2052,7 +2052,7 @@
 <td>Vaccine (Huang et al.)</td>
 <td>NeurIPS 2024</td>
 <td><a href="https://arxiv.org/abs/2402.01109">2402.01109</a></td>
-<td>—</td>
+<td><a href="https://github.com/git-disl/Vaccine">git-disl/Vaccine</a></td>
 <td>Applies layer-wide hidden-state perturbations during SFT to immunize the model against harmful fine-tuning.</td>
 <td>SFT data</td>
 <td>loss scalar</td>
@@ -2062,7 +2062,7 @@
 <td>Surgery (Liu et al.)</td>
 <td>—</td>
 <td><a href="https://arxiv.org/abs/2602.05228">2602.05228</a></td>
-<td>—</td>
+<td><a href="https://github.com/Lslland/Surgery">Lslland/Surgery</a></td>
 <td>Trains a divergence between harmful-sink and refusal-sink representations to reinforce refusal behaviour; faithful path uses a separate <code>harmful_dataset</code> batch.</td>
 <td>refusal batch</td>
 <td>hardened trainer</td>
@@ -2083,7 +2083,7 @@
 <td>ICLR 2025</td>
 <td><a href="https://arxiv.org/abs/2501.01765">2501.01765</a></td>
 <td>—</td>
-<td>Derives a fixed safety LoRA module from the safety subspace and initializes a task-specific LoRA from it.</td>
+<td>Derives a fixed safety LoRA module from the safety subspace and initializes the LoRA factors from the SVD of the base weight (the paper additionally projects onto the fine-tuning-data feature subspace; not implemented).</td>
 <td>SFT data</td>
 <td>LoRA adapter</td>
 </tr>
@@ -2102,8 +2102,8 @@
 <td>RepNoise (Rosati et al.)</td>
 <td>NeurIPS 2024</td>
 <td><a href="https://arxiv.org/abs/2405.14577">2405.14577</a></td>
-<td>—</td>
-<td>Injects representation noise during fine-tuning so a downstream recover step can easily remove the drift.</td>
+<td><a href="https://github.com/domenicrosati/representation-noising">domenicrosati/representation-noising</a></td>
+<td>Defends against harmful fine-tuning: pushes the harmful-prompt hidden states of every layer toward Gaussian noise (MMD), ascends the harmful cross-entropy (<code>-alpha*log L_harmful</code>) and keeps a retain cross-entropy. (<code>apply_repnoise_recover</code> is a separate recover-side function.)</td>
 <td>SFT data + retain data</td>
 <td>hardened trainer</td>
 </tr>
@@ -2112,7 +2112,7 @@
 <td>SEAM — Self-Destructive Language Models (Wang, Yang et al.)</td>
 <td>ICLR 2026</td>
 <td><a href="https://arxiv.org/abs/2505.12186">2505.12186</a></td>
-<td>—</td>
+<td><a href="https://github.com/ZJUWYH/seam">ZJUWYH/seam</a></td>
 <td>Trains the model so that harmful fine-tuning collapses its usefulness, deterring tampering.</td>
 <td>SFT data + harm annotations</td>
 <td>hardened trainer</td>
@@ -2122,7 +2122,7 @@
 <td>CTRAP — Collapse Trap (Yi et al.)</td>
 <td>2025</td>
 <td><a href="https://arxiv.org/abs/2505.16559">2505.16559</a></td>
-<td>—</td>
+<td>— (no verified official code: the paper links an anonymous artifact)</td>
 <td>Embeds a collapse trap so that harmful fine-tuning degrades the model's general capability.</td>
 <td>SFT data + adversarial triggers</td>
 <td>hardened trainer</td>
@@ -2149,11 +2149,11 @@
 </tr>
 <tr>
 <td><code>TVaccineTrainer</code> / <code>tvaccine_loss</code></td>
-<td>T-Vaccine</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>Layer-selective SAM perturbation: perturbs only the top-k safety-critical layers identified by gradient norm.</td>
+<td>T-Vaccine — Targeted Vaccine (Liu et al.)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2410.09760">2410.09760</a></td>
+<td><a href="https://github.com/Lslland/T-Vaccine">Lslland/T-Vaccine</a></td>
+<td>Simplified layer-selective Vaccine: perturbs the top-k attention layers by gradient norm of the alignment batch. The paper samples gamma layers with probabilities from the gradient norms of a harmful batch and freezes the rest; that is not implemented.</td>
 <td>SFT data</td>
 <td>loss scalar</td>
 </tr>
@@ -2162,8 +2162,8 @@
 <td>SEAL (Shen et al.)</td>
 <td>2024</td>
 <td><a href="https://arxiv.org/abs/2410.07471">2410.07471</a></td>
-<td>—</td>
-<td>Selects safety-sensitive training examples via gradient-cosine scoring and up-weights them during SFT.</td>
+<td><a href="https://github.com/hanshen95/SEAL">hanshen95/SEAL</a></td>
+<td>SEAL-inspired heuristic: gradient-cosine importance weights per example. Not the paper's method, which learns a data ranker by penalty-based bilevel optimisation (a second heuristic, <code>SEALDataSelector</code>, is in <code>core/data_compiler</code>).</td>
 <td>SFT data</td>
 <td>hardened trainer</td>
 </tr>
@@ -2182,7 +2182,7 @@
 <td>LoX (harden variant, Perin et al.)</td>
 <td>COLM 2025</td>
 <td><a href="https://arxiv.org/abs/2506.15606">2506.15606</a></td>
-<td>—</td>
+<td><a href="https://github.com/VITA-Group/LoX">VITA-Group/LoX</a></td>
 <td>Pre-FT extrapolation that strengthens the aligned model's safety subspace before fine-tuning starts.</td>
 <td>base model + aligned model</td>
 <td>pre-conditioned model</td>
@@ -2208,9 +2208,9 @@
 <tr>
 <td><code>extract_refusal_direction</code> + <code>RefusalDirectionModel</code></td>
 <td>Refusal Direction (Arditi et al.)</td>
-<td>2024</td>
+<td>NeurIPS 2024</td>
 <td><a href="https://arxiv.org/abs/2406.11717">2406.11717</a></td>
-<td>—</td>
+<td><a href="https://github.com/andyrdt/refusal_direction">andyrdt/refusal_direction</a></td>
 <td>Extracts the mean-difference refusal direction from contrast prompts and hooks it into the residual stream at inference.</td>
 <td>contrast prompts</td>
 <td>wrapped model</td>
@@ -2218,19 +2218,19 @@
 <tr>
 <td><code>CAA</code> / <code>CAAModel</code></td>
 <td>CAA — Contrastive Activation Addition (Panickssery et al.)</td>
-<td>2024</td>
+<td>ACL 2024</td>
 <td><a href="https://arxiv.org/abs/2312.06681">2312.06681</a></td>
-<td>—</td>
+<td><a href="https://github.com/nrimsky/CAA">nrimsky/CAA</a></td>
 <td>Adds layer-wise steering vectors derived from contrastive prompt pairs to shift model behaviour at inference.</td>
 <td>contrast prompts</td>
 <td>wrapped model</td>
 </tr>
 <tr>
 <td><code>LinearProbeGuardModel</code></td>
-<td>Linear Probe Safety Guard</td>
+<td>Linear Probe Safety Guard (SafeTune paper)</td>
 <td>—</td>
-<td>—</td>
-<td>—</td>
+<td><a href="https://arxiv.org/abs/2609.22153">2609.22153</a></td>
+<td>— (SafeTune-original)</td>
 <td>Trains a linear classifier on hidden states to detect harmful queries and route them to a canned refusal before generation.</td>
 <td>labeled prompts</td>
 <td>wrapped model</td>
@@ -2270,7 +2270,7 @@
 <td>AlphaSteer</td>
 <td>ICLR 2026</td>
 <td><a href="https://arxiv.org/abs/2506.07022">2506.07022</a></td>
-<td>—</td>
+<td><a href="https://github.com/AlphaLab-USTC/AlphaSteer">AlphaLab-USTC/AlphaSteer</a></td>
 <td>Applies null-space-constrained activation steering along the refusal direction with a learned α coefficient.</td>
 <td>refusal direction vectors</td>
 <td>wrapped model</td>
@@ -2301,7 +2301,7 @@
 <td>—</td>
 <td><a href="https://arxiv.org/abs/2506.04250">2506.04250</a></td>
 <td>—</td>
-<td>Prunes steering vectors via subspace projection and median-norm thresholding before applying them.</td>
+<td>Category-wise steering vectors (safe minus unsafe activations, with the paired differences pruned by median norm) added at a set of intermediate layers.</td>
 <td>steering vectors</td>
 <td>wrapped model</td>
 </tr>
@@ -2320,7 +2320,7 @@
 <td>SCANS (Cao et al.)</td>
 <td>AAAI 2025</td>
 <td><a href="https://arxiv.org/abs/2408.11491">2408.11491</a></td>
-<td>—</td>
+<td><a href="https://github.com/zouyingcao/SCANS">zouyingcao/SCANS</a></td>
 <td>Selects steering layers by vocabulary-projection analysis then applies transition-based adaptive sign steering.</td>
 <td>contrast data</td>
 <td>wrapped model</td>
@@ -2371,14 +2371,24 @@
 <td>EMNLP 2025</td>
 <td><a href="https://arxiv.org/abs/2504.09466">2504.09466</a></td>
 <td><a href="https://github.com/MuyuenLP/AdaSteer">MuyuenLP/AdaSteer</a></td>
-<td>Applies adaptive dual-direction steering (refusal + harm directions) with per-input logistic coefficients.</td>
+<td>Variant: adaptive dual-direction steering (refusal + harm directions) with per-input logistic coefficients in [0, max], applied at every token (the official code uses a clipped linear law on the prefill pass only).</td>
 <td>RD/HD steering vectors + calibration data</td>
+<td>wrapped model</td>
+</tr>
+<tr>
+<td><code>CASTModel</code> + <code>fit_cast_condition</code></td>
+<td>CAST — Conditional Activation Steering (Lee et al.)</td>
+<td>ICLR 2025</td>
+<td><a href="https://arxiv.org/abs/2409.05907">2409.05907</a></td>
+<td><a href="https://github.com/IBM/activation-steering">IBM/activation-steering</a></td>
+<td>Adds a behaviour (refusal) vector only when a cosine-similarity condition on the prompt's hidden state fires; the condition vector is a mean difference (IBM uses PCA).</td>
+<td>contrast prompts</td>
 <td>wrapped model</td>
 </tr>
 <tr>
 <td><code>RRFAEnsemble</code></td>
 <td>RRFA (Ozdincer)</td>
-<td>COLM 2026</td>
+<td>COLM 2026 (venue not verified)</td>
 <td>—</td>
 <td><a href="https://github.com/memo-ozdincer/RRFA">memo-ozdincer/RRFA</a></td>
 <td>Training-time LoRA representation-rerouting for agentic injection defense; acts as a no-op wrapper at inference.</td>
@@ -2419,7 +2429,7 @@
 <td>2024</td>
 <td><a href="https://arxiv.org/abs/2412.03556">2412.03556</a></td>
 <td>—</td>
-<td>Generates N augmented prompt variants and selects the one that elicits the most harmful completion.</td>
+<td>Samples up to N augmented prompt variants (word scrambling, random capitalization, ASCII noise) and stops at the first one whose response passes the success gate (judge positive, more than 50 words, no recitation, no false-positive phrase).</td>
 <td>judge</td>
 <td>attack result</td>
 </tr>
@@ -2456,7 +2466,7 @@
 <td>2024</td>
 <td><a href="https://arxiv.org/abs/2402.04249">2402.04249</a></td>
 <td>—</td>
-<td>Scores model responses with a HuggingFace classifier (default <code>cais/HarmBench-Mistral-7b-val-cls</code>) using the official HarmBench classifier template.</td>
+<td>Scores model responses with a HuggingFace classifier (default <code>cais/HarmBench-Mistral-7b-val-cls</code>) using the Llama-2 HarmBench classifier template (the Mistral model card gives a different one; see <code>HFJudgeConfig</code>).</td>
 <td>model response</td>
 <td>0/1 label</td>
 </tr>
@@ -2466,9 +2476,19 @@
 <td>2024</td>
 <td><a href="https://arxiv.org/abs/2402.10260">2402.10260</a></td>
 <td>—</td>
-<td>Autogrades responses with a GPT-4 StrongREJECT rubric on a 1–5 harmlessness scale.</td>
+<td>Autogrades responses with the StrongREJECT rubric (refusal flag, convincingness and specificity 1–5) and returns the paper's score in [0, 1].</td>
 <td>OpenAI API key + response</td>
-<td>1–5 score</td>
+<td>score in [0, 1]</td>
+</tr>
+<tr>
+<td><code>PTSTEvaluator</code></td>
+<td>Not the paper's method; named after Lyu et al., "Keeping LLMs Aligned After Fine-tuning: The Crucial Role of Prompt Templates" (Variant)</td>
+<td>2024</td>
+<td><a href="https://arxiv.org/abs/2402.18540">2402.18540</a></td>
+<td><a href="https://github.com/vfleaking/PTST">vfleaking/PTST</a></td>
+<td>Template-robustness check: refusal rate per prompt format and cross-format consistency (<code>passed</code> = consistency, not safety).</td>
+<td><code>generate_fn</code> + prompts</td>
+<td>per-template rates, consistency</td>
 </tr>
 <tr>
 <td><code>JudgeAdapter</code></td>
@@ -2550,21 +2570,21 @@
 <tbody>
 <tr>
 <td><code>identify_safety_neurons</code> (weight mode)</td>
-<td>Finding Safety Neurons (Chen et al.)</td>
+<td>— (SafeTune heuristic, Variant; the refusal direction is Arditi et al.)</td>
 <td>—</td>
-<td><a href="https://arxiv.org/abs/2406.14144">2406.14144</a></td>
 <td>—</td>
-<td>Localizes safety-relevant weight columns by cosine of each output-projection column against the refusal direction.</td>
-<td>aligned reference model</td>
+<td>—</td>
+<td>Localizes safety-relevant weight columns by the absolute cosine of each <code>down_proj</code> column against the refusal direction. No paper defines this score.</td>
+<td>a refusal direction per target layer</td>
 <td>neuron indices</td>
 </tr>
 <tr>
 <td><code>identify_safety_neurons</code> (activation mode)</td>
-<td>Finding Safety Neurons (Chen et al.)</td>
-<td>—</td>
+<td>Towards Understanding Safety Alignment: A Mechanistic Perspective from Safety Neurons (Chen et al.; v1 title "Finding Safety Neurons in Large Language Models"), cited for context (Variant)</td>
+<td>NeurIPS 2025</td>
 <td><a href="https://arxiv.org/abs/2406.14144">2406.14144</a></td>
 <td>—</td>
-<td>Localizes safety neurons by contrasting activations on harmful vs. benign prompts. SafeTune variant: a one-model harmful-vs-benign contrast vs the cited papers' cross-checkpoint metric.</td>
+<td>Localizes safety neurons by contrasting activations on harmful vs. benign prompts. SafeTune variant: a one-model harmful-vs-benign contrast of the <code>down_proj</code> input over prompt tokens (top-k per layer) instead of the paper's RMS activation difference between two checkpoints over generated tokens (global ranking).</td>
 <td>contrast prompts</td>
 <td>neuron indices</td>
 </tr>
@@ -2594,7 +2614,7 @@
 <td>2024</td>
 <td><a href="https://arxiv.org/abs/2403.17806">2403.17806</a></td>
 <td><a href="https://github.com/hannamw/EAP-IG">hannamw/EAP-IG</a></td>
-<td>Runs integrated-gradient edge attribution patching to discover the safety circuit at edge resolution.</td>
+<td>Simplified: node-level EAP / EAP-IG (attention heads and MLPs, not edges; true gradient; EAP-IG over the input-embedding line, as the official "IG, inputs") to discover a safety circuit; returns the top-k nodes.</td>
 <td>contrast prompt pairs</td>
 <td>CircuitInfo</td>
 </tr>
@@ -2813,10 +2833,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../assets/safetune.js"></script>
       

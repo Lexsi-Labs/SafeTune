@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2136,7 +2136,8 @@ benchmarks; one combined <code>"orbench"</code> with
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Extra kwargs forwarded to <code>model.generate</code>.</p>
+                <p>Extra kwargs forwarded to <code>model.generate</code>. Generation is greedy
+(<code>do_sample=False</code>) unless this says otherwise.</p>
               </div>
             </td>
             <td>
@@ -2153,7 +2154,11 @@ benchmarks; one combined <code>"orbench"</code> with
             <td>
               <div class="doc-md-description">
                 <p>Optional cap per benchmark (default: runtime
-<code>max_prompts</code>; <code>None</code> = full benchmark).</p>
+<code>max_prompts</code>; <code>None</code> = full benchmark). It keeps the FIRST k rows in file order,
+with no shuffling, so for a benchmark built from several configs (HarmBench:
+standard, contextual, copyright; OR-Bench: hard-1k, toxic) a small cap only reaches the
+first one. Rows with an empty prompt are dropped here (<code>n_evaluated</code> &lt; <code>n_total</code>);
+<code>run_safety_eval</code> keeps them and sends the empty prompt to the model.</p>
               </div>
             </td>
             <td>
@@ -2325,6 +2330,19 @@ the metrics are over these.</li>
               <div class="doc-md-description">
                 <ul>
 <li><code>headline_metric</code> — <code>"refusal_rate"</code> for over-refusal suites, else <code>"asr"</code>.</li>
+</ul>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <ul>
+<li><code>xstest</code> reports the metrics of its SAFE prompts at the top level (the over-refusal
+rate) and both subsets under <code>"safe"</code> / <code>"unsafe"</code> (<code>"unsafe"</code>: refusing is right).</li>
 </ul>
               </div>
             </td>
@@ -2679,6 +2697,8 @@ attack.revert()
     <div class="doc doc-contents ">
 
         <p>Apply the attack. <code>mode</code> is <code>runtime_ablate</code> or <code>weight_orthogonalize</code>.</p>
+<p>Calling <code>run</code> again reverts the previous application first. <code>strength</code> applies to
+<code>runtime_ablate</code> only; <code>weight_orthogonalize</code> raises for any other value than 1.0.</p>
 
 
     </div>
@@ -3036,7 +3056,7 @@ Gemma-2B classifier); it does not run any tampering attack.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p><code>[0, 1]</code> — the TamperBench safety metric), <code>num_evaluated</code> (number</p>
+                <p><code>[0, 1]</code> — the TamperBench safety metric; NaN when <code>qa_pairs</code> is empty), <code>num_evaluated</code> (number</p>
               </div>
             </td>
           </tr>
@@ -3271,10 +3291,10 @@ Gemma-2B classifier); it does not run any tampering attack.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

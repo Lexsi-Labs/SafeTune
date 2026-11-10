@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1528,8 +1528,9 @@ v0.1.0.</p>
 <li><strong>Some methods now require an input they previously ignored.</strong> SafeDecoding
   and Contrastive Decoding raise on the HF path unless you pass a distinct
   expert / weak model (passing the target as its own guide was an identity
-  no-op); AsFT and LoX-Harden warn when <code>aligned_model_path</code> is unset (the
-  aligned reference is mandatory — without it they reduce to plain SFT);
+  no-op); AsFT warns when <code>base_model_path</code> is unset (the reference is mandatory —
+  without it it reduces to plain SFT); LoX-Harden takes the pre-alignment
+  <code>base_model_path</code> (required, raises if missing) and trains the aligned model;
   Surgery warns and is inactive unless the model is loaded with
   <code>attn_implementation="eager"</code>; SPPFT <code>sppft_mode="scale"</code> now falls back to
   the paper-faithful <code>"freeze"</code>.</li>
@@ -1644,7 +1645,7 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>apply_oneshot_safety_patch</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>apply_antidote_v2</td>
@@ -1687,7 +1688,7 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>simdpo_unlearn</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 </tbody>
 </table>
@@ -1730,7 +1731,7 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>DeepRefusalTrainer</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>LisaTrainer</td>
@@ -1742,7 +1743,7 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>STARDSSTrainer</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>SAPTrainer</td>
@@ -1750,11 +1751,11 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>DOORTrainer</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>LookAheadTrainer</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>AntibodyTrainer</td>
@@ -1794,15 +1795,15 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>TVaccineTrainer</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>SEALTrainer</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>ConstrainedSFTTrainer</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>LoXHardenTrainer</td>
@@ -1810,6 +1811,18 @@ v0.1.0.</p>
 </tr>
 </tbody>
 </table>
+<p>Harden notes (second-pass audit):</p>
+<ul>
+<li><code>ASRTCallback</code> is a SafeTune-original heuristic with no paper of its own; it is not an implementation of MART.</li>
+<li><code>MARTTrainer</code> has no official repository; the audit rests on the paper (arXiv:2311.07689).</li>
+<li><code>DeepRefusalTrainer</code> is a Variant: the ablation is per layer for the whole sequence at the layer output
+  (the paper and official code gate every layer and token, at the layer input, attention and MLP), and the
+  default harmful set is BeaverTails safe responses rather than the paper's harmful-prefix + refusal data.
+  The paper's p = 0.5 (Sec. 5.1) and alpha = 0.2 are the defaults used.</li>
+<li><code>LisaTrainer</code>: <code>lisa_warmup_steps</code> defaults to 100 micro-steps in <code>LisaConfig</code> (the authors skip the first 10%
+  of steps), so a direct <code>LisaConfig</code> run shorter than 100 steps gets no proximal term; the runner passes 10.
+  The runner schedule (10 / 20 / 20) is a scaled-down version of the paper's 500 / 500.</li>
+</ul>
 <h2 id="steer-19-entry-points">Steer (19 entry points)<a class="headerlink" href="#steer-19-entry-points" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1825,7 +1838,7 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>CAA (extract_caa_vectors + CAAModel)</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>LinearProbeGuardModel</td>
@@ -1853,19 +1866,19 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>TARModel</td>
-<td>Faithful</td>
+<td>Stub</td>
 </tr>
 <tr>
 <td>SafeSteerModel</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>SafeSwitchModel</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>SCANSModel</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>STAModel</td>
@@ -1885,15 +1898,15 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>AdaSteerModel</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>RRFAEnsemble</td>
-<td>Faithful</td>
+<td>Stub</td>
 </tr>
 <tr>
 <td>CASTModel + fit_cast_condition</td>
-<td>Faithful</td>
+<td>Simplified</td>
 </tr>
 </tbody>
 </table>
@@ -1926,8 +1939,12 @@ v0.1.0.</p>
 </thead>
 <tbody>
 <tr>
-<td>StringMatchJudge</td>
+<td>StringMatchJudge (mode="gcg", the llm-attacks check)</td>
 <td>Faithful</td>
+</tr>
+<tr>
+<td>StringMatchJudge (mode="prefix", the default 12-prefix starts-with match)</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>HFJudge (HarmBench classifier)</td>
@@ -1954,6 +1971,10 @@ v0.1.0.</p>
 <td>Faithful</td>
 </tr>
 <tr>
+<td>PTSTEvaluator</td>
+<td>Variant</td>
+</tr>
+<tr>
 <td>Loader: advbench</td>
 <td>Faithful</td>
 </tr>
@@ -1971,11 +1992,11 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>Loader: harmbench</td>
-<td>Faithful</td>
+<td>Simplified</td>
 </tr>
 <tr>
 <td>Loader: agentharm</td>
-<td>Faithful</td>
+<td>Simplified</td>
 </tr>
 <tr>
 <td>Loader: saladbench</td>
@@ -2003,7 +2024,7 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>Loader: rwku</td>
-<td>Faithful</td>
+<td>Simplified</td>
 </tr>
 <tr>
 <td>Loader: safedialbench</td>
@@ -2026,7 +2047,7 @@ v0.1.0.</p>
 <tbody>
 <tr>
 <td>identify_safety_neurons (weight mode)</td>
-<td>Faithful</td>
+<td>Variant</td>
 </tr>
 <tr>
 <td>identify_safety_neurons (activation mode)</td>
@@ -2046,7 +2067,7 @@ v0.1.0.</p>
 </tr>
 <tr>
 <td>eap_safety_circuit (EAP / EAP-IG)</td>
-<td>Faithful</td>
+<td>Simplified</td>
 </tr>
 </tbody>
 </table>
@@ -2308,10 +2329,10 @@ method — see <a href="../../community/scope/">Scope &amp; Limitations</a> for 
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../assets/safetune.js"></script>
       

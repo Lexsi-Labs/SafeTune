@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2287,8 +2287,9 @@
 
 <h1 id="resta-restoring-safety-through-task-arithmetic">RESTA: REstoring Safety through Task Arithmetic<a class="headerlink" href="#resta-restoring-safety-through-task-arithmetic" title="Permanent link">&para;</a></h1>
 <p>Adds the alignment safety delta to the drifted model's weights:
-<span class="arithmatex">\(\theta_{\text{safe}} = \theta_{\text{finetuned}} + \text{alpha} \cdot (\theta_{\text{aligned}} - \theta_{\text{base}})\)</span>, with optional DARE sparsification
-that drops and rescales elements of the delta to reduce interference with task capabilities.</p>
+<span class="arithmatex">\(\theta_{\text{safe}} = \theta_{\text{finetuned}} + \text{alpha} \cdot (\theta_{\text{aligned}} - \theta_{\text{base}})\)</span>, with optional DARE
+that drops and rescales elements of the fine-tuning delta <span class="arithmatex">\(\theta_{\text{finetuned}} - \theta_{\text{aligned}}\)</span> before the safety vector is added whole
+(the paper's RESTA<span class="arithmatex">\(_d\)</span>, Eq. 7-9), to reduce interference with task capabilities. The fine-tuned model must have been fine-tuned from the aligned one.</p>
 <p>Ref: Bhardwaj et al., "Language Models are Homer Simpson! Safety Re-Alignment of
 Fine-tuned Language Models through Task Arithmetic," ACL 2024, arXiv:2402.11746.</p>
 <h2 id="signature">Signature<a class="headerlink" href="#signature" title="Permanent link">&para;</a></h2>
@@ -2343,7 +2344,7 @@ Fine-tuned Language Models through Task Arithmetic," ACL 2024, arXiv:2402.11746.
 <td><code>dare</code></td>
 <td><code>bool</code></td>
 <td><code>True</code></td>
-<td>Apply DARE (drop-and-rescale) sparsification of the delta before adding</td>
+<td>Apply DARE (drop-and-rescale) to the fine-tuning delta <code>finetuned - aligned</code> before the safety vector is added</td>
 </tr>
 <tr>
 <td><code>dare_drop_rate</code></td>
@@ -2383,8 +2384,8 @@ Fine-tuned Language Models through Task Arithmetic," ACL 2024, arXiv:2402.11746.
 <h2 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>A layer-level recovery baseline.</strong> It applies the full alignment delta; unlike <a href="../../whole-model/wise-ft/">WiSE-FT</a>, which interpolates, RESTA adds on top.</li>
-<li><strong><code>dare=True</code> (default):</strong> drop-and-rescale sparsification reduces task-capability interference when <code>alpha</code> is large.</li>
-<li><strong>Small models:</strong> DARE drops a fraction p of the delta's entries and scales the rest by 1/(1-p). On Qwen2.5-0.5B, with the full base-to-instruct delta as the safety vector, p=0.9 broke the model (garbled answers) while p=0.3 restored refusal. On small models, check benign answers after the repair.</li>
+<li><strong><code>dare=True</code> (default for <code>ReStaTrainer</code>):</strong> drop-and-rescale on the fine-tuning delta reduces task-capability interference when <code>alpha</code> is large. Results with this default differ from releases up to 0.1.14, which applied DARE to the safety vector.</li>
+<li><strong>Small models:</strong> DARE drops a fraction p of the fine-tuning delta's entries and scales the rest by 1/(1-p), so a high p (0.9) scales that delta by 10x or more. On small models, check benign answers after the repair.</li>
 <li><strong>Tune <code>alpha</code>:</strong> values above <code>1.0</code> over-apply the safety delta (useful when drift is severe); values below <code>1.0</code> apply a partial patch.</li>
 <li><strong>Cohere Tiny Aya: use <code>alpha≈0.25</code>.</strong> On Tiny Aya, α=1 breaks the model; use α≈0.25 (sweep: 0.1/0.25 restore refusal with normal answers, ≥0.5 breaks it). The default stays <code>1.0</code>; pass <code>alpha=0.25</code> explicitly.</li>
 <li><strong>Compare to <a href="../../low-rank/lox/">LoX</a>:</strong> LoX keeps only the top-<code>rank</code> singular components of the delta; RESTA uses the full dense delta.</li>
@@ -2573,10 +2574,10 @@ as the default.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../assets/safetune.js"></script>
       

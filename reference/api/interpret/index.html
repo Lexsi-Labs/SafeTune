@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1689,8 +1689,9 @@ Configs / reports: <code>SafetyNeuronConfig</code>, <code>SafetyNeuronReport</co
   and the layer's refusal direction. Needs only
   <code>refusal_direction_per_layer</code>; no forward passes.</li>
 <li><code>"activation"</code> -- rank units by a per-neuron <em>activation contrast</em>
-  between harmful and harmless prompts (feed-forward activation analysis,
-  cf. Wei et al. arXiv:2402.05162, Chen et al. arXiv:2406.14144). Needs
+  between harmful and harmless prompts, read at the input of <code>mlp.down_proj</code>
+  (the MLP intermediate neurons of Chen et al. arXiv:2406.14144, but NOT their
+  two-checkpoint RMS metric; see the module docstring). Needs
   <code>tokenizer</code>, <code>harmful_prompts</code> and <code>harmless_prompts</code>; does not use
   <code>refusal_direction_per_layer</code>.</li>
 </ul>
@@ -1849,7 +1850,7 @@ mode; may be <code>{}</code> for <code>"activation"</code> mode.</p>
 
 
 <h3 id="safetune.interpret.safety_circuit_info" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">safetune</span><span class="o">.</span><span class="n">interpret</span><span class="o">.</span><span class="n">safety_circuit_info</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">harmful_prompts</span><span class="p">,</span> <span class="n">harmless_prompts</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">top_k_per_layer</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">target_module</span><span class="o">=</span><span class="s1">'mlp.down_proj'</span><span class="p">,</span> <span class="n">target_layers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'weight'</span><span class="p">,</span> <span class="n">activation_module</span><span class="o">=</span><span class="s1">'mlp.act_fn'</span><span class="p">,</span> <span class="n">activation_score</span><span class="o">=</span><span class="s1">'mean_abs_diff'</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">safetune</span><span class="o">.</span><span class="n">interpret</span><span class="o">.</span><span class="n">safety_circuit_info</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">harmful_prompts</span><span class="p">,</span> <span class="n">harmless_prompts</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">top_k_per_layer</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">target_module</span><span class="o">=</span><span class="s1">'mlp.down_proj'</span><span class="p">,</span> <span class="n">target_layers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'weight'</span><span class="p">,</span> <span class="n">activation_module</span><span class="o">=</span><span class="s1">'mlp.down_proj'</span><span class="p">,</span> <span class="n">activation_score</span><span class="o">=</span><span class="s1">'mean_abs_diff'</span><span class="p">)</span></code>
 
 <a href="#safetune.interpret.safety_circuit_info" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -1859,13 +1860,14 @@ mode; may be <code>{}</code> for <code>"activation"</code> mode.</p>
         <p>Convenience: locate safety neurons end-to-end and return a <code>CircuitInfo</code>.</p>
 <p>In <code>method="weight"</code> mode (default) this extracts a refusal direction
 from the contrast corpus and ranks units by weight-direction cosine. In
-<code>method="activation"</code> mode it skips the refusal-direction step and ranks
-units directly by the harmful-vs-harmless activation contrast -- the
-refusal direction is still extracted so that <code>direction_layer</code> is
-populated for downstream consumers, but it does not affect the scores.</p>
+<code>method="activation"</code> mode it does not extract a refusal direction at all and ranks
+units directly by the harmful-vs-harmless activation contrast (<code>direction_layer</code> is
+then <code>None</code>).</p>
 <p>Returns the :class:<code>CircuitInfo</code> produced by
-:meth:<code>SafetyNeuronReport.as_circuit_info</code>. Plug directly into LSSF, PKE,
-NLSR, or DeepRefusal for targeted patching.</p>
+:meth:<code>SafetyNeuronReport.as_circuit_info</code>. Its readers are C-ΔΘ
+(<code>layer_suggestions.layer_subset</code> and <code>target_modules</code>) and SafetyLoRA
+(<code>target_modules</code>); <code>layer_subset</code> lists only the layers that kept units, and no
+consumer reads the per-neuron ids. LSSF, PKE, NLSR and DeepRefusal do not read it.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1910,7 +1912,7 @@ NLSR, or DeepRefusal for targeted patching.</p>
               </div>
             </td>
             <td>
-                  <code>&#39;mlp.act_fn&#39;</code>
+                  <code>&#39;mlp.down_proj&#39;</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -2041,12 +2043,16 @@ o_proj input channel, not an attention head.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>in <code>"activation"</code> mode, which sub-module's output
-is captured as the per-neuron activation vector. <code>"mlp.act_fn"</code>
-captures the post-activation MLP intermediate (gate) neurons --
-these are the canonical "neurons" of the safety-neuron literature.
-If that hook point is unavailable the implementation falls back to
-<code>"mlp"</code> (the MLP block output, i.e. residual-stream units).</p>
+                <p>in <code>"activation"</code> mode, where the per-neuron activation
+vector is captured. <code>"mlp.down_proj"</code> (default) captures the INPUT of the
+down projection, <code>sigma(W_gate x) * (W_up x)</code>: the MLP intermediate
+neurons of Chen et al. (arXiv:2406.14144, Eq. 2: "activation before down
+projection"; the official code hooks <code>hook_post</code>). Any other
+<code>nn.Linear</code> path also captures its input. A non-Linear module
+(<code>"mlp.act_fn"</code>: only <code>sigma(W_gate x)</code>; <code>"mlp"</code>: the block output,
+residual-stream units) captures its OUTPUT. If the requested point is
+unavailable the implementation falls back through
+<code>mlp.down_proj</code>, <code>mlp.c_proj</code>, <code>mlp.act_fn</code>, <code>mlp.act</code>, <code>mlp</code>.</p>
               </div>
             </td>
           </tr>
@@ -2084,7 +2090,8 @@ signed mean (not magnitude) difference.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>truncate each prompt to this many tokens.</p>
+                <p>truncate each prompt to this many tokens. A longer prompt keeps
+its last <code>activation_max_tokens</code> tokens and a warning is logged.</p>
               </div>
             </td>
           </tr>
@@ -2095,8 +2102,9 @@ signed mean (not magnitude) difference.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>rank units by absolute score (<code>True</code>, default) so that
-strongly <em>suppressed</em>-on-harmful neurons are also surfaced.</p>
+                <p>weight mode: return the absolute cosine (<code>True</code>, default). Activation mode
+always ranks by <code>|score|</code> (strongly <em>suppressed</em>-on-harmful neurons are surfaced
+too) and returns the signed score. (<code>False</code> changes nothing in the ranking.)</p>
               </div>
             </td>
           </tr>
@@ -2304,10 +2312,10 @@ strongly <em>suppressed</em>-on-harmful neurons are also surfaced.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

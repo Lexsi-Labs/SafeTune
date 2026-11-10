@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2773,8 +2773,15 @@ prepared dataset and HF training loop, use <code>harden.DeRTaHFTrainer</code> wi
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">)</span>
 </code></pre></div>
-<p>The <code>train_dataset</code> (which must carry a per-token <code>safety_weights</code> column) is
-passed to <code>trainer.train(train_dataset)</code>, not to the constructor.</p>
+<p><code>train_dataset</code> is passed to <code>trainer.train(train_dataset)</code>, not to the constructor, and
+<strong>must have a <code>kind</code> column</strong> (<code>"benign"</code> or <code>"harmful"</code>); <code>train</code> raises a <code>ValueError</code>
+without it. The runner builds the per-token <code>safety_weights</code> column from <code>kind</code> (below).
+<code>HARD.STARDSSHFTrainer</code> itself takes a <code>safety_weights</code> column directly.</p>
+<p><strong>What the runner implements.</strong> V_safe is a per-row binary label (1.0 for benign rows, 0.0
+for harmful rows). That is the paper's <em>static</em> safety-shaping baseline combined with the
+KL term of Eq. 3. The STAR score (guardrail logits on partial responses, chunk by chunk;
+paper Sec. 4) is not computed anywhere in SafeTune, so this is a Variant of ⋆DSS, not the
+method with the STAR signal. Official code: https://github.com/poloclub/star-dss.</p>
 <h3 id="stardssconfig-fields">STARDSSConfig fields<a class="headerlink" href="#stardssconfig-fields" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2807,7 +2814,7 @@ so safe tokens are imitated and unsafe tokens are pushed toward the reference.</
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">harden</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># The runner assigns V_safe = 1.0 to benign rows and 0.0 to harmful rows</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># (from each example's `kind` field) and builds the `safety_weights` column.</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># (from each example's required `kind` field) and builds the `safety_weights` column.</span>
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">STARDSSTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">use_kl_penalty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kl_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
 <a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
 </code></pre></div>
@@ -2881,7 +2888,7 @@ keyword argument, e.g. <code>harden.SPPFTTrainer(model, tokenizer, safety_layer_
 <td><code>sppft_mode</code></td>
 <td><code>str</code></td>
 <td><code>"freeze"</code></td>
-<td><code>"freeze"</code> (paper default — freeze safety-layer params) or <code>"scale"</code> (reduce their LR)</td>
+<td><code>"freeze"</code> (paper default — freeze safety-layer params). <code>"scale"</code> is not supported: it falls back to <code>"freeze"</code> with a warning</td>
 </tr>
 <tr>
 <td><code>num_safety_layers</code></td>
@@ -2921,9 +2928,11 @@ depth) and fine-tunes the rest. No safety dataset is required.</p>
 data-centric: from each <code>(prompt, safe_response, unsafe_response)</code> triple the
 formatter builds two DPO pairs under opposite system prompts (a safe prompt where
 the safe response is chosen, and an uncensored prompt where the unsafe response is
-chosen), so behavior is controllable via the system prompt at inference. Pass the
-triples via <code>raw_examples</code> for automatic formatting, or pre-format and pass
-<code>train_dataset</code> directly.</p>
+chosen), so behavior is controllable via the system prompt at inference. The system
+prompt is part of the DPO <code>prompt</code> (a <code>[system, user]</code> message list rendered with the
+tokenizer's chat template; a tokenizer without a chat template gets a plain-text
+prompt instead). Pass the triples via <code>raw_examples</code> for automatic formatting, or
+pre-format and pass <code>train_dataset</code> directly.</p>
 <h3 id="signature_4">Signature<a class="headerlink" href="#signature_4" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">CSTTrainer</span><span class="p">(</span>
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">model</span><span class="p">:</span> <span class="n">PreTrainedModel</span><span class="p">,</span>
@@ -3144,10 +3153,10 @@ intervention class from its module: <code>from safetune.harden.cst import CSTTra
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

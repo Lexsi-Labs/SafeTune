@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1323,6 +1323,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#who-reads-a-circuitinfo-and-file-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Who reads a CircuitInfo, and file handling
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1703,6 +1714,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#who-reads-a-circuitinfo-and-file-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Who reads a CircuitInfo, and file handling
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1850,7 +1872,7 @@ metadata. Created by <code>safety_circuit_info()</code> and <code>eap_safety_cir
 <a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>
 <a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="c1"># read the module targeting the circuit suggests</span>
 <a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="n">targeting</span> <span class="o">=</span> <span class="n">get_lora_targeting_from_circuit</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="nb">print</span><span class="p">(</span><span class="n">targeting</span><span class="o">.</span><span class="n">target_modules</span><span class="p">)</span>  <span class="c1"># e.g. ["mlp.act_fn"]</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="nb">print</span><span class="p">(</span><span class="n">targeting</span><span class="o">.</span><span class="n">target_modules</span><span class="p">)</span>  <span class="c1"># e.g. ["mlp.down_proj"]</span>
 <a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="nb">print</span><span class="p">(</span><span class="n">targeting</span><span class="o">.</span><span class="n">layer_subset</span><span class="p">)</span>    <span class="c1"># layers the circuit's safety units span</span>
 </code></pre></div>
 <h2 id="key-functions">Key functions<a class="headerlink" href="#key-functions" title="Permanent link">&para;</a></h2>
@@ -1900,6 +1922,21 @@ metadata. Created by <code>safety_circuit_info()</code> and <code>eap_safety_cir
 <p>CircuitInfo is the bridge between Interpret and Steer/Recover. Every method
 that discovers safety-relevant structure returns a CircuitInfo that other
 methods can consume.</p>
+<h2 id="who-reads-a-circuitinfo-and-file-handling">Who reads a <code>CircuitInfo</code>, and file handling<a class="headerlink" href="#who-reads-a-circuitinfo-and-file-handling" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Readers:</strong> C-ΔΘ (<code>apply_ctheta</code>, <code>apply_ctheta_from_state_dicts</code>, <code>sweep_ctheta_strength</code>) reads
+  <code>layer_suggestions.layer_subset</code> and <code>target_modules</code>; SafetyLoRA reads <code>layer_suggestions.target_modules</code>.
+  LSSF, PKE, NLSR and DeepRefusal do not read it. No consumer reads the per-neuron <code>unit_ids</code>, so for C-ΔΘ the "circuit"
+  is a set of layers and modules. <code>layer_subset</code> lists only the layers that kept units. <code>circuit_info=None</code> in C-ΔΘ
+  means "every weight" (a Recover-pillar behaviour, unchanged).</li>
+<li><strong>Loading:</strong> a missing file returns <code>None</code>; an unreadable or invalid file (bad JSON/YAML, an empty file, a list or scalar,
+  an unknown key inside <code>safety_units</code> / <code>layer_suggestions</code>, <code>layer_indices</code> that are not non-negative integers) raises
+  <code>ValueError</code> with the path and the reason. <code>{}</code> loads as an empty <code>CircuitInfo</code>. Unknown top-level keys of a CircuitKIT file are ignored.</li>
+<li><strong>Saving:</strong> numpy / torch scalars are written as plain numbers, dict keys as strings; a NaN or infinite value raises
+  <code>ValueError</code> and no file is written. <code>raw_output_path</code> is not saved.</li>
+<li><strong><code>CircuitInfoProvider</code></strong> is a typing <code>Protocol</code> that nothing implements; <code>get_circuit_info</code> is a file loader that ignores
+  <code>model_name</code> and every keyword except <code>top_fraction</code>.</li>
+</ul>
 
 
 
@@ -2073,10 +2110,10 @@ methods can consume.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../assets/safetune.js"></script>
       

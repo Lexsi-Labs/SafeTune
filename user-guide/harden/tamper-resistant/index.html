@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -3427,7 +3427,7 @@ methods.</p>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">PreTrainedTokenizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">noise_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">noise_beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">noise_beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">noise_gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
 <a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">)</span>
@@ -3470,8 +3470,8 @@ methods.</p>
 <tr>
 <td><code>noise_beta</code></td>
 <td><code>float</code></td>
-<td><code>0.1</code></td>
-<td>Layer-wise multi-kernel Gaussian MMD noise weight (<code>repnoise_beta3</code> / <code>beta</code> in the paper)</td>
+<td><code>0.001</code></td>
+<td>Layer-wise multi-kernel Gaussian MMD noise weight (<code>repnoise_beta3</code> / <code>beta</code> in the paper; the paper and the official code use 0.001, versions before this change defaulted to 0.1)</td>
 </tr>
 </tbody>
 </table>
@@ -3638,13 +3638,15 @@ argument, e.g. <code>harden.SEAMTrainer(model, tokenizer, seam_alpha=1.0)</code>
 <td><code>door_pure_mode</code></td>
 <td><code>bool</code></td>
 <td><code>True</code></td>
-<td>If True, returns pure DOOR objective matching paper's <code>gd_npo_loss</code></td>
+<td>If True, returns refusal MLE + NPO only (the two terms of <code>gd_npo_loss</code>, without its retain term and without prefix augmentation)</td>
 </tr>
 </tbody>
 </table>
 <h3 id="full-example_5">Full example<a class="headerlink" href="#full-example_5" title="Permanent link">&para;</a></h3>
-<p><code>harden.DOORTrainer</code> runs a self-contained NPO + refusal loop (the pure DOOR
-objective) and exposes <code>beta</code> (NPO temperature, <code>0.5</code>), <code>refusal_w</code> (refusal
+<p><code>harden.DOORTrainer</code> runs a self-contained loop of <strong>refusal MLE plus NPO on the harmful
+response</strong>. It has no harmful-prefix augmentation (paper Sec. 3.1, Eq. 1) and no
+alpha-weighted retain term (Eq. 3; the official <code>gd_npo_loss</code> in wicai24/DOOR-Alignment
+has one), so it is a Variant of DOOR, not the paper's full objective. It exposes <code>beta</code> (NPO temperature, <code>0.5</code>), <code>refusal_w</code> (refusal
 weight, <code>1.0</code>), and <code>unlearn_w</code> (NPO weight, <code>1.0</code>) as kwargs. W-DOOR (per-token
 weights from a <code>proxy_reward_model</code>) and <code>door_pure_mode</code> are only available on
 <code>harden.SafetyDOORTrainer</code>.</p>
@@ -3655,7 +3657,7 @@ weights from a <code>proxy_reward_model</code>) and <code>door_pure_mode</code> 
 </code></pre></div>
 <h3 id="when-to-use_5">When to use<a class="headerlink" href="#when-to-use_5" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Best for:</strong> combining refusal MLE with NPO unlearning on harmful pairs; W-DOOR adds per-token proxy-reward weighting.</li>
+<li><strong>Best for:</strong> combining refusal MLE with NPO unlearning on harmful pairs (without the paper's prefix augmentation and retain term); W-DOOR (on <code>SafetyDOORTrainer</code> only) adds per-token proxy-reward weighting.</li>
 <li><strong>Trade-offs:</strong> balances <code>refusal_w</code> against <code>unlearn_w</code> — too much refusal weight makes refusals generic/repetitive, too much NPO weight risks capability loss. Needs harmful preference <em>pairs</em> (chosen/rejected), which cost more to construct than plain SFT data.</li>
 </ul>
 <h3 id="citation_5">Citation<a class="headerlink" href="#citation_5" title="Permanent link">&para;</a></h3>
@@ -3882,7 +3884,7 @@ dataset.</p>
 <td><code>ablation_prob</code></td>
 <td><code>float</code></td>
 <td><code>0.5</code></td>
-<td>Per-step probability of activating the refusal-direction ablation hook</td>
+<td>Probability that an active decoder layer's output is ablated on a forward pass (paper p = 0.5, Sec. 5.1; the paper also gates every token, which this trainer does not)</td>
 </tr>
 <tr>
 <td><code>lora_r</code></td>
@@ -4071,7 +4073,7 @@ positional dataset.</p>
 <td><code>xi</code></td>
 <td><code>float</code></td>
 <td><code>0.0</code> (kwarg)</td>
-<td>Theorem 4.1 coefficient: <span class="arithmatex">\(\lambda_t = \max\{0,\ \xi - \langle g_{\text{sharp}}, g_{\text{align}}\rangle / \|g_{\text{sharp}}\|^2\}\)</span></td>
+<td>Theorem 4.1 coefficient: <span class="arithmatex">\(\lambda_t = \max\{0,\ \xi - \langle g_{\text{sharp}}, g_{\text{align}}\rangle / \|g_{\text{sharp}}\|^2\}\)</span>. <strong>The default <code>xi=0</code> is not the paper's:</strong> Theorem 4.1 needs <span class="arithmatex">\(a_t &gt; 0\)</span> (so <span class="arithmatex">\(\xi &gt; 0\)</span>). The official code (minhquoc0712/Antibody, <code>antibody_alignment.py:338</code>) uses <span class="arithmatex">\(\lambda_t = \max(0, \eta - \cos(g_{\text{align}}, g_{\text{diff}}))\)</span> with <span class="arithmatex">\(\eta = 5\)</span> and an EMA of <span class="arithmatex">\(\lambda_t\)</span> (momentum 0.99).</td>
 </tr>
 </tbody>
 </table>
@@ -4400,10 +4402,10 @@ shift the aligned model's refusal-trigger token distribution.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

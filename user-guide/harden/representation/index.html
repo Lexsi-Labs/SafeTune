@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2731,13 +2731,13 @@ so the model's safety-related internal structure survives the update.</p>
 <td><code>grad_rate</code></td>
 <td><code>float</code></td>
 <td><code>0.1</code></td>
-<td>Scale of harmful perturbation <span class="arithmatex">\(\Delta W_{\text{harmful}}\)</span>; actual <span class="arithmatex">\(\varepsilon = \text{grad\_rate} \cdot \|W\|\)</span></td>
+<td>Scale of harmful perturbation <span class="arithmatex">\(\Delta W_{\text{harmful}}\)</span>; actual <span class="arithmatex">\(\varepsilon = \text{grad\_rate} \cdot \|W\|\)</span>. The paper's and the official code's value is <code>2e-5</code>; this default is 5000× larger</td>
 </tr>
 <tr>
 <td><code>v_update_step</code></td>
 <td><code>float</code></td>
 <td><code>0.05</code></td>
-<td>Inner probe step size <span class="arithmatex">\(\beta\)</span> (bilevel optimization)</td>
+<td>Inner probe step size <span class="arithmatex">\(\beta\)</span>, applied as a plain gradient step (the paper's experiments use AdamW with learning rate <span class="arithmatex">\(\beta\)</span>)</td>
 </tr>
 <tr>
 <td><code>contrastive_temperature</code></td>
@@ -2775,7 +2775,7 @@ so the model's safety-related internal structure survives the update.</p>
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">model</span><span class="p">:</span> <span class="n">PreTrainedModel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">PreTrainedTokenizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="n">sink_lambda</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="n">sink_lambda</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">300.0</span><span class="p">,</span>
 <a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="p">)</span>
 </code></pre></div>
@@ -2805,16 +2805,17 @@ so the model's safety-related internal structure survives the update.</p>
 <tr>
 <td><code>sink_lambda</code></td>
 <td><code>float</code></td>
-<td><code>0.01</code></td>
-<td>Attention-sink divergence regularizer weight</td>
+<td><code>300.0</code></td>
+<td>Attention-sink divergence regularizer weight (paper Table 8 and the official script use 300; versions before this change defaulted to 0.01, which made the penalty about 1e-5 of the cross-entropy)</td>
 </tr>
 </tbody>
 </table>
+<p><code>SurgeryTrainer</code> needs the attention weights, so it switches the model to eager attention before training. <code>SurgeryHFTrainer</code> does not: load the model with <code>attn_implementation="eager"</code> or it raises.</p>
 <p>The separate harmful batch (<code>harmful_dataset</code>) is passed to <code>trainer.train(...)</code>, not the constructor — see the Full example below. If absent, the trainer falls back to using the task batch as X_m (documented shortcut).</p>
 <h3 id="full-example_4">Full example<a class="headerlink" href="#full-example_4" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">harden</span>
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">SurgeryTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">sink_lambda</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">harden</span><span class="o">.</span><span class="n">SurgeryTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">sink_lambda</span><span class="o">=</span><span class="mf">300.0</span><span class="p">)</span>
 <a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">harmful_dataset</span><span class="o">=</span><span class="n">harmful_ds</span><span class="p">)</span>
 </code></pre></div>
 <p>Adds an attention-sink divergence regularizer: penalizes head-level attention
@@ -3004,10 +3005,10 @@ on position 0 that drifts above the pre-finetune reference.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       

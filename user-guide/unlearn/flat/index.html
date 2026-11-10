@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
   
@@ -31,10 +31,10 @@
   
 
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2002,57 +2002,75 @@ and pass <code>good=good_batches</code>, <code>forget=forget_batches</code> to <
 <code>FLATTrainer</code>: it defaults <code>forget_clip</code> to <code>0.5</code> (not <code>None</code>), so gradient-norm
 clipping is on by default.</p>
 <h3 id="supported-divergences">Supported divergences<a class="headerlink" href="#supported-divergences" title="Permanent link">&para;</a></h3>
+<p>The paper reports four divergences (<code>kl</code>, <code>jensen_shannon</code>, <code>pearson</code>, <code>total_variation</code>) and
+finds <code>kl</code> the most consistent; the other four exist only in the official code. The table below is
+a <strong>direction check on a tiny random model</strong> (2-layer Llama, one harmful and one refusal answer,
+60 AdamW steps, <code>variant="flat"</code>, seed 0, no weight decay) and shows only which way each loss
+moves the mean token probability of the two answers. It is not a utility or safety result.</p>
 <table>
 <thead>
 <tr>
 <th>Key</th>
-<th>Aggressiveness</th>
-<th>Notes</th>
+<th>Harmful answer (lr 1e-3 / 1e-2)</th>
+<th>Refusal (lr 1e-3 / 1e-2)</th>
+<th>Direction</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>"kl"</code></td>
-<td>Conservative</td>
-<td>Default; stable convergence</td>
+<td><code>kl</code></td>
+<td>0.005 / 0.000</td>
+<td>0.487 / 1.000</td>
+<td>as intended (harmful down, refusal up)</td>
 </tr>
 <tr>
-<td><code>"reverse_kl"</code></td>
-<td>Conservative</td>
-<td>Mode-seeking variant</td>
+<td><code>reverse_kl</code></td>
+<td>0.439 / 1.000</td>
+<td>0.003 / 0.000</td>
+<td>wrong way (harmful up, refusal down)</td>
 </tr>
 <tr>
-<td><code>"jeffrey"</code></td>
-<td>Moderate</td>
-<td>Symmetric KL sum</td>
+<td><code>jeffrey</code></td>
+<td>0.003 / 0.000</td>
+<td>0.460 / 1.000</td>
+<td>as intended (harmful down, refusal up)</td>
 </tr>
 <tr>
-<td><code>"squared_hellinger"</code></td>
-<td>Moderate</td>
-<td>Bounded loss; numerically stable</td>
+<td><code>squared_hellinger</code></td>
+<td>0.425 / 1.000</td>
+<td>0.003 / 0.000</td>
+<td>wrong way (harmful up, refusal down)</td>
 </tr>
 <tr>
-<td><code>"pearson"</code></td>
-<td>Aggressive</td>
-<td>Unbounded; clip gradients</td>
+<td><code>pearson</code></td>
+<td>0.003 / 0.000</td>
+<td>0.460 / 1.000</td>
+<td>as intended (harmful down, refusal up)</td>
 </tr>
 <tr>
-<td><code>"neyman"</code></td>
-<td>Aggressive</td>
-<td>Unbounded; clip gradients</td>
+<td><code>neyman</code></td>
+<td>0.001 / 0.000</td>
+<td>0.001 / 0.000</td>
+<td>both collapse to 0</td>
 </tr>
 <tr>
-<td><code>"jensen_shannon"</code></td>
-<td>Moderate</td>
-<td>Bounded [0, log 2]</td>
+<td><code>jensen_shannon</code></td>
+<td>0.003 / 0.000</td>
+<td>0.451 / 1.000</td>
+<td>as intended (harmful down, refusal up)</td>
 </tr>
 <tr>
-<td><code>"total_variation"</code></td>
-<td>Most aggressive</td>
-<td>Binary; hard boundary</td>
+<td><code>total_variation</code></td>
+<td>0.003 / 0.000</td>
+<td>0.455 / 1.000</td>
+<td>as intended (harmful down, refusal up)</td>
 </tr>
 </tbody>
 </table>
+<p>Before training: harmful 0.016, refusal 0.017. <code>reverse_kl</code> and <code>squared_hellinger</code> move the
+wrong way and <code>neyman</code> drives both to zero; the official formulas have the same signs, so
+<code>flat_unlearn</code> keeps the loss and logs a warning for those three. Prefer <code>kl</code>, <code>jeffrey</code>, <code>pearson</code>,
+<code>jensen_shannon</code> or <code>total_variation</code>.</p>
 <h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">unlearn</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
@@ -2131,13 +2149,14 @@ clipping is on by default.</p>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">divergence</span><span class="o">=</span><span class="s2">"kl"</span><span class="p">,</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
 </code></pre></div>
-<p>Minimising this drives good-answer (refusal) likelihood up and forget-answer
-(harmful) likelihood down simultaneously.</p>
+<p>For <code>kl</code>, <code>jeffrey</code>, <code>pearson</code>, <code>jensen_shannon</code> and <code>total_variation</code>, minimising this raised the
+refusal's mean token probability and lowered the harmful answer's in the direction check above;
+<code>reverse_kl</code>, <code>squared_hellinger</code> and <code>neyman</code> did not. This function logs nothing for them: the warning comes only from <code>flat_unlearn</code>.</p>
 <h2 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Best for:</strong> reference-free unlearning — no frozen model needed; only forget data + a canned refusal template.</li>
 <li><strong><code>"kl"</code> divergence</strong> — safest default.</li>
-<li><strong><code>"total_variation"</code></strong> — hardest boundary; use when you need the most aggressive forgetting.</li>
+<li><strong><code>"total_variation"</code></strong> — the paper's best divergence on its Harry Potter / Llama2-7B table (Table 9); <code>kl</code> was the most consistent across datasets and models.</li>
 <li><strong>Compare to <code>GradientAscent</code>:</strong> FLAT is more principled (variational bound) and avoids collapse because it pushes toward a refusal, not just away from harmful completions.</li>
 </ul>
 <h2 id="citation">Citation<a class="headerlink" href="#citation" title="Permanent link">&para;</a></h2>
@@ -2321,10 +2340,10 @@ clipping is on by default.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../assets/safetune.js"></script>
       
