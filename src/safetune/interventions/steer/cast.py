@@ -547,7 +547,12 @@ class CASTModel:
             h = out[0] if is_tuple else out
             v = self.alpha * vec.to(dtype=h.dtype, device=h.device)
             if self._row_mask is not None:  # steer only the prompts whose gate fired
-                v = self._row_mask.to(dtype=h.dtype, device=h.device).view(-1, 1, 1) * v
+                mask = self._row_mask.to(dtype=h.dtype, device=h.device)
+                if h.shape[0] != mask.shape[0] and h.shape[0] % mask.shape[0] == 0:
+                    # generate() expands each prompt into num_beams / num_return_sequences
+                    # consecutive rows: every one of them follows its prompt's gate.
+                    mask = mask.repeat_interleave(h.shape[0] // mask.shape[0])
+                v = mask.view(-1, 1, 1) * v
             h = h + v
             return (h,) + out[1:] if is_tuple else h
         return hook
