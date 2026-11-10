@@ -28,6 +28,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `eap_safety_circuit` no longer drops the BOS and the first tokens of the longest harmless prompt. When the
+  harmless (corrupted) batch was longer than the harmful (clean) one it was cut from the left to the clean
+  batch's length; the shorter batch is now padded up instead and nothing is truncated. Scores can change for
+  inputs of unequal length, most for prompts that were cut.
+- `apply_safemerge(merge_type="dare_linear")` drops entries of both deltas, the fine-tuned and the safe one, and
+  rescales the survivors by `1/density` before the weighted sum, as the authors' code does through PEFT's
+  `dare_linear`. It dropped only the safe delta. Results with `dare_linear` change; `linear` is unchanged.
+- `extract_refusal_direction` also holds out a prompt that repeats one of the first `n_val` prompts (the split is by
+  position, so a repeated validation prompt was fitted on). It raises a `ValueError` when no prompts are left to fit
+  on after that.
+- **Results change for `ReStaTrainer` with its defaults.** `ReStaTrainer` defaults to `dare=True`, and DARE now acts
+  on the fine-tuning delta `finetuned - aligned`, with the safety vector added whole, as in the RESTA paper
+  (Eq. 7-9). It used to drop entries of the safety vector and leave the fine-tuning delta alone. The same applies
+  to `apply_resta(dare=True)`, which now expects `finetuned` to have been fine-tuned from `aligned`. `apply_resta`
+  with its default `dare=False` is unchanged. The kept entries of the delta are scaled by `1/(1-p)`, so a high drop
+  rate scales the fine-tuning delta by 10x or more (p=0.9). The HarmBench counts that the docstrings and the user
+  guide gave for p=0.3 and p=0.9 were measured with the old target and have been removed.
 - `apply_safe_lora` finds the weight a LoRA layer wraps in a PEFT model, which keeps it under
   `<module>.base_layer.weight`. Those keys were not matched, so the aligned adapter was not added to them.
 - `extract_refusal_direction` fits the directions on the prompts the selection sweep does not score: the first
@@ -38,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A prompt rendered through such a template started with two BOS tokens (`[2, 2, ...]` on Tiny Aya), a sequence the
   model never saw in training, and every activation and gradient was read on it.
 - `safety_vector_restore` projects a conv weight as the matrix `(shape[0], -1)`. It ran one small SVD per output
-  channel over the last two dimensions.
+  channel over the last two dimensions. Results for conv weights change.
 - `CASTModel.generate` works with `num_beams` or `num_return_sequences` above 1 for more than one prompt. The per-prompt
   gate mask did not match the expanded batch and raised a `RuntimeError`; each prompt's gate now applies to all of its
   consecutive expanded rows.
@@ -56,8 +73,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   different lengths were compared at different positions, so the last token of a short prompt was not the one read.
 - `sweep_ctheta_strength` scores the model `apply_ctheta` produces. It added `step * delta` to the previous strength's
   weights, so rounding in a low-precision dtype accumulated and the scored model was not `target + k * delta`.
-- `apply_ctheta` raises when it steers none of the matched parameters (a key missing from the positive or negative
-  weights, or with another shape, was skipped silently), instead of returning the unchanged target.
+- `apply_ctheta` and `apply_ctheta_from_state_dicts` raise a `ValueError` when they steer none of the matched
+  parameters (a key missing from the positive or negative weights, or with another shape, was skipped silently),
+  instead of returning the unchanged target. Code that relied on the silent no-op now fails.
 - `SafeGradHFTrainer` under fp16 mixed precision (issue #37): `.grad` holds the loss-scaled task
   gradient while the alignment gradient was unscaled, so after the optimizer's unscale the alignment
   term shrank to `rho * g_align / s` (`s` = 65,536 at the start). The alignment gradient is now

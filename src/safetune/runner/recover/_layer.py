@@ -6,7 +6,7 @@ import safetune.recover as R
 
 # ── ReStaTrainer ──────────────────────────────────────────────────────────────
 class ReStaTrainer(_RecoverBase):
-    """ReSta (DARE task arithmetic): DARE-masked safety vector restoration.
+    """ReSta (DARE task arithmetic): safety vector restoration, with DARE on the fine-tuning delta.
 
     Args:
         base_model (nn.Module): base model.
@@ -23,12 +23,13 @@ class ReStaTrainer(_RecoverBase):
             drifted model's weight device. ``"cpu"`` keeps the extra memory off
             the GPU.
 
-    Small models: DARE drops a fraction p of the safety vector's entries and
-    scales the rest by 1/(1-p). On Qwen2.5-0.5B, with the full base-to-instruct
-    delta as the safety vector, p=0.9 broke the model (HarmBench refusals 2/16
-    and garbled benign answers) while p=0.3 restored 13/16 and ``dare=False``
-    14/16 (examples/notebooks/recover_comparison). The paper tunes on 7B
-    models; on small ones check the benign answers after repair.
+    DARE drops a fraction p of the entries of the fine-tuning delta
+    (``drifted - aligned``) and scales the rest by 1/(1-p), then adds the safety
+    vector whole (the paper's RESTA_d, Eq. 7-9). The drifted model must have been
+    fine-tuned from ``aligned``. A high p scales the delta by 10x or more (p=0.9).
+    The paper tunes on 7B models; on small ones check the benign answers after
+    repair. Earlier versions applied DARE to the safety vector, so results with
+    the default ``dare=True`` differ from those releases.
 
     Memory: the drifted, base and aligned models must be loaded, but the
     safety vector is streamed one tensor at a time, so the extra memory is a
