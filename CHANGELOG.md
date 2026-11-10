@@ -28,6 +28,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `apply_safe_lora` finds the weight a LoRA layer wraps in a PEFT model, which keeps it under
+  `<module>.base_layer.weight`. Those keys were not matched, so the aligned adapter was not added to them.
+- `extract_refusal_direction` fits the directions on the prompts the selection sweep does not score: the first
+  `n_val` prompts of each set score the candidates and the directions are fitted on the rest, as in the paper. It
+  fitted them on all prompts, so the selection was scored on prompts the directions had seen. Sets smaller than
+  `2 * n_val` are not split and a warning says so. Directions extracted with enough prompts differ from earlier releases.
+- `eap_safety_circuit` and `identify_safety_neurons` strip a BOS the chat template already wrote before tokenizing.
+  A prompt rendered through such a template started with two BOS tokens (`[2, 2, ...]` on Tiny Aya), a sequence the
+  model never saw in training, and every activation and gradient was read on it.
+- `safety_vector_restore` projects a conv weight as the matrix `(shape[0], -1)`. It ran one small SVD per output
+  channel over the last two dimensions.
+- `CASTModel.generate` works with `num_beams` or `num_return_sequences` above 1 for more than one prompt. The per-prompt
+  gate mask did not match the expanded batch and raised a `RuntimeError`; each prompt's gate now applies to all of its
+  consecutive expanded rows.
+- `SteeringVectorExtractor` pools each batch inside the hook with that batch's mask. It kept every token's hidden
+  state until the end of the run, which cost prompts x layers x sequence length of memory.
 - `evaluate()` decodes its judge greedily (`do_sample=False`), as `run_judge()` does. A judge whose generation
   config enables sampling is no longer sampled. The three default judges are unaffected.
 - `run_judge()` and `evaluate()` keep the end of the judge template when an input is longer than the judge's
