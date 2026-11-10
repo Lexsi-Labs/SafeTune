@@ -97,8 +97,10 @@ class RefusalDirectionConfig:
             rate, warn and fall back to the middle layer. Early layers carry
             token-level features, not the refusal concept (on Tiny Aya the
             unguarded sweep picked layer 1 of 36). ``0`` disables the floor.
-        n_val: Number of harmful and harmless prompts to hold out for scoring.
-            If fewer prompts are supplied, the whole set is used.
+        n_val: Number of harmful and harmless prompts to hold out for scoring: the first
+            ``n_val`` of each set score the candidates and the directions are fitted on the
+            rest. A set with fewer than ``2 * n_val`` prompts is not split (the directions are
+            fitted on all of it and scored on its first ``n_val``), with a warning.
         max_new_tokens: Tokens to generate when scoring bypass on harmful
             prompts via a refusal-substring check.
         require_induce: When ``True``, the induce score is computed and the
@@ -199,7 +201,8 @@ def extract_refusal_direction(
     **Direction selection.** Rather than unconditionally taking the middle
     layer, this follows the paper's validation sweep
     (``pipeline/submodules/select_direction.py`` in andyrdt/refusal_direction):
-    each candidate is scored on a held-out validation split and the selected
+    each candidate is scored on a held-out validation split (the first ``n_val``
+    prompts of each set, which are then left out of the fit) and the selected
     direction *minimises the bypass score* (refusal rate on harmful prompts when
     the direction is ablated) subject to the constraints
 
@@ -244,9 +247,23 @@ def extract_refusal_direction(
         normalize=cfg.normalize,
     )
     extractor = SteeringVectorExtractor(model, tokenizer, ve_cfg)
+    # The sweep scores candidates on the first n_val prompts of each set, so fit the directions on
+    # the rest (the paper's train / validation split). Sets too small to split are used whole.
+    fit_harmful, fit_harmless = harmful_prompts, harmless_prompts
+    if cfg.pick_layer is None and cfg.select_directions:
+        n_val = max(1, cfg.n_val)
+        if min(len(harmful_prompts), len(harmless_prompts)) >= 2 * n_val:
+            fit_harmful, fit_harmless = harmful_prompts[n_val:], harmless_prompts[n_val:]
+        else:
+            logger.warning(
+                "RefusalDirection: %d harmful and %d harmless prompts are too few to hold out "
+                "n_val=%d for the selection sweep, so the validation prompts are not held out: the "
+                "directions are fitted on all prompts and scored on the first %d of them. Pass at "
+                "least %d prompts per set, or lower n_val.",
+                len(harmful_prompts), len(harmless_prompts), n_val, n_val, 2 * n_val)
     # The extractor's convention is ``safe_mean - unsafe_mean``; flip so the
     # returned direction points *toward* refusal (harmful_mean - harmless_mean).
-    raw = extractor.extract(safe_prompts=harmful_prompts, unsafe_prompts=harmless_prompts)
+    raw = extractor.extract(safe_prompts=fit_harmful, unsafe_prompts=fit_harmless)
     directions = {k: v for k, v in raw.items()}
 
     def _middle_layer() -> int:
