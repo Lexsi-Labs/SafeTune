@@ -319,6 +319,12 @@ def _score_by_activation(
             "(expected 'mean_abs_diff', 'tstat', or 'mean_diff')."
         )
 
+    # The prompts are tokenized with special tokens; one already rendered through a chat template
+    # that writes BOS would start with two.
+    from ..._refusal_helpers import _strip_bos
+    harmful_prompts = _strip_bos(tokenizer, list(harmful_prompts))
+    harmless_prompts = _strip_bos(tokenizer, list(harmless_prompts))
+
     layers = _get_decoder_layers(model)
     if not layers:
         raise RuntimeError(

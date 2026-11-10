@@ -671,6 +671,13 @@ def _run_eap(
     refusal). Attribution then ranks components by how much patching them toward
     the harmless baseline shifts the compliance-minus-refusal logit diff.
     """
+    from ..._refusal_helpers import _strip_bos
+
+    # The prompts are tokenized with special tokens; one already rendered through a chat template
+    # that writes BOS would start with two.
+    harmful_prompts = _strip_bos(tokenizer, harmful_prompts)
+    harmless_prompts = _strip_bos(tokenizer, harmless_prompts)
+
     nodes = _enumerate_nodes(model, cfg.granularity)
     compliance_id = _first_token_id(tokenizer, cfg.compliance_token)
     refusal_id = _first_token_id(tokenizer, cfg.refusal_token)
