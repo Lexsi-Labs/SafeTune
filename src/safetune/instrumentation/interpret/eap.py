@@ -560,26 +560,28 @@ def _attribute_batch(
     # activations line up position-by-position. The two contrast batches are
     # tokenized independently (padding="longest" per batch), so harmful and
     # harmless prompts of unequal length otherwise produce mismatched
-    # activation tensors and crash the "patching" intervention. Clean is the
-    # attribution reference and is never modified; the corrupted batch (only a
-    # baseline) is padded/truncated on the side its own padding is on (left for a left-padded
-    # batch, so the real tokens stay right-aligned) to match.
-    cl = clean_enc["input_ids"].shape[1]
-    if corrupt_enc["input_ids"].shape[1] != cl:
-        def _resize(enc, target):
-            ids, am = enc["input_ids"], enc["attention_mask"]
-            cur = ids.shape[1]
-            left = _pads_left(am)
-            if cur > target:
-                ids, am = (ids[:, cur - target:], am[:, cur - target:]) if left else (ids[:, :target], am[:, :target])
-            elif cur < target:
-                pad = target - cur
-                zi, za = ids.new_zeros((ids.shape[0], pad)), am.new_zeros((am.shape[0], pad))
-                ids = torch.cat([zi, ids], dim=1) if left else torch.cat([ids, zi], dim=1)
-                am = torch.cat([za, am], dim=1) if left else torch.cat([am, za], dim=1)
-            return {**enc, "input_ids": ids, "attention_mask": am}
-        corrupt_enc = _resize(corrupt_enc, cl)
+    # activation tensors and crash the "patching" intervention. The shorter batch
+    # is padded (masked pad tokens) on the side its own padding is on (left for a
+    # left-padded batch, so the real tokens stay right-aligned) up to the longer
+    # one. Nothing is ever truncated: cutting the longer batch would drop its
+    # BOS and leading tokens.
+    def _pad_to(enc, target):
+        ids, am = enc["input_ids"], enc["attention_mask"]
+        pad = target - ids.shape[1]
+        zi, za = ids.new_zeros((ids.shape[0], pad)), am.new_zeros((am.shape[0], pad))
+        if _pads_left(am):
+            ids, am = torch.cat([zi, ids], dim=1), torch.cat([za, am], dim=1)
+        else:
+            ids, am = torch.cat([ids, zi], dim=1), torch.cat([am, za], dim=1)
+        return {**enc, "input_ids": ids, "attention_mask": am}
+
+    cl, cc = clean_enc["input_ids"].shape[1], corrupt_enc["input_ids"].shape[1]
+    if cc < cl:
+        corrupt_enc = _pad_to(corrupt_enc, cl)
         corrupt_last = _last_real_index(corrupt_enc["attention_mask"])
+    elif cl < cc:
+        clean_enc = _pad_to(clean_enc, cc)
+        clean_last = _last_real_index(clean_enc["attention_mask"])
 
     # 1. Corrupted forward pass — record corrupted activations (no grad).
     capture.set_record()

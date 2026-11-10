@@ -253,7 +253,16 @@ def extract_refusal_direction(
     if cfg.pick_layer is None and cfg.select_directions:
         n_val = max(1, cfg.n_val)
         if min(len(harmful_prompts), len(harmless_prompts)) >= 2 * n_val:
-            fit_harmful, fit_harmless = harmful_prompts[n_val:], harmless_prompts[n_val:]
+            # A prompt that also appears among the first n_val (a duplicate) is held out too, so the
+            # fit never sees a validation prompt's text.
+            val_h, val_n = set(harmful_prompts[:n_val]), set(harmless_prompts[:n_val])
+            fit_harmful = [p for p in harmful_prompts[n_val:] if p not in val_h]
+            fit_harmless = [p for p in harmless_prompts[n_val:] if p not in val_n]
+            if not fit_harmful or not fit_harmless:
+                raise ValueError(
+                    "RefusalDirection: after holding out the first n_val=%d prompts and their duplicates, "
+                    "no %s prompts are left to fit the directions on. Pass distinct prompts or lower n_val."
+                    % (n_val, "harmful" if not fit_harmful else "harmless"))
         else:
             logger.warning(
                 "RefusalDirection: %d harmful and %d harmless prompts are too few to hold out "

@@ -32,8 +32,10 @@ repo):
 
    which, added back onto ``W_base^i``, equals the weight-space form
    ``(1-α)·W_ft^i + α·W_aligned^i``. ``"dare_linear"`` additionally drops a
-   fraction ``1-density`` of the safe delta entries and rescales, matching the
-   paper's DARE merging ablation.
+   fraction ``1-density`` of the entries of both deltas, the fine-tuned and the
+   safe one, and rescales the survivors by ``1/density`` before the weighted
+   sum, as the authors' code does through PEFT's ``dare_linear`` (it prunes every
+   task tensor it is given).
 
 Non-2D parameters (biases, norms) carry no LoRA-style update and are excluded
 from the projection criterion, exactly as the authors do for Qwen models.
@@ -170,11 +172,13 @@ def apply_safemerge(
         if rho < threshold:
             # FIX 2: Mutate the finetuned parameter strictly in-place.
             # No need to hold a massive `new_sd` dictionary in memory.
-            safe_delta = delta_safety
+            safe_delta, task_delta = delta_safety, delta_task
             if merge_type == "dare_linear":
+                # DARE acts on both deltas, as PEFT's dare_linear does in the authors' code.
                 safe_delta = _dare_drop(delta_safety, float(density))
-                
-            merged_delta = (1.0 - alpha) * delta_task + alpha * safe_delta
+                task_delta = _dare_drop(delta_task, float(density))
+
+            merged_delta = (1.0 - alpha) * task_delta + alpha * safe_delta
             # Use w_base_device to prevent another CPU/GPU crash!
             merged_w = w_base_device.float() + merged_delta
             

@@ -53,3 +53,20 @@ def test_forced_layer_fits_on_every_prompt():
     want = _directions(model, tok, HARMFUL, HARMLESS, select_directions=False)
     for layer in want:
         assert torch.equal(got[layer], want[layer])
+
+
+def test_a_duplicate_of_a_validation_prompt_is_not_fitted_on():
+    """The split is by position, so a validation prompt repeated later must be held out too."""
+    model, tok = build()
+    clean = _directions(model, tok, HARMFUL, HARMLESS, n_val=2)
+    dup = _directions(model, tok, HARMFUL + [HARMFUL[0]], HARMLESS + [HARMLESS[1]], n_val=2)
+    for layer in clean:
+        assert torch.equal(clean[layer], dup[layer]), f"layer {layer}: a duplicate of a validation prompt was fitted on"
+
+
+def test_only_duplicates_of_validation_prompts_left_to_fit_raises():
+    import pytest
+
+    model, tok = build()
+    with pytest.raises(ValueError, match="no harmful prompts are left"):
+        _directions(model, tok, HARMFUL[:2] * 2, HARMLESS, n_val=2)

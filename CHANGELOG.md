@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `eap_safety_circuit` no longer drops the BOS and the first tokens of the longest harmless prompt. When the
+  harmless (corrupted) batch was longer than the harmful (clean) one it was cut from the left to the clean
+  batch's length; the shorter batch is now padded up instead and nothing is truncated. Scores can change for
+  inputs of unequal length, most for prompts that were cut.
+- `apply_safemerge(merge_type="dare_linear")` drops entries of both deltas, the fine-tuned and the safe one, and
+  rescales the survivors by `1/density` before the weighted sum, as the authors' code does through PEFT's
+  `dare_linear`. It dropped only the safe delta. Results with `dare_linear` change; `linear` is unchanged.
+- `extract_refusal_direction` also holds out a prompt that repeats one of the first `n_val` prompts (the split is by
+  position, so a repeated validation prompt was fitted on). It raises a `ValueError` when no prompts are left to fit
+  on after that.
 - **Results change for `ReStaTrainer` with its defaults.** `ReStaTrainer` defaults to `dare=True`, and DARE now acts
   on the fine-tuning delta `finetuned - aligned`, with the safety vector added whole, as in the RESTA paper
   (Eq. 7-9). It used to drop entries of the safety vector and leave the fine-tuning delta alone. The same applies
