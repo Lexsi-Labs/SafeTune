@@ -11,7 +11,22 @@ dataset-table fields (``source``, ``config``, ``split``, ``where``, ...) to
 """
 from __future__ import annotations
 
+import ast
+import json
+
 from safetune.data.dataset_ids import load, spec
+
+MULTIJAIL_LANGUAGES = ("en", "zh", "it", "vi", "ar", "ko", "th", "bn", "sw", "jv")
+AYA_REDTEAMING_SPLITS = {
+    "ar": "arabic",
+    "en": "english",
+    "es": "spanish",
+    "fr": "french",
+    "hi": "hindi",
+    "ru": "russian",
+    "sr": "serbian",
+    "tl": "filipino",
+}
 
 
 # ── Safety benchmarks ──────────────────────────────────────────────────────────
@@ -158,6 +173,84 @@ def load_jailbreakbench(split: str = None, **overrides):
 def load_xstest(split: str = None, **overrides):
     """XSTest over-refusal benchmark (Röttger et al., 2023)."""
     return load("xstest", split=split, **overrides)
+
+
+def _select_languages(languages, known, benchmark: str) -> list:
+    """``languages`` as a list (one code, several, or ``None`` for all of ``known``)."""
+    selected = [languages] if isinstance(languages, str) else list(languages or known)
+    unknown = sorted(set(selected) - set(known))
+    if unknown:
+        raise ValueError(f"{benchmark} has no {unknown}; it has {sorted(known)}")
+    return selected
+
+
+def _category_text(raw) -> str:
+    """Categories stored as a list, JSON text or Python-literal text, joined by ', '."""
+    if not raw:
+        return ""
+    if isinstance(raw, str):
+        for parse in (json.loads, ast.literal_eval):
+            try:
+                raw = parse(raw)
+                break
+            except (ValueError, SyntaxError):
+                continue
+    return ", ".join(map(str, raw)) if isinstance(raw, (list, tuple)) else str(raw)
+
+
+def load_multijail(languages=None, split: str = None, **overrides):
+    """MultiJail (Deng et al., arXiv:2310.06474): 315 harmful prompts, each in ten languages.
+
+    The set has one column per language; this returns a Dataset with a row per prompt
+    and language: 'prompt', 'language' (a code), 'id' (shared by a prompt's translations)
+    and 'category'. ``languages``: a code or a list, default all of
+    ``MULTIJAIL_LANGUAGES``.
+    """
+    from datasets import Dataset
+
+    selected = _select_languages(languages, MULTIJAIL_LANGUAGES, "MultiJail")
+    rows = []
+    for ex in load("multijail", split=split, **overrides):
+        for lang in selected:
+            text = (ex.get(lang) or "").strip()
+            if text:
+                rows.append(
+                    {
+                        "prompt": text,
+                        "language": lang,
+                        "id": str(ex.get("id", "")),
+                        "category": _category_text(ex.get("tags")),
+                    }
+                )
+    return Dataset.from_list(rows)
+
+
+def load_aya_redteaming(languages=None, split: str = None, **overrides):
+    """Aya Red-teaming (Aakanksha et al., arXiv:2406.18682): harmful prompts written by
+    native speakers, so unlike MultiJail the languages are not translations of each other.
+
+    The set has one split per language. Returns a Dataset with 'prompt', 'language' (a
+    code), 'category' and 'global_or_local'. ``languages``: a code or a list, default all
+    of ``AYA_REDTEAMING_SPLITS``. A ``split``, here or in the dataset table, loads only
+    that split, which suits a local copy; 'language' then comes from its rows.
+    """
+    from datasets import Dataset
+
+    split = split or spec("aya_redteaming").get("split")
+    selected = _select_languages(languages, AYA_REDTEAMING_SPLITS, "Aya Red-teaming")
+    parts = [("", split)] if split else [(k, AYA_REDTEAMING_SPLITS[k]) for k in selected]
+    rows = []
+    for lang, part in parts:
+        for ex in load("aya_redteaming", split=part, **overrides):
+            rows.append(
+                {
+                    "prompt": ex["prompt"],
+                    "language": lang or ex.get("language") or "",
+                    "category": _category_text(ex.get("harm_category")),
+                    "global_or_local": ex.get("global_or_local") or "",
+                }
+            )
+    return Dataset.from_list(rows)
 
 
 def load_beavertails(split: str = None):

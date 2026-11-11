@@ -146,7 +146,7 @@ Inference-time wrappers and decoding processors that steer model behaviour witho
 | `evaluate` | — (SafeTune infra) | — | — | — | End-to-end evaluation pipeline that runs a model against benchmarks and aggregates judge scores. | benchmarks + judge | metric dict |
 | `TamperBenchEvaluator` | TamperBench | — | [2602.06911](https://arxiv.org/abs/2602.06911) | — | Thin wrapper over the official `tamperbench` package; delegates the tamper-resistance metric to that harness. | `tamperbench` package + responses | ASR |
 | Pareto utilities | — (SafeTune infra) | — | — | — | Computes the safety/utility Pareto front across a set of (safety, utility) metric pairs. | metric pairs | Pareto front |
-| Dataset loaders (`advbench`, `xstest`, `sorrybench`, `orbench`, `harmbench`, `agentharm`, `saladbench`, `airbench`, `cares`, `wildjailbreak`, `jailbreakbench`, `muse`, `rwku`, `safedialbench`) | Various | Various | Various | Various | Load each named safety benchmark as a ready-to-use pandas DataFrame. | — | benchmark DataFrames |
+| Dataset loaders (`advbench`, `xstest`, `sorrybench`, `orbench`, `harmbench`, `agentharm`, `saladbench`, `airbench`, `cares`, `wildjailbreak`, `jailbreakbench`, `multijail`, `aya_redteaming`, `muse`, `rwku`, `safedialbench`) | Various | Various | Various | Various | Load each named safety benchmark as a ready-to-use pandas DataFrame. | — | benchmark DataFrames |
 
 ## Interpret
 
