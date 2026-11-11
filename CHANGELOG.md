@@ -132,6 +132,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   method's own rate, so results from earlier runs that relied on 5e-5 will differ.
 - `make_provenance` records the immediate parent as `base_model` (the ref of the first model input), as the
   shared provenance schema defines it. It recorded that input's own base model.
+- `layer_subset` from CircuitKIT scores could cover nearly the whole model: a layer counted when it
+  held any top-20% node, which selected 30 of 36 layers on Tiny Aya, so a circuit-restricted edit
+  restricted little. `layer_fraction=` on `circuit_info_from_node_scores`,
+  `load_circuit_info_from_file` and `get_circuit_info` ranks layers by total absolute node score
+  instead (new `layer_mass` and `top_layers`). It is opt-in, so existing results don't change. With
+  a CircuitKIT 0.2 file it replaces the file's `safety_units` and `layer_suggestions`.
 
 ### Changed
 
