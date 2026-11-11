@@ -34,13 +34,13 @@ jobs:
       pypi-exists: ${{ steps.plan.outputs.pypi-exists }}
     steps:
       - name: Check out the trusted merged source
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha || github.ref }}
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
@@ -201,12 +201,12 @@ jobs:
       RELEASE_TAG: ${{ needs.plan.outputs.version }}
     steps:
       - name: Check out exact release source
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.plan.outputs.source-ref }}
           fetch-depth: 0
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
@@ -242,15 +242,10 @@ jobs:
 
       # huggingface.co can answer shared runner addresses with HTTP 429, and a test
       # that waits out the retry header then hits the 120 s timeout. This is the
-      # same handling as ci.yml: cache the Hugging Face folder, fetch the two tiny
-      # test models up front with retries, rerun a test only when it failed on that
-      # timeout, and use HF_TOKEN when it is set as a secret.
-      - name: Cache the Hugging Face folder
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/huggingface
-          key: hf-hub-safetune-v1
-
+      # same handling as ci.yml, minus the cache: this job holds publish credentials,
+      # so it does not restore a shared cache. Fetch the two tiny test models up
+      # front with retries, rerun a test only when it failed on that timeout, and
+      # use HF_TOKEN when it is set as a secret.
       - name: Fetch the tiny test models, with retries
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -359,7 +354,7 @@ jobs:
           python -m twine upload --non-interactive --verbose dist/*
 
       - name: Send release notes to Slack
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
         continue-on-error: true
         with:
           channel-id: "lexsi-labs-safetune-release" #${{ vars.SLACK_CHANNEL }}
