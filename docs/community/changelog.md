@@ -62,7 +62,7 @@ pre-June-2026 numbering that peaked at 0.6.0 — none of it is on the index.
 
 ### Pull requests in this release
 
-SafeTune-Internal pull requests, in stack order.
+Pull requests, in stack order.
 
 - ST-05 (#3) One settings mechanism for SafeTune (`configure()` + YAML),
   hardware and silent-ignore fixes.
