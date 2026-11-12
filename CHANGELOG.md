@@ -189,23 +189,23 @@ pre-June-2026 numbering that peaked at 0.6.0 — none of it is on the index.
 
 Pull requests, in stack order.
 
-- ST-05 (#3) One settings mechanism for SafeTune (`configure()` + YAML),
+- One settings mechanism for SafeTune (`configure()` + YAML),
   hardware and silent-ignore fixes.
-- ST-06 (#4) One class per method, keyword-safe merge functions, README that
+- One class per method, keyword-safe merge functions, README that
   runs as written.
-- ST-07 (#5) Evaluate reliability: loud failures, all 18 benchmarks load, one
+- Evaluate reliability: loud failures, all 18 benchmarks load, one
   AdvBench scorer.
-- ST-08 (#8) Demo notebooks rewritten on the final API, re-executed with real
+- Demo notebooks rewritten on the final API, re-executed with real
   outputs.
-- ST-09 (#6) Method fixes: disjoint BeaverTails splits, DeRTa token helper,
+- Method fixes: disjoint BeaverTails splits, DeRTa token helper,
   depth-relative steer layers, SafeSwitch prober.
-- ST-10 (#7) Integrate ST-06, ST-07 and ST-09 with cross-ticket fixes (DeRTa
-  token, CLI dtype).
-- ST-11 (#9) Method fixes (CAST, monitor, GradientAscent, ConstrainedSFT, DeRTa,
+- Integrate the settings, method-class and evaluation changes above with
+  cross-cutting fixes (DeRTa token, CLI dtype).
+- Method fixes (CAST, monitor, GradientAscent, ConstrainedSFT, DeRTa,
   steer) and paper-sized benchmark defaults.
-- ST-12 (#10) Aya Vision and North support, `--safety-dataset`,
+- Aya Vision and North support, `--safety-dataset`,
   `transformers>=5.15`.
-- ST-13 Interop with the Lexsi stack: CuratorKIT dataset folders, CircuitKIT
+- Interop with the Lexsi stack: CuratorKIT dataset folders, CircuitKIT
   scores, `lexsi_provenance.json`, `push_to_hub`, version 0.1.6.
 - Hackathon fixes (#18 and the PR stacked on it), below.
 
@@ -226,7 +226,7 @@ Pull requests, in stack order.
 - **Batched generation left-pads** a passed-in right-padded tokenizer and
   restores its padding side afterwards.
 
-### Interop (ST-13)
+### Interop
 - **Datasets in.** `--train-dataset` / `--safety-dataset` (with the new
   `--train-config` / `--safety-config`) and every harden trainer's
   `train(...)` take a dataset folder plus config name, as
