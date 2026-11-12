@@ -7,8 +7,8 @@ bumps the tree to the next patch version before running the suite, and the
 suite hardcoded the old literal. Both sides looked correct -- the tree agreed
 with itself -- they agreed on something that blocked every release.
 
-The same check runs in Lexsi-Labs/AlignTune-Internal and Lexsi-Labs/CuratorKIT,
-where the same drift class sat unnoticed across releases.
+The same check runs in CuratorKIT, where the same drift class sat unnoticed
+across releases.
 
 Three checks:
 
