@@ -14,6 +14,7 @@ We use a tiny HF-shaped Llama wrapper. No real model needed.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import pytest
@@ -376,3 +377,42 @@ def test_abliteration_attack_full_lifecycle(fixture):
         assert torch.equal(p, pristine[name]), (
             f"AbliterationAttack.revert did not restore {name}"
         )
+
+
+class _GenerateStub(nn.Module):
+    """Minimal model exposing ``generate`` for wrapper delegation tests."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls: list[dict[str, Any]] = []
+
+    def generate(self, *args: Any, **kwargs: Any) -> str:
+        self.calls.append(kwargs)
+        return "generated"
+
+
+def test_installed_is_false_before_install():
+    from safetune.interventions.steer.refusal_direction import RefusalDirectionModel
+
+    rd = RefusalDirectionModel(_GenerateStub(), direction=torch.ones(4))
+    assert rd.installed is False
+
+
+def test_wrapper_generate_warns_when_not_installed(caplog):
+    from safetune.interventions.steer.refusal_direction import RefusalDirectionModel
+
+    rd = RefusalDirectionModel(_GenerateStub(), direction=torch.ones(4), mode="steer")
+    with caplog.at_level(logging.WARNING):
+        out = rd.generate(input_ids=[1, 2, 3])
+    assert out == "generated"
+    assert any("without install()" in rec.getMessage() for rec in caplog.records)
+
+
+def test_wrapper_generate_is_silent_once_installed(caplog):
+    from safetune.interventions.steer.refusal_direction import RefusalDirectionModel
+
+    rd = RefusalDirectionModel(_GenerateStub(), direction=torch.ones(4))
+    rd._handles = [object()]  # emulate attached hooks without a real model
+    with caplog.at_level(logging.WARNING):
+        assert rd.generate() == "generated"
+    assert not [r for r in caplog.records if "without install()" in r.getMessage()]

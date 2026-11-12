@@ -612,6 +612,27 @@ class RefusalDirectionModel:
                 pass
         self._handles.clear()
 
+    @property
+    def installed(self) -> bool:
+        """Whether forward hooks are currently attached."""
+        return bool(self._handles)
+
+    def generate(self, *args: Any, **kwargs: Any) -> Any:
+        """Delegate to the wrapped model, warning when hooks are not installed.
+
+        ``wrapped.model.generate(...)`` keeps working. Use this method if you
+        want a call site that cannot silently skip the intervention: forgetting
+        ``install()`` then produces a warning instead of unchanged behaviour.
+        """
+        if not self.installed:
+            logger.warning(
+                "RefusalDirectionModel.generate() called without install(): "
+                "no %s intervention is applied. Call install() first "
+                "(or use the wrapper as a context manager).",
+                self.mode,
+            )
+        return self.model.generate(*args, **kwargs)
+
     def __enter__(self) -> "RefusalDirectionModel":
         return self.install()
 

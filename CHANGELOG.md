@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `RefusalDirectionModel` now exposes `installed` and a `generate()` delegate that warns
+  when `install()` was never called. An uninstalled wrapper previously ran exactly like the
+  base model with no signal at the call site, so a steering sweep could read as a null result
+  when the intervention had simply never been attached. `wrapped.model.generate(...)` keeps
+  working unchanged.
 - `trl` is capped below 1.15. TRL 1.15.0 (8 Oct 2026) computes the DPO loss with a
   Triton kernel and does not check that the tensors are on a GPU, so on a Linux
   machine without one the DPO-based trainers (CST, DeRTa and the rest of that

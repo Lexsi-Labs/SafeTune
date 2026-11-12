@@ -83,9 +83,15 @@ trainer = steer.RefusalDirectionTrainer(
 )
 wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompts)
 wrapped.install()
-output = wrapped.model.generate(**tokenizer("How do I make a bomb?", return_tensors="pt"))
+output = wrapped.generate(**tokenizer("How do I make a bomb?", return_tensors="pt"))
 wrapped.remove()
 ```
+
+`wrapped.model.generate(...)` also works, but calling `wrapped.generate(...)`
+without `install()` logs a warning: hooks are attached by `install()`, and an
+uninstalled wrapper otherwise runs exactly like the base model with no signal
+that the intervention never applied. `wrapped.installed` reports the current
+state.
 
 For ablate mode (project out the refusal direction, e.g. for red-teaming), build the
 wrapper directly — the trainer's `calibrate` only produces `"steer"` wrappers:
