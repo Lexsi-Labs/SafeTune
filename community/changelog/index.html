@@ -1099,10 +1099,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#interop-st-13" class="md-nav__link">
+  <a href="#interop" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interop (ST-13)
+        Interop
       
     </span>
   </a>
@@ -1700,10 +1700,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#interop-st-13" class="md-nav__link">
+  <a href="#interop" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interop (ST-13)
+        Interop
       
     </span>
   </a>
@@ -2274,25 +2274,25 @@ apart from their <code>dist-info</code> directory — so it gets no section of i
 release was 0.1.5. The <code>[Legacy numbering]</code> section further down holds the
 pre-June-2026 numbering that peaked at 0.6.0 — none of it is on the index.</p>
 <h3 id="pull-requests-in-this-release">Pull requests in this release<a class="headerlink" href="#pull-requests-in-this-release" title="Permanent link">&para;</a></h3>
-<p>SafeTune-Internal pull requests, in stack order.</p>
+<p>Pull requests, in stack order.</p>
 <ul>
-<li>ST-05 (#3) One settings mechanism for SafeTune (<code>configure()</code> + YAML),
+<li>One settings mechanism for SafeTune (<code>configure()</code> + YAML),
   hardware and silent-ignore fixes.</li>
-<li>ST-06 (#4) One class per method, keyword-safe merge functions, README that
+<li>One class per method, keyword-safe merge functions, README that
   runs as written.</li>
-<li>ST-07 (#5) Evaluate reliability: loud failures, all 18 benchmarks load, one
+<li>Evaluate reliability: loud failures, all 18 benchmarks load, one
   AdvBench scorer.</li>
-<li>ST-08 (#8) Demo notebooks rewritten on the final API, re-executed with real
+<li>Demo notebooks rewritten on the final API, re-executed with real
   outputs.</li>
-<li>ST-09 (#6) Method fixes: disjoint BeaverTails splits, DeRTa token helper,
+<li>Method fixes: disjoint BeaverTails splits, DeRTa token helper,
   depth-relative steer layers, SafeSwitch prober.</li>
-<li>ST-10 (#7) Integrate ST-06, ST-07 and ST-09 with cross-ticket fixes (DeRTa
-  token, CLI dtype).</li>
-<li>ST-11 (#9) Method fixes (CAST, monitor, GradientAscent, ConstrainedSFT, DeRTa,
+<li>Integrate the settings, method-class and evaluation changes above with
+  cross-cutting fixes (DeRTa token, CLI dtype).</li>
+<li>Method fixes (CAST, monitor, GradientAscent, ConstrainedSFT, DeRTa,
   steer) and paper-sized benchmark defaults.</li>
-<li>ST-12 (#10) Aya Vision and North support, <code>--safety-dataset</code>,
+<li>Aya Vision and North support, <code>--safety-dataset</code>,
   <code>transformers&gt;=5.15</code>.</li>
-<li>ST-13 Interop with the Lexsi stack: CuratorKIT dataset folders, CircuitKIT
+<li>Interop with the Lexsi stack: CuratorKIT dataset folders, CircuitKIT
   scores, <code>lexsi_provenance.json</code>, <code>push_to_hub</code>, version 0.1.6.</li>
 <li>Hackathon fixes (#18 and the PR stacked on it), below.</li>
 </ul>
@@ -2314,7 +2314,7 @@ pre-June-2026 numbering that peaked at 0.6.0 — none of it is on the index.</p>
 <li><strong>Batched generation left-pads</strong> a passed-in right-padded tokenizer and
   restores its padding side afterwards.</li>
 </ul>
-<h3 id="interop-st-13">Interop (ST-13)<a class="headerlink" href="#interop-st-13" title="Permanent link">&para;</a></h3>
+<h3 id="interop">Interop<a class="headerlink" href="#interop" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Datasets in.</strong> <code>--train-dataset</code> / <code>--safety-dataset</code> (with the new
   <code>--train-config</code> / <code>--safety-config</code>) and every harden trainer's
