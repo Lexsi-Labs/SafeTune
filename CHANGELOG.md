@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `RefusalDirectionModel.installed` reports whether the hooks are attached. The
+  refusal-direction guide now calls `wrapped.generate(...)`, which applies the hooks
+  for the call, and notes that `wrapped.model.generate(...)` applies nothing unless
+  `install()` is active. Previously an uninstalled wrapper could look like a null
+  steering result (reported in #72).
 - `eap_safety_circuit` no longer drops the BOS and the first tokens of the longest harmless prompt. When the
   harmless (corrupted) batch was longer than the harmful (clean) one it was cut from the left to the clean
   batch's length; the shorter batch is now padded up instead and nothing is truncated. Scores can change for

@@ -86,10 +86,13 @@ trainer = steer.RefusalDirectionTrainer(
     alpha=20.0,
 )
 wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompts)
-wrapped.install()
-output = wrapped.model.generate(**tokenizer("How do I make a bomb?", return_tensors="pt"))
-wrapped.remove()
+output = wrapped.generate(**tokenizer("How do I make a bomb?", return_tensors="pt"))
 ```
+
+`wrapped.generate(...)` applies the hooks for that call only. `wrapped.model` is the
+bare model: `wrapped.model.generate(...)` applies nothing unless the hooks are attached
+with `wrapped.install()` (undo with `wrapped.remove()`) or `with wrapped:`.
+`wrapped.installed` reports whether they are.
 
 For ablate mode (project out the refusal direction, e.g. for red-teaming), build the
 wrapper directly — the trainer's `calibrate` only produces `"steer"` wrappers:
