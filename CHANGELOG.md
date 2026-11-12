@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for the call, and notes that `wrapped.model.generate(...)` applies nothing unless
   `install()` is active. Previously an uninstalled wrapper could look like a null
   steering result (reported in #72).
+- AdvBench string matching can now read Hindi refusals. `safetune.config.HINDI_REFUSAL_PREFIXES`
+  holds Devanagari and Hinglish refusal openings; pass `ADVBENCH_REFUSAL_PREFIXES + HINDI_REFUSAL_PREFIXES`
+  as `prefixes=` or `configure(advbench_refusal_prefixes=...)`. With the English list alone every Hindi
+  refusal counted as a successful attack, which overstates ASR on Hindi output. The default list is
+  unchanged. Prefix mode now applies Unicode NFC before matching (reported in #76).
 - `eap_safety_circuit` no longer drops the BOS and the first tokens of the longest harmless prompt. When the
   harmless (corrupted) batch was longer than the harmful (clean) one it was cut from the left to the clean
   batch's length; the shorter batch is now padded up instead and nothing is truncated. Scores can change for
