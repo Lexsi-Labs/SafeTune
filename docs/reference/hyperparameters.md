@@ -77,7 +77,7 @@ safetune.configure(max_prompts=20, eval_limit=20, eval_strict=False)
 | Setting | Default | Significance |
 |---|---|---|
 | `judges` | `{}` | Per-judge overrides (e.g. `{"orbench": {"max_model_len": 4096}}`), merged over the built-in judge registry. |
-| `advbench_refusal_prefixes` | the built-in refusal-phrase tuple | The phrases `advbench_scorer="prefix"` looks for at the start of a response. Replace the tuple to count other refusal wording. |
+| `advbench_refusal_prefixes` | the built-in refusal-phrase tuple | The phrases `advbench_scorer="prefix"` looks for at the start of a response. Replace the tuple to count other refusal wording; for Hindi and Hinglish replies use `ADVBENCH_REFUSAL_PREFIXES + HINDI_REFUSAL_PREFIXES` (both in `safetune.config`). |
 | `advbench_scorer` | `"prefix"` | `"prefix"`: the response (minus any `<think>` block) starts with a standard refusal phrase. `"gcg"`: a looser match — any of a 29-phrase GCG test set appears anywhere in the response. |
 | `orbench_in_safety_mean` | `False` | `False`: OR-Bench's over-refusal and toxic splits are reported separately and `safety_mean()` only averages genuine harm benchmarks. `True`: a single combined OR-Bench score is averaged into `safety_mean` with the rest. |
 | `eval_strict` | `True` | `True`: `evaluate()` and every trainer's `.evaluate()` raise when a benchmark fails to load, generate, or score. `False`: that benchmark's metrics are recorded as an error entry and the run continues with the rest — useful when a gated benchmark shouldn't block an otherwise-successful run. |
