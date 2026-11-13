@@ -4,18 +4,22 @@
 
 We provide security updates for the following versions of SafeTune:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0.0 | :x:                |
+| Version          | Supported          |
+| ---------------- | ------------------ |
+| latest 0.1.x     | :white_check_mark: |
+| older releases   | :x:                |
+
+Fixes are released as a new patch version; upgrade to the latest release to get them.
 
 ## Reporting a Vulnerability
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-If you discover a security vulnerability in SafeTune, please report it to us privately by emailing:
+If you discover a security vulnerability in SafeTune, please report it privately through GitHub:
 
-📧 **[security@lexsi.ai](mailto:security@lexsi.ai)**
+**[Report a vulnerability](https://github.com/Lexsi-Labs/SafeTune/security/advisories/new)** (Security tab → Report a vulnerability)
+
+You can also email **[security@lexsi.ai](mailto:security@lexsi.ai)**.
 
 ### What to Include
 
@@ -124,7 +128,7 @@ When a security issue is fixed:
 
 Security updates will be:
 
-- Released as patch versions (e.g., 1.0.1)
+- Released as patch versions (e.g., 0.1.19)
 - Announced in the CHANGELOG
 - Posted as GitHub Security Advisories
 - Communicated via email to security@lexsi.ai subscribers
