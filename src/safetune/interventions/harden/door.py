@@ -56,7 +56,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Dict, Optional
+
+from .cst import name_dpo_eval_metrics
 
 try:
     from trl import DPOTrainer, DPOConfig
@@ -172,6 +174,11 @@ class SafetyDOORTrainer(DPOTrainer if _TRL_IMPORT_ERROR is None else object):  #
             self._proxy_reward_model.eval()
             for p in self._proxy_reward_model.parameters():
                 p.requires_grad_(False)
+
+    def log(self, logs: Dict[str, float], start_time: Optional[float] = None) -> None:
+        # Same per-eval-set naming as CSTTrainer (huggingface/trl#8307).
+        name_dpo_eval_metrics(self, logs)
+        super().log(logs, start_time)
 
     # ------------------------------------------------------------------
     # DOOR / W-DOOR loss

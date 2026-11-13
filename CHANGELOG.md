@@ -64,6 +64,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keys, so `evaluate()` returned only the last set's values and loggers overwrote one set with the next
   (huggingface/trl#8307). A single eval set keeps the `eval_` prefix. With a dict `eval_dataset`, a
   `metric_for_best_model` that names a DPO metric now needs the set name, e.g. `eval_safe_rewards/margins` (reported in #84).
+- `SafetyDOORTrainer` names the DPO eval metrics after each eval set the same way (it is also a `DPOTrainer`). With
+  `door_pure_mode=False` and a dict `eval_dataset`, every set's DPO metrics were logged as `eval_rewards/...` and
+  the last one won.
 - `DeepRefusalTrainer` gives the right gradient with gradient checkpointing. The ablation hooks were
   switched off before the Trainer's `backward()`, so the checkpoint recomputation ran without the
   ablation: reentrant checkpointing gave a gradient about 3% off, non-reentrant raised
