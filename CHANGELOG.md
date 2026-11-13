@@ -47,7 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CSTTrainer` names the DPO eval metrics after each set of a dict `eval_dataset`: `eval_safe_rewards/margins`,
   `eval_unsafe_rewards/margins` and so on. TRL logged every set's DPO metrics under the same `eval_rewards/...`
   keys, so `evaluate()` returned only the last set's values and loggers overwrote one set with the next
-  (huggingface/trl#8307). A single eval set keeps the `eval_` prefix (reported in #84).
+  (huggingface/trl#8307). A single eval set keeps the `eval_` prefix. With a dict `eval_dataset`, a
+  `metric_for_best_model` that names a DPO metric now needs the set name, e.g. `eval_safe_rewards/margins` (reported in #84).
 - `DeepRefusalTrainer` gives the right gradient with gradient checkpointing. The ablation hooks were
   switched off before the Trainer's `backward()`, so the checkpoint recomputation ran without the
   ablation: reentrant checkpointing gave a gradient about 3% off, non-reentrant raised
