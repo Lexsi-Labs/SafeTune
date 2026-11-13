@@ -238,6 +238,7 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
                     student_out.logits,
                     aligned_logits,
                     temperature=self._kl_temperature,
+                    attention_mask=prepared.get("attention_mask"),
                 )
             else:
                 # SFT-loss proxy alignment signal.

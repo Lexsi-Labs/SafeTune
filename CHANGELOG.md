@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Results change for `SafeGradHFTrainer` in KL mode (`reference_model`) with padded alignment batches.**
+  `safegrad_kl_alignment_loss` takes an `attention_mask`, and the trainer passes the alignment batch's mask.
+  Padding positions added KL terms, so the alignment gradient depended on how much padding a batch had; the
+  built-in safety set is padded to `max_len`, so the default `SafeGradTrainer` run was affected. The loss is
+  still summed over positions and averaged over the batch (reported in #81).
 - `DeepRefusalTrainer` gives the right gradient with gradient checkpointing. The ablation hooks were
   switched off before the Trainer's `backward()`, so the checkpoint recomputation ran without the
   ablation: reentrant checkpointing gave a gradient about 3% off, non-reentrant raised
