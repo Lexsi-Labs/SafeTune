@@ -83,6 +83,7 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass, field
+from collections.abc import Mapping
 from itertools import cycle
 from typing import Any, Iterator, List, Optional
 
@@ -261,8 +262,8 @@ def _differentiable_zero(model: Any) -> Any:
 
 
 def _prepare_batch(batch: Any, device: Any) -> Any:
-    """Move every tensor in *batch* to *device*."""
-    if not isinstance(batch, dict):
+    """Move every tensor in *batch* (a dict or a tokenizer's BatchEncoding) to *device*."""
+    if not isinstance(batch, Mapping):
         return batch
     return {
         k: (v.to(device) if hasattr(v, "to") else v)
@@ -589,6 +590,11 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
             device = next(self.model.parameters()).device
 
         batch = _prepare_batch(batch, device)
+        if not isinstance(batch, Mapping):
+            raise TypeError(
+                "DeepRefusalTrainer: batches must be mappings of model inputs, got "
+                f"{type(batch).__name__}."
+            )
         valid_keys = {"input_ids", "attention_mask", "labels", "position_ids"}
         filtered = {k: v for k, v in batch.items() if k in valid_keys}
 
@@ -677,22 +683,14 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
             # ------------------------------------------------------------------
             if self._harmful_iter is not None:
                 harmful_batch = _next_batch(self._harmful_iter)
+                # No catch-all: a failed term must stop training, not drop out of
+                # the objective while the run is still reported as DeepRefusal.
                 if harmful_batch is not None:
-                    try:
-                        loss_harmful = self._forward_ce(model, harmful_batch)
-                    except Exception as exc:
-                        logger.warning(
-                            "DeepRefusalTrainer: L_harmful computation failed "
-                            "(%s); skipping this term for the current step.",
-                            exc,
-                        )
+                    loss_harmful = self._forward_ce(model, harmful_batch)
 
             if loss_harmful is None and inputs is not None:
                 # Fallback: no dedicated harmful iterator — use the DataLoader batch.
-                try:
-                    loss_harmful = self._forward_ce(model, inputs)
-                except Exception:
-                    pass
+                loss_harmful = self._forward_ce(model, inputs)
 
             if phase == "harmful":
                 # Hooks stay active: training_step runs backward() on this
@@ -710,14 +708,7 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         if self._benign_iter is not None:
             benign_batch = _next_batch(self._benign_iter)
             if benign_batch is not None:
-                try:
-                    loss_benign = self._forward_ce(model, benign_batch)
-                except Exception as exc:
-                    logger.warning(
-                        "DeepRefusalTrainer: L_benign computation failed "
-                        "(%s); skipping this term for the current step.",
-                        exc,
-                    )
+                loss_benign = self._forward_ce(model, benign_batch)
 
         if loss_benign is None and self._benign_iter is None:
             # No dedicated benign iterator was configured.  How we recover the
@@ -729,10 +720,7 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
                 # harmful batch.  Using it for the benign retention term is the
                 # documented ``inputs``-for-both-terms fallback.
                 if inputs is not None:
-                    try:
-                        loss_benign = self._forward_ce(model, inputs)
-                    except Exception:
-                        pass
+                    loss_benign = self._forward_ce(model, inputs)
             else:
                 # Only a harmful dataset was supplied, so ``inputs`` IS the
                 # harmful batch.  Computing "benign" retention on harmful data

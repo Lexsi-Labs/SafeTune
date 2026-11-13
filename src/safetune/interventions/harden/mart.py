@@ -282,11 +282,9 @@ class MARTTrainer:
         # 2. Identify successful attacks (M_tgt gave unsafe response).
         successful_prompts: List[str] = []
         for prompt, response in zip(pool, tgt_responses):
-            try:
-                score = float(self.safety_reward_fn(prompt, response))
-            except Exception as exc:  # pragma: no cover
-                logger.warning("MART: safety_reward_fn raised %s; treating as safe.", exc)
-                score = 1.0
+            # No catch-all: a failing reward function must stop the run, not score
+            # every response as safe (M_adv would never be updated).
+            score = float(self.safety_reward_fn(prompt, response))
             if score < self.config.safety_threshold:
                 # Low safety score -> the attack was successful.
                 successful_prompts.append(prompt)
@@ -459,9 +457,6 @@ class MARTTrainer:
             new_ids = output_ids[:, prompt_len:]
             decoded = self.tokenizer.batch_decode(new_ids, skip_special_tokens=True)
             results = [text.strip() for text in decoded]
-        except Exception as exc:  # pragma: no cover
-            logger.warning("MART: generation failed (%s); returning empty strings.", exc)
-            results = [""] * (len(prompts) * n)
         finally:
             # Move back to CPU to free GPU memory between phases.
             if model_device != device:
@@ -514,11 +509,7 @@ class MARTTrainer:
         for candidate in candidates:
             if not candidate:
                 continue
-            try:
-                s_score = float(self.safety_reward_fn(prompt, candidate))
-            except Exception as exc:  # pragma: no cover
-                logger.warning("MART: safety_reward_fn raised %s; skipping candidate.", exc)
-                continue
+            s_score = float(self.safety_reward_fn(prompt, candidate))
 
             if s_score < self.config.safety_threshold:
                 # Candidate is not safe enough; skip regardless of helpfulness.
@@ -526,12 +517,7 @@ class MARTTrainer:
 
             h_score = 0.0
             if self.helpfulness_reward_fn is not None:
-                try:
-                    h_score = float(self.helpfulness_reward_fn(prompt, candidate))
-                except Exception as exc:  # pragma: no cover
-                    logger.warning(
-                        "MART: helpfulness_reward_fn raised %s; helpfulness = 0.", exc
-                    )
+                h_score = float(self.helpfulness_reward_fn(prompt, candidate))
 
             combined = s_score + h_score
             if combined > best_score:
@@ -716,28 +702,24 @@ class MARTTrainer:
             input_ids, attention_mask, labels = [t.to(device) for t in batch]
 
             optimizer.zero_grad()
-            try:
-                outputs = model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    labels=labels,
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+            )
+            # HuggingFace CausalLM models return loss directly when
+            # ``labels`` are provided.
+            if hasattr(outputs, "loss") and outputs.loss is not None:
+                loss = outputs.loss
+            else:
+                # Fallback: compute loss from logits manually.
+                logits = outputs.logits if hasattr(outputs, "logits") else outputs[0]
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                loss = loss_fn(
+                    shift_logits.view(-1, shift_logits.size(-1)),
+                    shift_labels.view(-1).to(shift_logits.device),
                 )
-                # HuggingFace CausalLM models return loss directly when
-                # ``labels`` are provided.
-                if hasattr(outputs, "loss") and outputs.loss is not None:
-                    loss = outputs.loss
-                else:
-                    # Fallback: compute loss from logits manually.
-                    logits = outputs.logits if hasattr(outputs, "logits") else outputs[0]
-                    shift_logits = logits[..., :-1, :].contiguous()
-                    shift_labels = labels[..., 1:].contiguous()
-                    loss = loss_fn(
-                        shift_logits.view(-1, shift_logits.size(-1)),
-                        shift_labels.view(-1).to(shift_logits.device),
-                    )
-            except Exception as exc:
-                logger.warning("MART: forward pass failed at step %d (%s); skipping.", step, exc)
-                continue
 
             if not torch.isfinite(loss):
                 logger.warning("MART: non-finite loss at step %d; skipping.", step)

@@ -82,6 +82,11 @@ class AsFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
     used -- ``compute_subspace_penalty`` adds the orthogonal-component penalty
     on the full weight delta, or with ``hard_constraint`` the orthogonal
     gradient component is suppressed post-backward.
+
+    Without ``aligned_state_dict`` and ``base_state_dict`` there is no
+    alignment direction and the trainer is plain fine-tuning; it logs a
+    warning once at construction. A failure while building or computing the
+    regularizer raises instead of continuing without it.
     """
 
     def __init__(
@@ -119,6 +124,12 @@ class AsFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
         self._asft_ready = (
             aligned_state_dict is not None and base_state_dict is not None
         )
+        if not self._asft_ready:
+            logger.warning(
+                "AsFTHFTrainer: aligned_state_dict and base_state_dict were not both given, so "
+                "there is no alignment direction and training is plain fine-tuning without "
+                "the AsFT regularizer."
+            )
 
         # Dense fallback wrapper (only built if the model has no LoRA modules).
         self._asft: Optional[AsFTWrapper] = None
@@ -272,19 +283,14 @@ class AsFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
                 reg_lambda=self._reg_lambda,
                 hard_constraint=self._hard_constraint,
             )
-            try:
-                self._asft = AsFTWrapper(
-                    model=model,
-                    aligned_state_dict=self._aligned_sd,
-                    base_state_dict=self._base_sd,
-                    config=core_cfg,
-                )
-            except Exception as e:
-                logger.warning(
-                    f"AsFTWrapper initialization failed for dense fallback: {e}. "
-                    "The model will fine-tune WITHOUT the safety regularizer."
-                )
-                self._asft = None
+            # No catch-all: a failure here must stop training, not fine-tune
+            # without the regularizer while the run is still reported as AsFT.
+            self._asft = AsFTWrapper(
+                model=model,
+                aligned_state_dict=self._aligned_sd,
+                base_state_dict=self._base_sd,
+                config=core_cfg,
+            )
 
     # ------------------------------------------------------------------ #
     # Trainer hooks
@@ -325,11 +331,7 @@ class AsFTHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
             reg = self._asft_reg_loss(model)
         elif self._asft is not None and not self._hard_constraint:
             # Dense fallback: orthogonal-component penalty on the full delta.
-            try:
-                reg = self._asft.compute_subspace_penalty()
-            except Exception as e:
-                logger.warning(f"Failed to compute dense subspace penalty: {e}")
-                reg = None
+            reg = self._asft.compute_subspace_penalty()
 
         if reg is not None:
             loss = loss + reg.to(loss.device, loss.dtype)

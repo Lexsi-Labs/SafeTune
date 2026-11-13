@@ -51,6 +51,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (from `DataCollatorWithPadding` or `tok.pad`) was skipped the same way and is now used. A safety batch that is
   not a mapping and an alignment loss without a gradient (SFT mode with no `labels`) now raise, and
   `reference_model` without `safety_dataset` raises at construction instead of warning every step (reported in #82).
+- AsFT, DeepRefusal, MART, SEAL, Surgery and CTRAP raise when their safety term fails, as SafeGrad now does. Each
+  caught every exception around that term, logged a warning and trained without it: `AsFTHFTrainer` without the
+  regularizer (dense path), `DeepRefusalTrainer` without the harmful or benign loss, `MARTTrainer` scoring every
+  response as safe when the reward function raised and returning empty responses when generation failed (so
+  nothing was trained), `SEALHFTrainer` with uniform weights or a zero loss for an example, `SurgeryHFTrainer`
+  without the sink penalty when the refusal dataset failed to yield a batch, and `CTRAPHFTrainer` with
+  `L_collapse = 0`. DeepRefusal, SEAL, Surgery and CTRAP also accept `BatchEncoding` batches. `AsFTHFTrainer`
+  without `aligned_state_dict` and `base_state_dict` still trains without the regularizer, and now warns once.
 - `CSTTrainer` names the DPO eval metrics after each set of a dict `eval_dataset`: `eval_safe_rewards/margins`,
   `eval_unsafe_rewards/margins` and so on. TRL logged every set's DPO metrics under the same `eval_rewards/...`
   keys, so `evaluate()` returned only the last set's values and loggers overwrote one set with the next
