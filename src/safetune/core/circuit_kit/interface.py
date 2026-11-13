@@ -63,7 +63,7 @@ class CircuitInfoProvider(Protocol):
 
     Only a typing ``Protocol``: nothing in SafeTune implements it. The function
     :func:`safetune.core.circuit_kit.get_circuit_info` is a file loader, not an implementation (it
-    ignores ``model_name`` and all keywords but ``top_fraction``).
+    ignores ``model_name`` and all keywords but ``top_fraction`` and ``layer_fraction``).
     """
 
     def get_circuit_info(self, model_name: str, **kwargs: Any) -> Optional[CircuitInfo]:
