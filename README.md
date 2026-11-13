@@ -255,7 +255,7 @@ results = evaluate(model, tokenizer=tokenizer, benchmarks=["harmbench"], max_pro
   `max_len>=512`; with a smaller explicit value the data loaders raise instead
   of training on zero supervised tokens.
 - **Colab and Kaggle:** run `pip uninstall -y torchao` before importing SafeTune.
-  Kaggle's image ships torchao 0.10, and peft rejects torchao older than 0.16
+  Kaggle's image has shipped torchao 0.10, and recent peft rejects torchao older than 0.16
   when the Harden trainers wrap the model in LoRA
   (`ImportError: Found an incompatible version of torchao`).
 - **Steering:** if the automatic refusal-direction sweep falls back to the

@@ -204,6 +204,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- README: the note to run `pip uninstall -y torchao` before importing SafeTune covers Kaggle as
+  well as Colab. Kaggle's image has shipped torchao 0.10, which peft rejects when a Harden trainer
+  wraps the model in LoRA (#85).
 - Code rewards: a function under test must return plain builtin data (numbers, strings, bytes,
   booleans, `None`, and lists, tuples, dicts and sets of them); the child does not inherit
   environment variables or `PYTHONPATH`; an `assert` the grader can't split into a call and an
