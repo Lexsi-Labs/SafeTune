@@ -209,7 +209,7 @@ Full guide: [Harden overview](../user-guide/harden.md).
 
 | Method | Params (non-default) | Significance | Guide |
 |---|---|---|---|
-| `SafeGradTrainer` | `rho=1.0`, `kl_temperature=1.0`, `reference_model_path=None` | `rho`: gradient-surgery alignment weight. `reference_model_path`: frozen reference for the KL signal — falls back to the tokenizer's model id if omitted. | [Guide](../user-guide/harden/gradient-surgery.md) |
+| `SafeGradTrainer` | `rho=1.0`, `kl_temperature=1.0`, `reference_model_path=None`, `gradient_accumulation_steps=1`, `surgery_per_optimizer_step=False` | `rho`: gradient-surgery alignment weight. `reference_model_path`: frozen reference for the KL signal — falls back to the tokenizer's model id if omitted. `gradient_accumulation_steps > 1` needs `surgery_per_optimizer_step=True`, which runs the surgery once per optimizer step. | [Guide](../user-guide/harden/gradient-surgery.md) |
 | `PlainSFTTrainer` | — | Undefended SFT baseline, no safety mechanism — the comparison baseline for benchmarking every other Harden method. | [Guide](../user-guide/harden/gradient-surgery.md) |
 
 ### Data shaping / alternation
