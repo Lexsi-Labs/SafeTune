@@ -1,6 +1,7 @@
 """Audit H03: SafeGrad adds the alignment gradient once per micro-batch under gradient accumulation.
 
-Fixed by rejecting gradient_accumulation_steps > 1 (the accum=1 case must keep matching Algorithm 1).
+Fixed by rejecting gradient_accumulation_steps > 1 unless surgery_per_optimizer_step=True, which runs
+the surgery once per optimizer step on the accumulated gradient (#80).
 
 Gradient Surgery for Safe LLM Fine-Tuning (Yi et al., arXiv:2508.07172) Algorithm 1: per update,
 g_final = g'_user + rho * g_align, with one alignment gradient per optimizer step. The HF loss is
@@ -43,7 +44,7 @@ def test_safegrad_rejects_gradient_accumulation(tmp_path):
         SafeGradHFTrainer(model=_model(0), args=args, safety_dataset=[_batch(100)], reference_model=_model(1))
 
 
-@pytest.mark.parametrize("accum", [1])
+@pytest.mark.parametrize("accum", [1, 2])
 def test_safegrad_final_gradient_matches_algorithm_1(tmp_path, accum):
     from transformers import TrainingArguments
     model, ref = _model(0), _model(1)                    # reference differs so the KL gradient is nonzero
@@ -71,12 +72,35 @@ def test_safegrad_final_gradient_matches_algorithm_1(tmp_path, accum):
 
     args = TrainingArguments(output_dir=str(tmp_path), per_device_train_batch_size=1,
                              gradient_accumulation_steps=accum, use_cpu=True, report_to=[])
-    tr = SafeGradHFTrainer(model=model, args=args, safety_dataset=[safety], reference_model=ref, rho=rho)
+    tr = SafeGradHFTrainer(model=model, args=args, safety_dataset=[safety], reference_model=ref, rho=rho,
+                           surgery_per_optimizer_step=accum > 1)
     tr.current_gradient_accumulation_steps = accum   # normally set inside Trainer.train()
     model.train()
-    for b in micro:
+    for i, b in enumerate(micro):
+        # Trainer.train() marks the last micro-batch of the window as the sync step
+        tr.accelerator.gradient_state._set_sync_gradients(i == accum - 1)
         tr.training_step(model, b)
     got = _flat_grad(model)
     assert torch.allclose(got, expected, rtol=1e-3, atol=1e-6), (
         f"accum={accum}: ||got - expected|| / ||expected|| = {((got - expected).norm() / expected.norm()).item():.3f}"
     )
+
+
+def test_safegrad_surgery_once_per_optimizer_step_in_train(tmp_path):
+    """With accumulation 2, train() runs the surgery (and draws a safety batch) once per update."""
+    from datasets import Dataset
+    from transformers import TrainingArguments
+    rows = [{k: v[0] for k, v in _batch(i).items()} for i in range(8)]
+    args = TrainingArguments(output_dir=str(tmp_path), per_device_train_batch_size=1,
+                             gradient_accumulation_steps=2, max_steps=3, use_cpu=True,
+                             report_to=[], save_strategy="no")
+    tr = SafeGradHFTrainer(model=_model(0), args=args, train_dataset=Dataset.from_list(rows),
+                           safety_dataset=[_batch(100), _batch(101)], reference_model=_model(1),
+                           surgery_per_optimizer_step=True)
+    calls, drawn = [], []
+    surgery, draw = tr._apply_global_surgery, tr._next_safety_batch
+    tr._apply_global_surgery = lambda m, g: (calls.append(1), surgery(m, g))[1]
+    tr._next_safety_batch = lambda: (drawn.append(1), draw())[1]
+    tr.train()
+    assert tr.state.global_step == 3
+    assert len(calls) == 3 and len(drawn) == 3

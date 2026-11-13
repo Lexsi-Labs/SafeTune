@@ -106,9 +106,18 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
             ``g_final = g'_user + rho * g_align`` (paper default 1.0).
         kl_temperature: softmax temperature for the KL alignment loss
             (paper default 1.0).
+        surgery_per_optimizer_step: run the surgery once per optimizer step
+            instead of after every micro-batch, which allows
+            ``gradient_accumulation_steps > 1``. The task gradient accumulates
+            over the micro-batches, and on the last one (when
+            ``accelerator.sync_gradients`` is True) one safety batch is drawn,
+            ``g_align`` is computed and the projection is applied to the
+            accumulated gradient: Algorithm 1 at the effective batch size.
+            Default False.
         **kwargs: forwarded to :class:`transformers.Trainer`.
 
     Note:
+        With ``surgery_per_optimizer_step=False`` (the default),
         ``gradient_accumulation_steps`` must be 1 (a ``ValueError`` is raised
         otherwise): the surgery runs per micro-batch, so with accumulation the
         alignment term would be added once per micro-batch.
@@ -121,6 +130,7 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         reference_model: Optional[Any] = None,
         rho: float = 1.0,
         kl_temperature: float = 1.0,
+        surgery_per_optimizer_step: bool = False,
         **kwargs: Any,
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
@@ -137,13 +147,17 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
             ) from _SAFEGRAD_IMPORT_ERROR
 
         super().__init__(*args, **kwargs)
-        if int(getattr(self.args, "gradient_accumulation_steps", 1) or 1) > 1:
+        self._surgery_per_optimizer_step = bool(surgery_per_optimizer_step)
+        if (not self._surgery_per_optimizer_step
+                and int(getattr(self.args, "gradient_accumulation_steps", 1) or 1) > 1):
             raise ValueError(
-                "SafeGradHFTrainer does not support gradient_accumulation_steps > 1: the "
-                "gradient surgery runs after every micro-batch and adds rho * g_align each "
-                "time, while the task loss is divided by the accumulation steps, so the "
-                "update would no longer be Algorithm 1's g'_user + rho * g_align. Use "
-                "gradient_accumulation_steps=1 (raise per_device_train_batch_size instead)."
+                "SafeGradHFTrainer with gradient_accumulation_steps > 1 needs "
+                "surgery_per_optimizer_step=True: by default the gradient surgery runs after "
+                "every micro-batch and adds rho * g_align each time, while the task loss is "
+                "divided by the accumulation steps, so the update would no longer be "
+                "Algorithm 1's g'_user + rho * g_align. Pass surgery_per_optimizer_step=True "
+                "to run the surgery once on the accumulated gradient, or use "
+                "gradient_accumulation_steps=1."
             )
         self._safety_dataset = safety_dataset
         self._safety_iter: Optional[Iterator] = (
@@ -337,6 +351,11 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         except TypeError:
             # Older transformers signatures without num_items_in_batch.
             loss = super().training_step(model, inputs)
+
+        # With surgery_per_optimizer_step, only the micro-batch that ends the accumulation
+        # window runs the surgery, on the accumulated g_user; the others just accumulate.
+        if self._surgery_per_optimizer_step and not self.accelerator.sync_gradients:
+            return loss
 
         # 2. Compute the alignment gradient g_align (KL mode or SFT proxy).
         safety_batch = self._next_safety_batch()

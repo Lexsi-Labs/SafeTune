@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that set, or a task whose function shares a builtin's name, fails with a warning. The evaluator
   is bounded in work and size, and refuses colliding hashes before it builds a set.
 
+### Added
+
+- `SafeGradHFTrainer(surgery_per_optimizer_step=True)` allows `gradient_accumulation_steps > 1`. The task gradient
+  accumulates over the micro-batches, and on the micro-batch that ends the window (`accelerator.sync_gradients`)
+  one safety batch is drawn and the surgery runs on the accumulated gradient, which is Algorithm 1 at the
+  effective batch size. Off by default; without it, accumulation still raises `ValueError` (reported in #80).
+
 ### Fixed
 
 - **Results change for `SafeGradHFTrainer` in KL mode (`reference_model`) with padded alignment batches.**
