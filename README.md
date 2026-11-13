@@ -254,7 +254,10 @@ results = evaluate(model, tokenizer=tokenizer, benchmarks=["harmbench"], max_pro
   `max_len` unset (it is sized from the templated prompt) or pass
   `max_len>=512`; with a smaller explicit value the data loaders raise instead
   of training on zero supervised tokens.
-- **Colab:** run `pip uninstall -y torchao` before importing SafeTune.
+- **Colab and Kaggle:** run `pip uninstall -y torchao` before importing SafeTune.
+  Kaggle's image ships torchao 0.10, and peft rejects torchao older than 0.16
+  when the Harden trainers wrap the model in LoRA
+  (`ImportError: Found an incompatible version of torchao`).
 - **Steering:** if the automatic refusal-direction sweep falls back to the
   middle layer or picks a poor one, set the layer by hand, e.g.
   `RefusalDirectionConfig(pick_layer=24)` (layer 24 of 36).
