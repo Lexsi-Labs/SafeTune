@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   logits (-0.022 for 2 x 64 positions over a 32k vocabulary, 0.61 per sequence reported for Tiny Aya), so early
   in training the alignment gradient was mostly rounding noise. The fp32 logits this creates cost memory at large
   vocabularies (reported in #83).
+- `SafeGradHFTrainer` raises when the alignment pass fails. It caught every exception there (a bad batch, a
+  dtype error, an out-of-memory error), logged a warning and ran the step without surgery, so a SafeGrad run could
+  turn into plain fine-tuning with only a log line per step. A non-dict safety batch and an alignment loss
+  without a gradient (SFT mode with no `labels`) now raise too, and `reference_model` without `safety_dataset`
+  raises at construction instead of warning every step (reported in #82).
 - `DeepRefusalTrainer` gives the right gradient with gradient checkpointing. The ablation hooks were
   switched off before the Trainer's `backward()`, so the checkpoint recomputation ran without the
   ablation: reentrant checkpointing gave a gradient about 3% off, non-reentrant raised

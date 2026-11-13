@@ -1,4 +1,4 @@
-"""SafeGrad alignment pass: padding (#81), bf16 softmax (#83)."""
+"""SafeGrad alignment pass: padding (#81), failures (#82), bf16 softmax (#83)."""
 import tempfile
 
 import pytest
@@ -59,3 +59,28 @@ def test_trainer_alignment_gradient_ignores_padding():
     g_plain = torch.cat([g.reshape(-1) for g in tr._alignment_gradient(model, plain)])
     g_padded = torch.cat([g.reshape(-1) for g in tr._alignment_gradient(model, padded)])
     assert torch.allclose(g_padded, g_plain, rtol=1e-4, atol=1e-6)
+
+
+def test_a_failing_alignment_pass_raises():
+    """A broken alignment batch must stop training, not silently drop the surgery."""
+    model, ref = _model(0), _model(1)
+    bad = {"input_ids": torch.full((1, 4), 999)}          # outside the 32-token vocabulary
+    tr = _trainer(model, bad, ref)
+    tr.current_gradient_accumulation_steps = 1
+    model.train()
+    ids = torch.ones(1, 4, dtype=torch.long)
+    with pytest.raises(IndexError):
+        tr.training_step(model, {"input_ids": ids, "labels": ids})
+
+
+def test_sft_mode_without_labels_raises():
+    model = _model(0)
+    tr = _trainer(model, {"input_ids": torch.ones(1, 4, dtype=torch.long)}, None)
+    with pytest.raises(ValueError, match="labels"):
+        tr._alignment_gradient(model, {"input_ids": torch.ones(1, 4, dtype=torch.long)})
+
+
+def test_reference_model_without_safety_dataset_raises():
+    args = TrainingArguments(output_dir=tempfile.mkdtemp(), use_cpu=True, report_to=[])
+    with pytest.raises(ValueError, match="safety_dataset"):
+        SafeGradHFTrainer(model=_model(0), args=args, reference_model=_model(1))
