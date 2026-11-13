@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Padding positions added KL terms, so the alignment gradient depended on how much padding a batch had; the
   built-in safety set is padded to `max_len`, so the default `SafeGradTrainer` run was affected. The loss is
   still summed over positions and averaged over the batch (reported in #81).
+- **Results change for `SafeGradHFTrainer` in KL mode with a bf16 or fp16 model.** `safegrad_kl_alignment_loss`
+  computes the softmaxes in at least fp32. In bf16 their rounding alone gave a KL far from 0 between identical
+  logits (-0.022 for 2 x 64 positions over a 32k vocabulary, 0.61 per sequence reported for Tiny Aya), so early
+  in training the alignment gradient was mostly rounding noise. The fp32 logits this creates cost memory at large
+  vocabularies (reported in #83).
 - `DeepRefusalTrainer` gives the right gradient with gradient checkpointing. The ablation hooks were
   switched off before the Trainer's `backward()`, so the checkpoint recomputation ran without the
   ablation: reentrant checkpointing gave a gradient about 3% off, non-reentrant raised

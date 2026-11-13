@@ -1,4 +1,4 @@
-"""SafeGrad alignment pass: padding (#81)."""
+"""SafeGrad alignment pass: padding (#81), bf16 softmax (#83)."""
 import tempfile
 
 import pytest
@@ -32,6 +32,21 @@ def test_padding_adds_nothing_to_the_kl():
     assert torch.allclose(safegrad_kl_alignment_loss(pad_s, pad_r, attention_mask=mask), want)
     # an all-ones mask keeps the old scale (sum over positions, mean over the batch)
     assert torch.allclose(safegrad_kl_alignment_loss(s, r, attention_mask=torch.ones(2, 4)), want)
+
+
+def test_kl_between_identical_bf16_logits_is_zero():
+    torch.manual_seed(0)
+    x = (torch.randn(2, 64, 32000) * 3).to(torch.bfloat16)
+    student = x.clone().requires_grad_(True)
+    loss = safegrad_kl_alignment_loss(student, x.clone())
+    loss.backward()
+    assert abs(loss.item()) < 1e-4                      # main: -0.022
+    assert student.grad.abs().max().item() < 1e-6      # main: ~1e-3, pure rounding noise
+    # fp32 inputs give the same value as before
+    y = torch.randn(2, 4, 32)
+    z = torch.randn(2, 4, 32)
+    want = torch.nn.functional.kl_div(torch.log_softmax(y, -1), torch.softmax(z, -1), reduction="batchmean")
+    assert torch.equal(safegrad_kl_alignment_loss(y, z), want)
 
 
 def test_trainer_alignment_gradient_ignores_padding():

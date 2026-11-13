@@ -79,8 +79,11 @@ def safegrad_kl_alignment_loss(
             f"safegrad_kl_alignment_loss: shape mismatch student={tuple(student_logits.shape)} "
             f"vs aligned={tuple(aligned_logits.shape)}"
         )
-    log_p_student = F.log_softmax(student_logits / temperature, dim=-1)
-    p_aligned = F.softmax(aligned_logits.detach() / temperature, dim=-1)
+    # At least fp32: in bf16 the rounding of the two softmaxes alone gives a KL far from 0
+    # between identical logits, and the alignment gradient is then mostly that noise.
+    dtype = torch.promote_types(student_logits.dtype, torch.float32)
+    log_p_student = F.log_softmax(student_logits.to(dtype) / temperature, dim=-1)
+    p_aligned = F.softmax(aligned_logits.detach().to(dtype) / temperature, dim=-1)
     if attention_mask is None:
         return F.kl_div(log_p_student, p_aligned, reduction=reduction) * (temperature * temperature)
     kl = F.kl_div(log_p_student, p_aligned, reduction="none")
