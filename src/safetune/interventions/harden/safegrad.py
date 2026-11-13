@@ -33,6 +33,7 @@ degrades gracefully to vanilla training (with a warning).
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from itertools import cycle
 from typing import Any, Iterable, Iterator, List, Optional
 
@@ -193,7 +194,7 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         """Move a batch onto the model's device, using HF's helper if present."""
         if hasattr(self, "_prepare_inputs"):
             batch = self._prepare_inputs(batch)
-        if isinstance(batch, dict):
+        if isinstance(batch, Mapping):   # a dict or a tokenizer's BatchEncoding
             device = getattr(model, "device", None)
             if device is not None:
                 batch = {
@@ -223,9 +224,9 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         # No catch-all here: a failed alignment pass must stop training, not turn the
         # step into plain fine-tuning that is still reported as SafeGrad.
         prepared = self._prepare_batch(safety_batch, model)
-        if not isinstance(prepared, dict):
+        if not isinstance(prepared, Mapping):
             raise TypeError(
-                "SafeGradHFTrainer: safety batches must be dicts of model inputs, got "
+                "SafeGradHFTrainer: safety batches must be mappings of model inputs, got "
                 f"{type(prepared).__name__}."
             )
 

@@ -84,3 +84,22 @@ def test_reference_model_without_safety_dataset_raises():
     args = TrainingArguments(output_dir=tempfile.mkdtemp(), use_cpu=True, report_to=[])
     with pytest.raises(ValueError, match="safety_dataset"):
         SafeGradHFTrainer(model=_model(0), args=args, reference_model=_model(1))
+
+
+def test_train_runs_the_surgery_every_step_with_padded_batchencoding_safety_batches():
+    """The real Trainer loop, with safety batches as a tokenizer's collator returns them."""
+    from transformers import BatchEncoding
+    ids = torch.randint(0, 32, (2, 6), generator=torch.Generator().manual_seed(2))
+    mask = torch.tensor([[1, 1, 1, 1, 1, 1], [1, 1, 1, 0, 0, 0]])
+    safety = BatchEncoding({"input_ids": ids, "attention_mask": mask})
+    train = [{"input_ids": r, "attention_mask": torch.ones_like(r), "labels": r} for r in ids]
+    model = _model(0)
+    args = TrainingArguments(output_dir=tempfile.mkdtemp(), per_device_train_batch_size=1, max_steps=2,
+                             use_cpu=True, report_to=[], save_strategy="no", logging_strategy="no")
+    tr = SafeGradHFTrainer(model=model, args=args, train_dataset=train, safety_dataset=[safety],
+                           reference_model=_model(1))
+    calls = []
+    surgery = tr._apply_global_surgery
+    tr._apply_global_surgery = lambda m, g: (calls.append(1), surgery(m, g))
+    tr.train()
+    assert len(calls) == 2

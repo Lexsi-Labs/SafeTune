@@ -40,9 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   vocabularies (reported in #83).
 - `SafeGradHFTrainer` raises when the alignment pass fails. It caught every exception there (a bad batch, a
   dtype error, an out-of-memory error), logged a warning and ran the step without surgery, so a SafeGrad run could
-  turn into plain fine-tuning with only a log line per step. A non-dict safety batch and an alignment loss
-  without a gradient (SFT mode with no `labels`) now raise too, and `reference_model` without `safety_dataset`
-  raises at construction instead of warning every step (reported in #82).
+  turn into plain fine-tuning with only a log line per step. A safety batch that is a tokenizer's `BatchEncoding`
+  (from `DataCollatorWithPadding` or `tok.pad`) was skipped the same way and is now used. A safety batch that is
+  not a mapping and an alignment loss without a gradient (SFT mode with no `labels`) now raise, and
+  `reference_model` without `safety_dataset` raises at construction instead of warning every step (reported in #82).
 - `CSTTrainer` names the DPO eval metrics after each set of a dict `eval_dataset`: `eval_safe_rewards/margins`,
   `eval_unsafe_rewards/margins` and so on. TRL logged every set's DPO metrics under the same `eval_rewards/...`
   keys, so `evaluate()` returned only the last set's values and loggers overwrote one set with the next
