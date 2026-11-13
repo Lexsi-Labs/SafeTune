@@ -59,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without the sink penalty when the refusal dataset failed to yield a batch, and `CTRAPHFTrainer` with
   `L_collapse = 0`. DeepRefusal, SEAL, Surgery and CTRAP also accept `BatchEncoding` batches. `AsFTHFTrainer`
   without `aligned_state_dict` and `base_state_dict` still trains without the regularizer, and now warns once.
+- `AsFTWrapper` (the dense AsFT path) computes its dot products as `(a * b).sum()` instead of `torch.dot`. With
+  torch 2.10.0+cu126 `torch.dot` on CUDA raises `CUBLAS_STATUS_NOT_SUPPORTED`, so on such a setup the dense penalty
+  always failed and, before the change above, `AsFTHFTrainer` trained without it.
 - `CSTTrainer` names the DPO eval metrics after each set of a dict `eval_dataset`: `eval_safe_rewards/margins`,
   `eval_unsafe_rewards/margins` and so on. TRL logged every set's DPO metrics under the same `eval_rewards/...`
   keys, so `evaluate()` returned only the last set's values and loggers overwrote one set with the next
