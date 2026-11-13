@@ -79,7 +79,7 @@ class AntibodyWrapper:
             return 0.0
         ref = self.ref_grad.to(cur.device)
         denom = (cur.norm() * ref.norm()).clamp_min(1e-12)
-        sim = float(torch.dot(cur, ref) / denom)
+        sim = float((cur * ref).sum() / denom)   # not torch.dot: fails on torch 2.10 + cu126
         if sim > sim_threshold:
             scale = 1.0 - max(0.0, sim)
             for p in model.parameters():

@@ -62,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AsFTWrapper` (the dense AsFT path) computes its dot products as `(a * b).sum()` instead of `torch.dot`. With
   torch 2.10.0+cu126 `torch.dot` on CUDA raises `CUBLAS_STATUS_NOT_SUPPORTED`, so on such a setup the dense penalty
   always failed and, before the change above, `AsFTHFTrainer` trained without it.
+- No `torch.dot` is left in SafeTune: SafeDelta's gradient projection, the Antibody attenuation, `SEALDataSelector`
+  scoring, the CAST condition similarity and `tracin_influence` compute their dot products as `(a * b).sum()`, so they
+  run on CUDA with torch 2.10.0+cu126. `SEALDataSelector.score_examples` also raises when an example fails instead of
+  scoring it 0.0 with a warning; with the `torch.dot` failure it scored every example 0.0 there.
 - `CSTTrainer` names the DPO eval metrics after each set of a dict `eval_dataset`: `eval_safe_rewards/margins`,
   `eval_unsafe_rewards/margins` and so on. TRL logged every set's DPO metrics under the same `eval_rewards/...`
   keys, so `evaluate()` returned only the last set's values and loggers overwrote one set with the next
