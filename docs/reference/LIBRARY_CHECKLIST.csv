@@ -95,6 +95,8 @@ Measure/evaluate — infra,Loader: airbench,eval/pipeline/loaders.py,✅,✅,"�
 Measure/evaluate — infra,Loader: cares,eval/pipeline/loaders.py,✅,✅,"🔴→✅ — `fix/loaders.md`: real id `HFXM/CARES-18K`, correct schema"
 Measure/evaluate — infra,Loader: wildjailbreak,eval/pipeline/loaders.py,✅,✅,🟡→✅ — `fix/loaders2.md`: `label==1`-means-harmful verified
 Measure/evaluate — infra,Loader: jailbreakbench,eval/pipeline/loaders.py,✅,✅,NEW — arXiv:2404.01318; 200-behavior community-standard jailbreak eval
+Measure/evaluate — infra,Loader: multijail,eval/pipeline/loaders.py,✅,✅,NEW — arXiv:2310.06474; 315 harmful prompts in 10 languages (3150 rows)
+Measure/evaluate — infra,Loader: aya_redteaming,eval/pipeline/loaders.py,✅,✅,NEW — arXiv:2406.18682; 7419 harmful prompts written by native speakers of 8 languages
 Measure/evaluate — infra,Loader: muse,eval/pipeline/loaders.py,✅,✅,"NEW — arXiv:2407.06460; 6-axis unlearning eval (forget/retain, news/books)"
 Measure/evaluate — infra,Loader: rwku,eval/pipeline/loaders.py,✅,✅,NEW — arXiv:2406.10890; 200-public-figure real-world knowledge unlearning eval
 Measure/evaluate — infra,Loader: safedialbench,eval/pipeline/loaders.py,✅,✅,"NEW — arXiv:2502.11090; multi-turn safety benchmark (22 scenarios, 7 jailbreak types)"

@@ -173,6 +173,8 @@ Harden notes (second-pass audit):
 | Loader: cares | Faithful |
 | Loader: wildjailbreak | Faithful |
 | Loader: jailbreakbench | Faithful |
+| Loader: multijail | Faithful |
+| Loader: aya_redteaming | Faithful |
 | Loader: muse | Faithful |
 | Loader: rwku | Simplified |
 | Loader: safedialbench | Faithful |

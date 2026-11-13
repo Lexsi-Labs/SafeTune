@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ast
 import json
+from itertools import zip_longest
 
 from safetune.data.dataset_ids import load, spec
 
@@ -232,24 +233,32 @@ def load_aya_redteaming(languages=None, split: str = None, **overrides):
     The set has one split per language. Returns a Dataset with 'prompt', 'language' (a
     code), 'category' and 'global_or_local'. ``languages``: a code or a list, default all
     of ``AYA_REDTEAMING_SPLITS``. A ``split``, here or in the dataset table, loads only
-    that split, which suits a local copy; 'language' then comes from its rows.
+    that split, which suits a local copy; 'language' then comes from its rows ("Hindi"
+    becomes "hi") and ``languages`` filters them. Rows alternate between languages, so a
+    prefix (``max_prompts``) covers every language rather than the first split only.
     """
     from datasets import Dataset
 
     split = split or spec("aya_redteaming").get("split")
     selected = _select_languages(languages, AYA_REDTEAMING_SPLITS, "Aya Red-teaming")
     parts = [("", split)] if split else [(k, AYA_REDTEAMING_SPLITS[k]) for k in selected]
-    rows = []
+    codes = {name: code for code, name in AYA_REDTEAMING_SPLITS.items()}  # "hindi" -> "hi"
+    by_language: dict = {}
     for lang, part in parts:
         for ex in load("aya_redteaming", split=part, **overrides):
-            rows.append(
+            name = str(ex.get("language") or "")
+            code = lang or codes.get(name.lower(), name)
+            if languages is not None and code not in selected:
+                continue
+            by_language.setdefault(code, []).append(
                 {
                     "prompt": ex["prompt"],
-                    "language": lang or ex.get("language") or "",
+                    "language": code,
                     "category": _category_text(ex.get("harm_category")),
                     "global_or_local": ex.get("global_or_local") or "",
                 }
             )
+    rows = [r for group in zip_longest(*by_language.values()) for r in group if r is not None]
     return Dataset.from_list(rows)
 
 

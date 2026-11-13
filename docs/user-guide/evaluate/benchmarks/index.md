@@ -59,6 +59,9 @@ Default prompt sets:
 
 Each row of these two has a `language` column, and `load_multijail(["bn", "sw"])` or
 `load_prompts("multijail", {"languages": "bn"})` picks languages.
+`evaluate(benchmarks=["multijail"])` runs every language and reports one pooled ASR; for a
+score per language, load one language at a time. Rows alternate between languages, so
+`max_prompts` keeps a prefix that covers all of them.
 
 !!! warning "Multilingual scores depend on the judge"
     SafeTune's refusal string lists are English, and the default `wildguard` judge has

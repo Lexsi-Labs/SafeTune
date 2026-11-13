@@ -18,10 +18,10 @@ def _jail(n, **cells):
     return row
 
 
-def _aya(text):
+def _aya(text, language="Hindi"):
     return {
         "prompt": text,
-        "language": "Hindi",
+        "language": language,
         "harm_category": '["Bullying", "Graphic"]',
         "global_or_local": "local",
     }
@@ -128,7 +128,22 @@ class TestAyaRedteaming:
         hub.rows = [_aya("x")]
         ds = load_aya_redteaming()
         assert hub.calls == [("aya_hi.jsonl", "train")]
-        assert ds["language"] == ["Hindi"]
+        assert ds["language"] == ["hi"]  # the same code as the per-language splits give
+
+    def test_languages_filters_a_one_split_copy(self, hub):
+        hub.rows = {"train": [_aya("h"), _aya("a", "Arabic"), _aya("f", "Filipino")]}
+        ds = load_aya_redteaming(["ar", "tl"], split="train")
+        assert ds["prompt"] == ["a", "f"]
+        assert ds["language"] == ["ar", "tl"]
+
+    def test_rows_alternate_between_languages(self, hub):
+        """evaluate(max_prompts=N) keeps the first N rows: they must not all be Arabic."""
+        hub.rows = {
+            "arabic": [_aya(f"ar{i}", "Arabic") for i in range(3)],
+            "hindi": [_aya("hi0"), _aya("hi1")],
+        }
+        ds = load_aya_redteaming(["ar", "hi"])
+        assert ds["prompt"] == ["ar0", "hi0", "ar1", "hi1", "ar2"]
 
     def test_the_split_argument_does_the_same(self, hub):
         hub.rows = {"hindi": [_aya("x")]}
@@ -147,7 +162,7 @@ class TestLoadPrompts:
     def test_aya_behavior_ids_are_unique_across_languages(self, hub):
         hub.rows = {"hindi": [_aya("a"), _aya("b")], "arabic": [_aya("c")]}
         rows = load_prompts("aya_redteaming", {"languages": ["hi", "ar"]})
-        assert [r["behavior_id"] for r in rows] == ["hi-0", "hi-1", "ar-0"]
+        assert [r["behavior_id"] for r in rows] == ["hi-0", "ar-0", "hi-1"]
         assert rows[0]["aya_category"] == "Bullying, Graphic"
 
     @pytest.mark.parametrize("name", ["multijail", "aya_redteaming"])

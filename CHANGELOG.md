@@ -7,14 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- `multijail` and `aya_redteaming` benchmarks, in `evaluate()` and `load_prompts()`:
-  `load_multijail` gives 315 harmful prompts in each of 10 languages, and `load_aya_redteaming`
-  gives prompts written by native speakers of 8 languages. Each row has a `language` column, and
-  `languages=` picks a subset. The English refusal lists and the default judge have not been
-  validated on these languages, so check a judge before trusting the ASR.
-
 ### Security
 
 - Code rewards (`code_execution`, `code_correctness`, `mbpp_reward`) no longer trust the output
@@ -42,11 +34,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   effective batch size. Off by default; without it, accumulation still raises `ValueError` (reported in #80).
 - The `SafeGradTrainer` runner takes `gradient_accumulation_steps` and `surgery_per_optimizer_step` and passes them to
   the training arguments and to `SafeGradHFTrainer`.
+- `multijail` and `aya_redteaming` benchmarks, in `evaluate()` and `load_prompts()`:
+  `load_multijail` gives 315 harmful prompts in each of 10 languages, and `load_aya_redteaming`
+  gives prompts written by native speakers of 8 languages. Each row has a `language` column, and
+  `languages=` picks a subset. The English refusal lists and the default judge have not been
+  validated on these languages, so check a judge before trusting the ASR. `evaluate()` pools all
+  languages into one ASR. Aya Red-teaming rows alternate between languages, so `max_prompts` keeps
+  every language, and a local one-split copy gets language codes and honours `languages=` (#87).
 - `layer_fraction=` on `circuit_info_from_node_scores`, `load_circuit_info_from_file` and
   `get_circuit_info` ranks layers by total absolute node score (new `layer_mass` and `top_layers`).
   By default a layer counts when it holds any top-20% node, and top nodes are spread through a
-  model, so `layer_subset` can cover nearly every layer (30 of 36 in the report on Tiny Aya) and a
-  circuit-restricted edit restricts little. It is opt-in, so existing results don't change. With a
+  model, so `layer_subset` can cover nearly every layer (30 of 36 in the report on Tiny Aya; every
+  layer of GPT-2 and Llama-3.2-1B in EAP-IG score files) and a circuit-restricted edit restricts
+  little. It is opt-in, so existing results don't change. With a
   CircuitKIT 0.2 file it replaces the file's `safety_units` and `layer_suggestions` (#86).
 
 ### Fixed
