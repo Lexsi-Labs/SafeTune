@@ -44,9 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `layer_fraction=` on `circuit_info_from_node_scores`, `load_circuit_info_from_file` and
   `get_circuit_info` ranks layers by total absolute node score (new `layer_mass` and `top_layers`).
   By default a layer counts when it holds any top-20% node, and top nodes are spread through a
-  model, so `layer_subset` can cover nearly every layer (30 of 36 in the report on Tiny Aya; every
-  layer of GPT-2 and Llama-3.2-1B in EAP-IG score files) and a circuit-restricted edit restricts
-  little. It is opt-in, so existing results don't change. With a
+  model, so `layer_subset` can cover nearly every layer (30 of 36 in the report on Tiny Aya; 16 of
+  16 on Llama-3.2-1B and 10 to 12 of 12 on GPT-2 in EAP-IG score files) and a circuit-restricted
+  edit restricts little. It is opt-in, so existing results don't change. With a
   CircuitKIT 0.2 file it replaces the file's `safety_units` and `layer_suggestions` (#86).
 
 ### Fixed

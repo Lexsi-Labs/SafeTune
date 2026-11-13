@@ -59,9 +59,11 @@ Default prompt sets:
 
 Each row of these two has a `language` column, and `load_multijail(["bn", "sw"])` or
 `load_prompts("multijail", {"languages": "bn"})` picks languages.
-`evaluate(benchmarks=["multijail"])` runs every language and reports one pooled ASR; for a
-score per language, load one language at a time. Rows alternate between languages, so
-`max_prompts` keeps a prefix that covers all of them.
+`evaluate(benchmarks=["multijail"])` runs every language and reports one pooled ASR, and it
+has no per-language option. For Aya Red-teaming, setting the dataset table's split runs one
+language, e.g. `safetune.configure(datasets={"aya_redteaming": {"split": "hindi"}})`. For
+MultiJail, take one language's rows from `load_multijail` or `load_prompts`. Rows of both
+alternate between languages, so `max_prompts` keeps a prefix that covers all of them.
 
 !!! warning "Multilingual scores depend on the judge"
     SafeTune's refusal string lists are English, and the default `wildguard` judge has
