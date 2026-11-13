@@ -526,15 +526,15 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         """Register a post-forward ablation hook on every decoder layer."""
         layers = _get_decoder_layers(self.model)
         if not layers:
-            logger.warning(
+            # Without hooks there is no ablation, and training would be plain SFT
+            # reported as DeepRefusal.
+            raise ValueError(
                 "DeepRefusalTrainer: could not locate decoder layers "
                 "(expected model.model.language_model.layers [Gemma-3], "
-                "model.model.layers [LLaMA/Mistral/Qwen/Gemma], or "
-                "model.transformer.h [GPT-style]). "
-                "Ablation hooks will not be installed; the trainer will "
-                "still run but behaves like plain SFT (no ablation)."
+                "model.model.layers [LLaMA/Mistral/Qwen/Gemma], "
+                "model.transformer.h [GPT-style], or any nn.ModuleList), so the "
+                "refusal-direction ablation hooks cannot be installed."
             )
-            return
 
         for layer in layers:
             hook_obj = _AblationHook(self._d_norm, self._ablation_prob)

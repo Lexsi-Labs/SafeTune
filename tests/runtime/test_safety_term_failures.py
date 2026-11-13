@@ -105,3 +105,19 @@ def test_ctrap_failed_collapse_term_raises():
     tr = H.CTRAPHFTrainer(model=model, args=_cpu(H.CTRAPConfig), harmful_dataset=harmful)
     with pytest.raises(IndexError):       # main: L_collapse = 0 with a warning
         tr.compute_loss(model, _batch(1))
+
+
+def test_deeprefusal_without_decoder_layers_raises():
+    class NoLayers(torch.nn.Module):     # no nn.ModuleList anywhere: nowhere to hook the ablation
+        def __init__(self):
+            super().__init__()
+            self.emb = torch.nn.Embedding(VOCAB, 16)
+            self.head = torch.nn.Linear(16, VOCAB)
+
+        def forward(self, input_ids=None, labels=None, **_):
+            logits = self.head(self.emb(input_ids))
+            return type("O", (), {"logits": logits, "loss": None})()
+
+    with pytest.raises(ValueError, match="could not locate decoder layers"):
+        DeepRefusalTrainer(model=NoLayers(), args=_cpu(DeepRefusalConfig, lora_r=0),
+                           refusal_direction=torch.randn(16), harmful_dataset=[_row(_batch(1))])
