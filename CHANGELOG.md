@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `multijail` and `aya_redteaming` benchmarks, in `evaluate()` and `load_prompts()`:
+  `load_multijail` gives 315 harmful prompts in each of 10 languages, and `load_aya_redteaming`
+  gives prompts written by native speakers of 8 languages. Each row has a `language` column, and
+  `languages=` picks a subset. The English refusal lists and the default judge have not been
+  validated on these languages, so check a judge before trusting the ASR.
+
 ### Security
 
 - Code rewards (`code_execution`, `code_correctness`, `mbpp_reward`) no longer trust the output

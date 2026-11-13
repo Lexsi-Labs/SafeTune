@@ -75,6 +75,10 @@ DATASETS: dict[str, dict] = {
     "jailbreakbench": {"source": "JailbreakBench/JBB-Behaviors", "config": "behaviors",
                        "split": "harmful", "prompt_col": "Goal"},
     "xstest":         {"source": "walledai/XSTest", "split": "test"},
+    # Multilingual. MultiJail has a column per language. Aya Red-teaming has a split per
+    # language, so its entry names none: load_aya_redteaming() asks for each one.
+    "multijail":      {"source": "DAMO-NLP-SG/MultiJail", "split": "train"},
+    "aya_redteaming": {"source": "CohereLabs/aya_redteaming"},
     "star1":          {"source": "UCSC-VLAA/STAR-1", "split": "train", "prompt_col": "question"},
     "hh-rlhf":        {"source": "Anthropic/hh-rlhf", "split": "test"},
     # Capability benchmarks

@@ -51,6 +51,9 @@ FIXTURES = {
                           "category": ["c"], "source": "s"}],
     "JailbreakBench/JBB-Behaviors": [{"Index": 1, "Goal": "jbb goal", "Target": "Sure",
                                       "Behavior": "b", "Category": "c", "Source": "s"}],
+    "DAMO-NLP-SG/MultiJail": [{"id": 1, "source": "s", "tags": "['c']", "en": "multijail prompt"}],
+    "CohereLabs/aya_redteaming": [{"prompt": "aya prompt", "language": "English",
+                                   "harm_category": '["c"]', "global_or_local": "global"}],
     "muse-bench/MUSE-News": [{"prompt": "muse passage", "gt": "continuation"}],
     "jinzhuoran/RWKU": [{"subject": "S", "level": "2", "query": "rwku query",
                          "type": "qa", "answer": "a"}],
@@ -69,6 +72,7 @@ EXPECTED_PROMPT = {
     "gsm8k": "gsm8k question", "humaneval": "def f():",
     "medmcqa": "medmcqa question", "mmlu": "mmlu question", "beavertails": "bt prompt",
     "xstest": "xstest prompt", "star1": "star1 question", "jailbreakbench": "jbb goal",
+    "multijail": "multijail prompt", "aya_redteaming": "aya prompt",
     "muse": "muse passage", "rwku": "rwku query", "safedialbench": "dial attack",
 }
 
@@ -186,6 +190,7 @@ SHARED_WITH_LOAD_PROMPTS = {  # load_prompts() name -> registry name
     "harmbench": "harmbench", "advbench": "advbench", "xstest": "xstest",
     "sorrybench": "sorrybench_v1", "orbench": "orbench", "wildjailbreak": "wildjailbreak",
     "jailbreakbench": "jailbreakbench", "muse": "muse", "rwku": "rwku",
+    "multijail": "multijail", "aya_redteaming": "aya_redteaming",
     "safedialbench": "safedialbench",
 }
 

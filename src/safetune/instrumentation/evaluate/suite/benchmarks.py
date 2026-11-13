@@ -204,6 +204,29 @@ _BENCHMARKS: List[BenchmarkSpec] = [
         tags=["jailbreak", "asr", "community-standard"],
     ),
     BenchmarkSpec(
+        name="multijail",
+        display_name="MultiJail",
+        loader="safetune.data.loaders.load_multijail",
+        category="jailbreak",
+        description=(
+            "MultiJail (Deng et al., arXiv:2310.06474): 315 harmful prompts in 10 languages "
+            "(3,150 rows). Check that the judge reads these languages before trusting the ASR."
+        ),
+        tags=["jailbreak", "asr", "multilingual"],
+    ),
+    BenchmarkSpec(
+        name="aya_redteaming",
+        display_name="Aya Red-teaming",
+        loader="safetune.data.loaders.load_aya_redteaming",
+        category="jailbreak",
+        description=(
+            "Aya Red-teaming (Aakanksha et al., arXiv:2406.18682): harmful prompts written by "
+            "native speakers of 8 languages. Check that the judge reads these languages before "
+            "trusting the ASR."
+        ),
+        tags=["jailbreak", "asr", "multilingual"],
+    ),
+    BenchmarkSpec(
         name="muse",
         display_name="MUSE",
         loader="safetune.data.loaders.load_muse",

@@ -161,6 +161,8 @@ DATASET_DEFAULTS = {
     "jailbreakbench": {"source": "JailbreakBench/JBB-Behaviors", "config": "behaviors",
                        "split": "harmful", "prompt_col": "Goal"},  # D15; prompt_col ST-07
     "xstest": {"source": "walledai/XSTest", "split": "test"},  # D16
+    "multijail": {"source": "DAMO-NLP-SG/MultiJail", "split": "train"},
+    "aya_redteaming": {"source": "CohereLabs/aya_redteaming"},
     "star1": {"source": "UCSC-VLAA/STAR-1", "split": "train",
               "prompt_col": "question"},  # D18; prompt_col ST-07
     "hh-rlhf": {"source": "Anthropic/hh-rlhf", "split": "test"},  # D26
@@ -245,6 +247,9 @@ def _call_sites():
                           ("bench-llm/or-bench", "or-bench-toxic", "train")]),
         (B.load_jailbreakbench, [("JailbreakBench/JBB-Behaviors", "behaviors", "harmful")]),
         (B.load_xstest, [("walledai/XSTest", None, "test")]),
+        (B.load_multijail, [("DAMO-NLP-SG/MultiJail", None, "train")]),
+        (B.load_aya_redteaming, [("CohereLabs/aya_redteaming", None, split)
+                                 for split in B.AYA_REDTEAMING_SPLITS.values()]),
         (B.load_beavertails, [(BT, None, "30k_train")]),
         (B.load_star1, [("UCSC-VLAA/STAR-1", None, "train")]),
         (B.load_mmlu, [("cais/mmlu", "all", "test")]),
