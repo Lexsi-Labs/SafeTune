@@ -66,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   always failed and, before the change above, `AsFTHFTrainer` trained without it.
 - `DeepRefusalTrainer` raises `ValueError` when it cannot find the model's decoder layers. It used to warn and train
   without the ablation hooks, which is plain SFT.
+- `SurgeryHFTrainer` raises `ValueError` for an empty `refusal_dataset` or `harmful_dataset`: at construction when the
+  dataset has a length, otherwise on the first step. Its cycling iterator used to loop forever on an empty dataset.
 - No `torch.dot` is left in SafeTune: SafeDelta's gradient projection, the Antibody attenuation, `SEALDataSelector`
   scoring, the CAST condition similarity and `tracin_influence` compute their dot products as `(a * b).sum()`, so they
   run on CUDA with torch 2.10.0+cu126. `SEALDataSelector.score_examples` also raises when an example fails instead of

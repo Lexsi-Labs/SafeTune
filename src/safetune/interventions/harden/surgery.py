@@ -135,19 +135,30 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
         self._surgery = SurgeryWrapper(_CoreSurgeryConfig(sink_lambda=sink_lambda))
         
         self._refusal_dataset = refusal_dataset
-        self._refusal_iter: Optional[Iterator] = self._build_cyclic_iter(refusal_dataset)
+        self._refusal_iter: Optional[Iterator] = self._build_cyclic_iter(refusal_dataset, "refusal")
         
         self._harmful_dataset = harmful_dataset
-        self._harmful_iter: Optional[Iterator] = self._build_cyclic_iter(harmful_dataset)
+        self._harmful_iter: Optional[Iterator] = self._build_cyclic_iter(harmful_dataset, "harmful")
 
-    def _build_cyclic_iter(self, dataset: Optional[Iterable]) -> Optional[Iterator]:
-        """Creates an infinite iterator over a dataset without memory caching."""
+    def _build_cyclic_iter(self, dataset: Optional[Iterable], name: str) -> Optional[Iterator]:
+        """Creates an infinite iterator over a dataset without memory caching.
+
+        An empty dataset raises ``ValueError`` (at construction when it has a length,
+        otherwise on the first batch) instead of looping forever.
+        """
         if dataset is None:
             return None
+        if hasattr(dataset, "__len__") and len(dataset) == 0:
+            raise ValueError(f"SurgeryHFTrainer: {name}_dataset is empty.")
+
         def _generator():
             while True:
+                empty = True
                 for batch in dataset:
+                    empty = False
                     yield batch
+                if empty:
+                    raise ValueError(f"SurgeryHFTrainer: {name}_dataset yielded no batches.")
         return _generator()
 
     def _next_batch(self, iterator: Optional[Iterator], name: str) -> Optional[Any]:

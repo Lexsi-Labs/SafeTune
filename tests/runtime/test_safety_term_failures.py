@@ -121,3 +121,18 @@ def test_deeprefusal_without_decoder_layers_raises():
     with pytest.raises(ValueError, match="could not locate decoder layers"):
         DeepRefusalTrainer(model=NoLayers(), args=_cpu(DeepRefusalConfig, lora_r=0),
                            refusal_direction=torch.randn(16), harmful_dataset=[_row(_batch(1))])
+
+
+@pytest.mark.timeout(30)   # main: an empty refusal dataset looped forever on the first step
+def test_surgery_empty_refusal_dataset_raises():
+    model = _llama()
+    with pytest.raises(ValueError, match="refusal_dataset is empty"):
+        H.SurgeryHFTrainer(model=model, args=_cpu(H.SurgeryConfig), refusal_dataset=[])
+
+    class NoLen:                          # an iterable without __len__ that yields nothing
+        def __iter__(self):
+            return iter(())
+
+    tr = H.SurgeryHFTrainer(model=model, args=_cpu(H.SurgeryConfig), refusal_dataset=NoLen())
+    with pytest.raises(ValueError, match="refusal_dataset yielded no batches"):
+        tr.compute_loss(model, _batch(1))
