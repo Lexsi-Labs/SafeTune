@@ -74,3 +74,27 @@ def test_gate_is_drawn_once_per_step():
         assert torch.equal(hook(None, None, (h,))[0], first)
     hook.set_active(False)
     assert hook.gate is None
+
+
+def test_deepspeed_backpropagates_the_combined_loss_once(tmp_path, monkeypatch):
+    # Under DeepSpeed each backward() can step the optimizer, so the two-pass
+    # split must not be used there: one parent training_step, combined loss.
+    import transformers as tf
+
+    calls = []
+    monkeypatch.setattr(tf.Trainer, "training_step",
+                        lambda self, model, inputs, *a, **k: calls.append(self._phase) or torch.tensor(0.0))
+    torch.manual_seed(0)
+    cfg = transformers.LlamaConfig(vocab_size=128, hidden_size=HIDDEN, intermediate_size=64,
+                                   num_hidden_layers=2, num_attention_heads=4, num_key_value_heads=4)
+    args = DeepRefusalConfig(output_dir=str(tmp_path), report_to=[], use_cpu=True)
+    trainer = DeepRefusalTrainer(model=transformers.LlamaForCausalLM(cfg), args=args,
+                                 refusal_direction=torch.randn(HIDDEN),
+                                 harmful_dataset=[_batch()], benign_dataset=[_batch()])
+    trainer.is_deepspeed_enabled = True
+    trainer.training_step(trainer.model, _batch())
+    assert calls == [None]
+    trainer.is_deepspeed_enabled = False
+    calls.clear()
+    trainer.training_step(trainer.model, _batch())
+    assert calls == ["harmful", "benign"]

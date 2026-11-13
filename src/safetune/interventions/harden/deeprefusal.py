@@ -618,7 +618,13 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         backward).  Calling the parent ``training_step`` once per term keeps
         HF's loss scaling, AMP and accelerate handling unchanged; the
         accumulated gradient is the gradient of the combined loss.
+
+        Under DeepSpeed each ``backward()`` can also step the optimizer (at a
+        gradient-accumulation boundary), so two passes would split one update
+        in two; there the combined loss is back-propagated once, as before.
         """
+        if getattr(self, "is_deepspeed_enabled", False):
+            return super().training_step(model, inputs, *args, **kwargs)
         try:
             self._phase = "harmful"
             loss_harmful = super().training_step(model, inputs, *args, **kwargs)

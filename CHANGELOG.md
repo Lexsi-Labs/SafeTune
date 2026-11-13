@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `DeepRefusalTrainer` gives the right gradient with gradient checkpointing. The ablation hooks were
+  switched off before the Trainer's `backward()`, so the checkpoint recomputation ran without the
+  ablation: reentrant checkpointing gave a gradient about 3% off, non-reentrant raised
+  `CheckpointError`. `training_step` now back-propagates the harmful (ablated) and benign terms
+  separately, each under its own hook state, and the ablation gate is drawn once per step. Under
+  DeepSpeed, where each backward can step the optimizer, the combined loss is still back-propagated
+  once. The no-data fallback loss is now connected to the trainable parameters (reported in #79).
 - `RefusalDirectionModel.installed` reports whether the hooks are attached. The
   refusal-direction guide now calls `wrapped.generate(...)`, which applies the hooks
   for the call, and notes that `wrapped.model.generate(...)` applies nothing unless
