@@ -101,7 +101,9 @@ class AsFTWrapper:
             # Project gradient onto alignment direction
             flat_g = g.view(-1)
             flat_d = d_align.view(-1)
-            dot = torch.dot(flat_g, flat_d)
+            # (a * b).sum() rather than torch.dot: cuBLAS dot fails on some CUDA builds
+            # (torch 2.10 + cu126: CUBLAS_STATUS_NOT_SUPPORTED) and takes an int32 length.
+            dot = (flat_g * flat_d).sum()
 
             # Aligned component
             g_aligned = dot * flat_d
@@ -140,7 +142,7 @@ class AsFTWrapper:
             theta_aligned = self._aligned_sd[name].to(param.device).to(param.dtype)
             flat_delta = (param - theta_aligned).view(-1)
             flat_d = d_align.view(-1)
-            dot = torch.dot(flat_delta, flat_d)
+            dot = (flat_delta * flat_d).sum()   # not torch.dot, see apply_subspace_constraint
             delta_aligned = dot * flat_d
             delta_perp = flat_delta - delta_aligned
             penalty = penalty + delta_perp.norm().pow(2)

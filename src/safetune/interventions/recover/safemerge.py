@@ -53,7 +53,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
@@ -117,6 +117,7 @@ def apply_safemerge(
     merge_type: str = "linear",
     density: Optional[float] = None,
     only_2d: bool = True,
+    strict: bool = False,
 ) -> nn.Module:
     """Selectively merge unsafe fine-tuned layers toward the safety-aligned model.
 
@@ -133,6 +134,7 @@ def apply_safemerge(
     if merge_type == "dare_linear" and density is None:
         density = 0.5
 
+    require_matched("apply_safemerge", finetuned, base, aligned, strict=strict)
     base_sd = base.state_dict()
     aligned_sd = aligned.state_dict()
     ft_params = dict(finetuned.named_parameters()) # Use parameters for in-place copy

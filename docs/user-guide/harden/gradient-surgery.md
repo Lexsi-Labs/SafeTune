@@ -68,6 +68,8 @@ trainer.train(train_dataset, safety_dataset=safety_dataset)
 | `rho` | `float` | `1.0` | Gradient-surgery alignment weight: `g_final = g'_user + rho * g_align` |
 | `kl_temperature` | `float` | `1.0` | KL alignment temperature |
 | `reference_model_path` | `str` | `None` | HF path/ID of the frozen aligned reference for the KL signal; falls back to the tokenizer's model id |
+| `gradient_accumulation_steps` | `int` | `1` | Micro-batches per optimizer step. Above 1 it needs `surgery_per_optimizer_step=True` |
+| `surgery_per_optimizer_step` | `bool` | `False` | Run the surgery once per optimizer step, on the accumulated gradient (Algorithm 1 at the effective batch size) |
 
 ### Full example
 

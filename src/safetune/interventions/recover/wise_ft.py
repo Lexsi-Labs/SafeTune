@@ -37,7 +37,7 @@ from typing import Callable, Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, merged_adapter_copy, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +48,16 @@ def apply_wise_ft(
     aligned: nn.Module,
     alpha: float = 0.5,
     param_filter: Optional[Callable[[str, torch.Tensor], bool]] = None,
+    *,
+    strict: bool = False,
+    merge_adapter: bool = False,
 ) -> nn.Module:
     """WiSE-FT: interpolate drifted weights toward the aligned safety reference.
 
     Computes  ``W_new = alpha * W_aligned + (1 - alpha) * W_drifted``  for
     every parameter pair that exists in both ``model`` and ``aligned``.
-    Mutates ``model`` in place and returns it.
+    Mutates ``model`` in place and returns it. Raises ``ValueError`` when no parameter
+    name matches (a PEFT-wrapped model against a bare one; see ``merge_adapter``).
 
     Parameters
     ----------
@@ -69,15 +73,30 @@ def apply_wise_ft(
     param_filter:
         Optional callable ``(name, tensor) → bool``. When supplied, only
         parameters for which the callable returns True are interpolated.
+    strict:
+        Default ``False``: model parameters with no same-named entry in ``aligned`` are
+        left unchanged and counted in one log line (a warning). ``True`` raises
+        ``ValueError`` before any edit if there is one. Having no name in common always raises.
+    merge_adapter:
+        Default ``False``. For a PEFT ``model`` (LoRA) and a bare ``aligned`` reference:
+        ``True`` merges the adapter into a deep copy, interpolates the copy and returns it
+        as a bare model; ``model`` itself is not touched (the copy needs a second set of
+        weights in memory). ``aligned`` is a module or a state dict. With ``aligned`` the
+        base weights the adapter was trained on, the result is
+        ``base + (1 - alpha) * lora_update``: ``alpha`` scales the LoRA update by ``1 - alpha``.
+        With ``False`` a PEFT model against a bare reference raises ``ValueError``.
 
     Returns
     -------
-    The mutated ``model``.
+    The mutated ``model`` (the merged copy with ``merge_adapter=True``).
     """
     if not 0.0 <= alpha <= 1.0:
         raise ValueError(f"alpha must be in [0, 1], got {alpha}")
 
-    aligned_sd = aligned.state_dict()
+    if merge_adapter:
+        model = merged_adapter_copy(model, "apply_wise_ft")
+    require_matched("apply_wise_ft", model, aligned, strict=strict)
+    aligned_sd = aligned.state_dict() if hasattr(aligned, "state_dict") else dict(aligned)
     n_applied = 0
     n_skipped_filter = 0
     n_missing = 0

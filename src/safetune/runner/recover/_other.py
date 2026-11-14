@@ -102,6 +102,7 @@ class SafeReActTrainer(_RecoverBase):
             self.model,
             reference_model=self.reference_model,
             probe_inputs=active_inputs,
+            strict=self.strict,
         )
 
 # ── SCRUBTrainer ──────────────────────────────────────────────────────────────

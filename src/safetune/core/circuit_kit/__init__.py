@@ -21,8 +21,10 @@ from .adapter import (
     circuit_info_from_node_scores,
     circuit_info_to_dict,
     get_circuit_info,
+    layer_mass,
     load_circuit_info_from_file,
     save_circuit_info_to_file,
+    top_layers,
 )
 
 __all__ = [
@@ -34,7 +36,9 @@ __all__ = [
     "load_circuit_info_from_file",
     "circuit_info_from_node_scores",
     "circuit_info_to_dict",
+    "layer_mass",
     "save_circuit_info_to_file",
+    "top_layers",
 ]
 
 # ── Top-level re-export ──────────────────────────────────────────────────────

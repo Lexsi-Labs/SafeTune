@@ -59,7 +59,7 @@ for bench, result in results.items():
 
 The full registry also includes `wildjailbreak`, `sorrybench_v1`, `hexphi`,
 `orbench` (and its splits `orbench_hard`, `orbench_toxic`), `ailuminate`,
-`safedialbench`, and capability sets (`mmlu`,
+`safedialbench`, the multilingual `multijail` and `aya_redteaming`, and capability sets (`mmlu`,
 `gsm8k`, `humaneval`). If `benchmarks` is omitted, `evaluate` runs the paper
 safety suite.
 

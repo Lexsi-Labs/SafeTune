@@ -888,6 +888,14 @@ def test_mart_trainer_one_round():
     adv = _MiniLM()
     tgt = _MiniLM()
 
+    # _MiniLM has no generate(); MART used to swallow the AttributeError and return empty
+    # responses, so this round trained nothing. Give the stubs a minimal one.
+    def _generate(input_ids, num_return_sequences=1, max_new_tokens=4, **_kw):
+        ids = input_ids.repeat_interleave(num_return_sequences, dim=0)
+        return torch.cat([ids, torch.randint(2, 64, (ids.shape[0], 4))], dim=1)
+
+    adv.generate = tgt.generate = _generate
+
     # MARTConfig is a plain dataclass (not TrainingArguments).
     cfg = MARTConfig(
         num_rounds=1,
@@ -909,6 +917,9 @@ def test_mart_trainer_one_round():
             ids = torch.randint(2, 64, (len(texts), 4))
             return {"input_ids": ids, "attention_mask": torch.ones_like(ids)}
 
+        def encode(self, text, add_special_tokens=True, truncation=True, max_length=16):
+            return torch.randint(2, 64, (4,)).tolist()
+
         def decode(self, ids, skip_special_tokens=True):
             return "dummy response"
 
@@ -927,7 +938,10 @@ def test_mart_trainer_one_round():
         helpfulness_reward_fn=lambda p, r: 0.7,
         config=cfg,
     )
+    before = [p.detach().clone() for p in tgt.parameters()]
     trainer.train()
+    # Phase B ran: every response scored safe, so M_tgt was fine-tuned on it.
+    assert any(not torch.equal(a, p) for a, p in zip(before, tgt.parameters()))
 
     # After training both models must still be functional.
     inputs = _batch()

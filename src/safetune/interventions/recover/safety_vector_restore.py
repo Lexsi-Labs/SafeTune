@@ -48,7 +48,7 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +96,7 @@ def apply_safety_vector_restore(
     alpha: float = 1.0,
     rank: Optional[int] = 8,
     target_modules: Optional[List[str]] = None,
+    strict: bool = False,
 ) -> nn.Module:
     """Re-inject the (aligned − drifted) safety vector, projected to top-rank.
 
@@ -126,6 +127,7 @@ def apply_safety_vector_restore(
         logger.warning("apply_safety_vector_restore: alpha=0 — no change applied.")
         return model
 
+    require_matched("apply_safety_vector_restore", model, aligned, strict=strict)
     aligned_sd = aligned.state_dict()
     n_applied = 0
     n_missing = 0

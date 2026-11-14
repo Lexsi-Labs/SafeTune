@@ -25,8 +25,12 @@ class _RecoverBase:
         model_id=None,
         results_dir: str = None,
         drift_task: str = None,
+        strict: bool = False,
         **kwargs,
     ):
+        # ``strict`` is read by the methods that match weights by name: True raises when a model
+        # parameter has no same-named entry in the reference (no match at all always raises).
+        self.strict = strict
         self.model_id = derive_model_id(model_id, model)
         self.model = model
         self.results_dir = results_dir or DEFAULT_RESULTS_DIR

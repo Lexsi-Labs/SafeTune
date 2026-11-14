@@ -16,3 +16,7 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+    # Major action versions can change inputs (e.g. slack-github-action v4); bump those by hand.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

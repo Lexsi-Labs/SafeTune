@@ -43,7 +43,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,7 @@ def apply_mscp(
     base_param_path: Optional[str] = None,
     neuron_mask: Optional[Dict[str, Any]] = None,
     neuron_mask_path: Optional[str] = None,
+    strict: bool = False,
     **extra: Any,
 ) -> nn.Module:
     """Apply Multi-Level Safety Continual Projection to ``model`` in place.
@@ -196,6 +197,7 @@ def apply_mscp(
             base=resolved_base,
             neuron_mask=resolved_mask,
             coefficient=float(coefficient),
+            strict=strict,
         )
         return model
 
@@ -234,6 +236,7 @@ def _mscp_safety_projection(
     base: Dict[str, Any],
     neuron_mask: Optional[Dict[str, Any]],
     coefficient: float,
+    strict: bool = False,
 ) -> None:
     """Faithful MSCP sparse safety projection — paper Eq. 6-7.
 
@@ -254,6 +257,7 @@ def _mscp_safety_projection(
     """
     import torch as _torch
 
+    require_matched("apply_mscp", model, aligned, base, strict=strict)
     projected = 0
     skipped_shape = 0
     total = 0

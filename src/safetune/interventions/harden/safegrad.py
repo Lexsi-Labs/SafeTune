@@ -33,6 +33,7 @@ degrades gracefully to vanilla training (with a warning).
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from itertools import cycle
 from typing import Any, Iterable, Iterator, List, Optional
 
@@ -99,14 +100,24 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
             (``theta_0`` in the paper). When supplied, ``g_align`` is computed
             from the paper's KL-divergence alignment loss
             ``D_KL(P_reference || P_finetuned)`` on the alignment batch -- the
-            paper's headline mode. When ``None``, the SFT-loss proxy is used.
+            paper's headline mode; it needs ``safety_dataset``. When ``None``,
+            the SFT-loss proxy is used.
         rho: trade-off weight on the alignment gradient in the combined update
             ``g_final = g'_user + rho * g_align`` (paper default 1.0).
         kl_temperature: softmax temperature for the KL alignment loss
             (paper default 1.0).
+        surgery_per_optimizer_step: run the surgery once per optimizer step
+            instead of after every micro-batch, which allows
+            ``gradient_accumulation_steps > 1``. The task gradient accumulates
+            over the micro-batches, and on the last one (when
+            ``accelerator.sync_gradients`` is True) one safety batch is drawn,
+            ``g_align`` is computed and the projection is applied to the
+            accumulated gradient: Algorithm 1 at the effective batch size.
+            Default False.
         **kwargs: forwarded to :class:`transformers.Trainer`.
 
     Note:
+        With ``surgery_per_optimizer_step=False`` (the default),
         ``gradient_accumulation_steps`` must be 1 (a ``ValueError`` is raised
         otherwise): the surgery runs per micro-batch, so with accumulation the
         alignment term would be added once per micro-batch.
@@ -119,6 +130,7 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         reference_model: Optional[Any] = None,
         rho: float = 1.0,
         kl_temperature: float = 1.0,
+        surgery_per_optimizer_step: bool = False,
         **kwargs: Any,
     ) -> None:
         if _TRAINER_IMPORT_ERROR is not None:
@@ -135,13 +147,17 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
             ) from _SAFEGRAD_IMPORT_ERROR
 
         super().__init__(*args, **kwargs)
-        if int(getattr(self.args, "gradient_accumulation_steps", 1) or 1) > 1:
+        self._surgery_per_optimizer_step = bool(surgery_per_optimizer_step)
+        if (not self._surgery_per_optimizer_step
+                and int(getattr(self.args, "gradient_accumulation_steps", 1) or 1) > 1):
             raise ValueError(
-                "SafeGradHFTrainer does not support gradient_accumulation_steps > 1: the "
-                "gradient surgery runs after every micro-batch and adds rho * g_align each "
-                "time, while the task loss is divided by the accumulation steps, so the "
-                "update would no longer be Algorithm 1's g'_user + rho * g_align. Use "
-                "gradient_accumulation_steps=1 (raise per_device_train_batch_size instead)."
+                "SafeGradHFTrainer with gradient_accumulation_steps > 1 needs "
+                "surgery_per_optimizer_step=True: by default the gradient surgery runs after "
+                "every micro-batch and adds rho * g_align each time, while the task loss is "
+                "divided by the accumulation steps, so the update would no longer be "
+                "Algorithm 1's g'_user + rho * g_align. Pass surgery_per_optimizer_step=True "
+                "to run the surgery once on the accumulated gradient, or use "
+                "gradient_accumulation_steps=1."
             )
         self._safety_dataset = safety_dataset
         self._safety_iter: Optional[Iterator] = (
@@ -162,6 +178,11 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         # its own global surgery and does not rely on the per-parameter hooks.
         self._projector = SafeGradProjector(self.model)
 
+        if safety_dataset is None and reference_model is not None:
+            raise ValueError(
+                "SafeGradHFTrainer: reference_model needs a safety_dataset; the KL "
+                "alignment loss is measured on its batches."
+            )
         if safety_dataset is None and reference_model is None:
             logger.warning(
                 "SafeGradHFTrainer: neither safety_dataset nor reference_model "
@@ -187,7 +208,7 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         """Move a batch onto the model's device, using HF's helper if present."""
         if hasattr(self, "_prepare_inputs"):
             batch = self._prepare_inputs(batch)
-        if isinstance(batch, dict):
+        if isinstance(batch, Mapping):   # a dict or a tokenizer's BatchEncoding
             device = getattr(model, "device", None)
             if device is not None:
                 batch = {
@@ -214,56 +235,49 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         params = self._trainable_params(model)
         if not params:
             return None
-        try:
-            prepared = self._prepare_batch(safety_batch, model)
-            if not isinstance(prepared, dict):
-                logger.warning(
-                    "SafeGradHFTrainer: safety batch is not a dict; cannot "
-                    "compute alignment gradient this step."
-                )
-                return None
-
-            if self._reference_model is not None and safegrad_kl_alignment_loss is not None:
-                # Paper's KL-divergence alignment loss against frozen theta_0.
-                student_out = model(**prepared)
-                with torch.no_grad():
-                    ref_inputs = {
-                        k: (v.to(self._reference_model.device)
-                            if hasattr(v, "to") else v)
-                        for k, v in prepared.items()
-                    }
-                    ref_out = self._reference_model(**ref_inputs)
-                aligned_logits = ref_out.logits.detach().to(student_out.logits.device)
-                align_loss = safegrad_kl_alignment_loss(
-                    student_out.logits,
-                    aligned_logits,
-                    temperature=self._kl_temperature,
-                )
-            else:
-                # SFT-loss proxy alignment signal.
-                align_loss = model(**prepared).loss
-
-            if align_loss is None or not getattr(align_loss, "requires_grad", False):
-                logger.warning(
-                    "SafeGradHFTrainer: alignment loss does not require grad; "
-                    "skipping surgery this step."
-                )
-                return None
-
-            grads = torch.autograd.grad(
-                align_loss, params, allow_unused=True, retain_graph=False
+        # No catch-all here: a failed alignment pass must stop training, not turn the
+        # step into plain fine-tuning that is still reported as SafeGrad.
+        prepared = self._prepare_batch(safety_batch, model)
+        if not isinstance(prepared, Mapping):
+            raise TypeError(
+                "SafeGradHFTrainer: safety batches must be mappings of model inputs, got "
+                f"{type(prepared).__name__}."
             )
-            return [
-                g.detach() if g is not None else torch.zeros_like(p)
-                for g, p in zip(grads, params)
-            ]
-        except Exception as exc:  # pragma: no cover - robustness guard
-            logger.warning(
-                "SafeGradHFTrainer: failed to compute alignment gradient (%s); "
-                "skipping surgery this step.",
-                exc,
+
+        if self._reference_model is not None:
+            # Paper's KL-divergence alignment loss against frozen theta_0.
+            student_out = model(**prepared)
+            with torch.no_grad():
+                ref_inputs = {
+                    k: (v.to(self._reference_model.device)
+                        if hasattr(v, "to") else v)
+                    for k, v in prepared.items()
+                }
+                ref_out = self._reference_model(**ref_inputs)
+            aligned_logits = ref_out.logits.detach().to(student_out.logits.device)
+            align_loss = safegrad_kl_alignment_loss(
+                student_out.logits,
+                aligned_logits,
+                temperature=self._kl_temperature,
+                attention_mask=prepared.get("attention_mask"),
             )
-            return None
+        else:
+            # SFT-loss proxy alignment signal.
+            align_loss = model(**prepared).loss
+
+        if align_loss is None or not getattr(align_loss, "requires_grad", False):
+            raise ValueError(
+                "SafeGradHFTrainer: the alignment loss is missing or does not require grad "
+                "(in SFT mode the safety batches need `labels`)."
+            )
+
+        grads = torch.autograd.grad(
+            align_loss, params, allow_unused=True, retain_graph=False
+        )
+        return [
+            g.detach() if g is not None else torch.zeros_like(p)
+            for g, p in zip(grads, params)
+        ]
 
     def _apply_global_surgery(self, model: Any, g_align: List[Any]) -> None:
         """Project the (already-populated) ``.grad`` of every trainable param.
@@ -338,18 +352,15 @@ class SafeGradHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
             # Older transformers signatures without num_items_in_batch.
             loss = super().training_step(model, inputs)
 
-        # 2. Compute the alignment gradient g_align (KL mode or SFT proxy).
-        safety_batch = self._next_safety_batch()
-        if safety_batch is None and self._reference_model is None:
-            # No alignment signal configured -> vanilla training.
+        # With surgery_per_optimizer_step, only the micro-batch that ends the accumulation
+        # window runs the surgery, on the accumulated g_user; the others just accumulate.
+        if self._surgery_per_optimizer_step and not self.accelerator.sync_gradients:
             return loss
 
+        # 2. Compute the alignment gradient g_align (KL mode or SFT proxy).
+        safety_batch = self._next_safety_batch()
         if safety_batch is None:
-            # Reference set but no alignment data to evaluate KL on.
-            logger.warning(
-                "SafeGradHFTrainer: reference_model supplied without a "
-                "safety_dataset; no alignment data this step."
-            )
+            # No alignment signal configured -> vanilla training.
             return loss
 
         g_align = self._alignment_gradient(model, safety_batch)

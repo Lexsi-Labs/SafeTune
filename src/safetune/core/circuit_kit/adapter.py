@@ -7,9 +7,10 @@ the adapter returns None and SafeTune works without circuits.
 
 import json
 import logging
+import math
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from .interface import (
     CircuitInfo,
@@ -20,7 +21,9 @@ from .interface import (
 logger = logging.getLogger(__name__)
 
 
-def load_circuit_info_from_file(filepath: str, *, top_fraction: float = 0.2) -> Optional[CircuitInfo]:
+def load_circuit_info_from_file(
+    filepath: str, *, top_fraction: float = 0.2, layer_fraction: Optional[float] = None
+) -> Optional[CircuitInfo]:
     """
     Load circuit info from a JSON or YAML file (CircuitKIT output format).
 
@@ -30,6 +33,11 @@ def load_circuit_info_from_file(filepath: str, *, top_fraction: float = 0.2) -> 
     - or only CircuitKIT's "node_scores" ({node name: score}, e.g. a
       ``*_scores.json`` from CircuitKIT < 0.2): both are then derived from the
       top ``top_fraction`` of nodes by score (see ``circuit_info_from_node_scores``).
+
+    ``layer_fraction`` selects layers by total node score instead. It needs
+    "node_scores", and it replaces any "safety_units" / "layer_suggestions" in the
+    file, because CircuitKIT 0.2 writes those with every layer holding a top node.
+    Without "node_scores" it can't apply: the file's keys are used and a warning logged.
 
     A missing file returns ``None`` (with a warning). Any unreadable or invalid file raises
     ``ValueError`` naming the path and the reason: it cannot be parsed, it is not a mapping (an
@@ -60,7 +68,9 @@ def load_circuit_info_from_file(filepath: str, *, top_fraction: float = 0.2) -> 
             f"Circuit file {filepath} must hold a mapping of circuit keys, got "
             f"{'nothing (empty file)' if data is None else type(data).__name__}."
         )
-    return _dict_to_circuit_info(data, raw_output_path=filepath, top_fraction=top_fraction)
+    return _dict_to_circuit_info(
+        data, raw_output_path=filepath, top_fraction=top_fraction, layer_fraction=layer_fraction
+    )
 
 
 # CircuitKIT node names: "A3.5" (layer 3, head 5), "MLP 3" (node) or "L3.42" (neuron).
@@ -71,10 +81,56 @@ _ATTN_PROJ = ("q_proj", "k_proj", "v_proj", "o_proj")
 _MLP_PROJ = ("gate_proj", "up_proj", "down_proj")
 
 
+def _node_layer(name: str) -> Optional[int]:
+    """The layer of a CircuitKIT node name; ``None`` when it names none ("input", "logits")."""
+    m = _HEAD.match(name) or _MLP.match(name)
+    return int(m.group(1)) if m else None
+
+
+def layer_mass(node_scores: Dict[str, float]) -> Dict[int, float]:
+    """Total absolute node score per layer, so opposite-signed nodes add up, not cancel.
+
+    Nodes that name no layer are skipped. Raises ``ValueError`` on a non-finite score
+    or when no node names a layer.
+    """
+    mass: Dict[int, float] = {}
+    for name, score in node_scores.items():
+        layer = _node_layer(name)
+        if layer is None:
+            continue
+        if not math.isfinite(score):
+            raise ValueError(f"CircuitKIT node_scores: {name!r} has the score {score}")
+        mass[layer] = mass.get(layer, 0.0) + abs(score)
+    if not mass:
+        raise ValueError(
+            "CircuitKIT node_scores: no node has a recognised name "
+            f"(A<layer>.<head>, 'MLP <layer>' or L<layer>.<neuron>); got {list(node_scores)[:5]}"
+        )
+    return mass
+
+
+def top_layers(node_scores: Dict[str, float], layer_fraction: float) -> List[int]:
+    """The top ``layer_fraction`` of layers by :func:`layer_mass`, in layer order.
+
+    Selects ``max(1, round(depth * layer_fraction))`` layers, where depth is the highest
+    scored layer plus one. Ties go to the lower layer. A layer with no score is never
+    selected, so fewer can come back. Raises ``ValueError`` when ``layer_fraction`` is
+    outside (0, 1] or every score is zero.
+    """
+    if not 0 < layer_fraction <= 1:
+        raise ValueError(f"layer_fraction must be in (0, 1], got {layer_fraction}")
+    mass = layer_mass(node_scores)
+    ranked = sorted((k for k, v in mass.items() if v > 0), key=lambda k: (-mass[k], k))
+    if not ranked:
+        raise ValueError("CircuitKIT node_scores: every score is zero")
+    return sorted(ranked[: max(1, round((max(mass) + 1) * layer_fraction))])
+
+
 def circuit_info_from_node_scores(
     node_scores: Dict[str, float],
     *,
     top_fraction: float = 0.2,
+    layer_fraction: Optional[float] = None,
     layers_path: str = "model.layers",
     attn_module: str = "self_attn",
     mlp_module: str = "mlp",
@@ -86,11 +142,21 @@ def circuit_info_from_node_scores(
     by score become ``safety_units`` (``activation_correlation`` = score / top score)
     and ``layer_suggestions`` (their layers, and the projections of the node kinds
     selected). Mirrors CircuitKIT 0.2's ``interop_fields``. Raises ``ValueError``
-    when no top node has a recognisable name."""
+    when no top node has a recognisable name.
+
+    By default a layer counts when it holds any top node. Top nodes are spread through
+    a model, so that can be nearly every layer, and a "circuit-restricted" edit then
+    restricts little. ``layer_fraction`` ranks layers by total node score instead
+    (:func:`top_layers`): those layers become ``layer_indices`` and ``layer_subset``,
+    and ``top_fraction`` then picks among the nodes inside them."""
     ranked = sorted(node_scores.items(), key=lambda kv: kv[1], reverse=True)
+    selected: List[int] = []
+    if layer_fraction is not None:
+        selected = top_layers(node_scores, layer_fraction)
+        ranked = [kv for kv in ranked if _node_layer(kv[0]) in selected]
     top = ranked[: max(1, round(len(ranked) * top_fraction))] if ranked else []
     peak = max((v for _, v in top), default=0.0) or 1.0
-    units, layers, kinds = [], set(), {}
+    units, layers, kinds = [], set(selected), {}
     for name, score in top:
         m = _HEAD.match(name) or _MLP.match(name)
         if not m:
@@ -109,6 +175,8 @@ def circuit_info_from_node_scores(
     priority = {p: w for kind, w in kinds.items()
                 for p in (attn_proj if kind == "attn" else mlp_proj)}
     meta = {"source": "circuitkit node_scores", "top_fraction": top_fraction}
+    if layer_fraction is not None:
+        meta["layer_fraction"] = layer_fraction
     return CircuitInfo(
         safety_units=SafetyRelevantUnits(
             layer_indices=sorted(layers),
@@ -152,7 +220,8 @@ def _check_section(sec: Dict[str, Any], allowed: set, name: str, where: str,
 
 
 def _dict_to_circuit_info(data: Dict[str, Any], raw_output_path: Optional[str] = None,
-                          top_fraction: float = 0.2) -> CircuitInfo:
+                          top_fraction: float = 0.2,
+                          layer_fraction: Optional[float] = None) -> CircuitInfo:
     """Convert dict (e.g. from JSON/YAML) to CircuitInfo."""
     where = f"Circuit data {raw_output_path}" if raw_output_path else "Circuit data"
     if not isinstance(data, dict):
@@ -187,16 +256,26 @@ def _dict_to_circuit_info(data: Dict[str, Any], raw_output_path: Optional[str] =
             metadata=ls.get("metadata", {}),
         )
 
-    if safety_units is None and layer_suggestions is None:
-        if data.get("node_scores"):
-            info = circuit_info_from_node_scores(
-                data["node_scores"], top_fraction=top_fraction, raw_output_path=raw_output_path)
-            info.metadata = data.get("metadata", {})
-            return info
+    no_keys = safety_units is None and layer_suggestions is None
+    if data.get("node_scores") and (no_keys or layer_fraction is not None):
+        info = circuit_info_from_node_scores(
+            data["node_scores"],
+            top_fraction=top_fraction,
+            layer_fraction=layer_fraction,
+            raw_output_path=raw_output_path,
+        )
+        info.metadata = data.get("metadata", {})
+        return info
+    if no_keys:
         raise ValueError(
             f"No circuit information in {raw_output_path or 'the circuit data'}: expected "
             "'safety_units', 'layer_suggestions' or CircuitKIT 'node_scores'; "
             f"found keys {sorted(data) if isinstance(data, dict) else type(data).__name__}")
+    if layer_fraction is not None:
+        logger.warning(
+            "layer_fraction ignored: %s has no node_scores to rank layers by",
+            raw_output_path or "the circuit data",
+        )
 
     return CircuitInfo(
         safety_units=safety_units,
@@ -214,14 +293,15 @@ def get_circuit_info(
     """
     Get circuit info from a file path.
 
-    Only ``source`` and the ``top_fraction`` keyword are used. ``model_name`` and every other
-    keyword are accepted and IGNORED (there is no API lookup); this function is not a
-    :class:`CircuitInfoProvider` implementation.
+    Only ``source`` and the ``top_fraction`` and ``layer_fraction`` keywords are used.
+    ``model_name`` and every other keyword are accepted and IGNORED (there is no API lookup);
+    this function is not a :class:`CircuitInfoProvider` implementation.
 
     Args:
         source: Path to a CircuitKIT-format file, or None to return None.
         model_name: ignored.
-        **kwargs: only ``top_fraction`` (for ``node_scores`` files) is read.
+        **kwargs: only ``top_fraction`` and ``layer_fraction`` (for ``node_scores`` files)
+            are read.
 
     Returns:
         CircuitInfo; ``None`` for no source or a missing file. An unreadable or invalid file
@@ -230,7 +310,11 @@ def get_circuit_info(
     if not source:
         return None
     # Warns and returns None when the file is missing; raises when it is unreadable or invalid.
-    return load_circuit_info_from_file(source, top_fraction=kwargs.get("top_fraction", 0.2))
+    return load_circuit_info_from_file(
+        source,
+        top_fraction=kwargs.get("top_fraction", 0.2),
+        layer_fraction=kwargs.get("layer_fraction"),
+    )
 
 
 # ── Writer ──────────────────────────────────────────────────────────────────

@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,7 @@ def apply_grad_selective_recover(
     target_modules: Optional[List[str]] = None,
     max_samples: int = 32,
     vllm_engine: Any = None,
+    strict: bool = False,
 ) -> nn.Module:
     """Gradient-guided selective weight rollback to the aligned checkpoint.
 
@@ -141,6 +142,7 @@ def apply_grad_selective_recover(
     if not 0.0 < top_fraction <= 1.0:
         raise ValueError(f"top_fraction must be in (0, 1], got {top_fraction}")
 
+    require_matched("grad_selective_recover", model, aligned, strict=strict)
     targets = target_modules or ["weight"]
 
     # Optional vLLM prompt ranking: use generation logprobs to put the most

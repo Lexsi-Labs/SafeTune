@@ -37,6 +37,7 @@ trainer raises instead of training without the penalty.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Iterator, Optional
 
@@ -134,35 +135,44 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
         self._surgery = SurgeryWrapper(_CoreSurgeryConfig(sink_lambda=sink_lambda))
         
         self._refusal_dataset = refusal_dataset
-        self._refusal_iter: Optional[Iterator] = self._build_cyclic_iter(refusal_dataset)
+        self._refusal_iter: Optional[Iterator] = self._build_cyclic_iter(refusal_dataset, "refusal")
         
         self._harmful_dataset = harmful_dataset
-        self._harmful_iter: Optional[Iterator] = self._build_cyclic_iter(harmful_dataset)
+        self._harmful_iter: Optional[Iterator] = self._build_cyclic_iter(harmful_dataset, "harmful")
 
-    def _build_cyclic_iter(self, dataset: Optional[Iterable]) -> Optional[Iterator]:
-        """Creates an infinite iterator over a dataset without memory caching."""
+    def _build_cyclic_iter(self, dataset: Optional[Iterable], name: str) -> Optional[Iterator]:
+        """Creates an infinite iterator over a dataset without memory caching.
+
+        An empty dataset raises ``ValueError`` (at construction when it has a length,
+        otherwise on the first batch) instead of looping forever.
+        """
         if dataset is None:
             return None
+        if hasattr(dataset, "__len__") and len(dataset) == 0:
+            raise ValueError(f"SurgeryHFTrainer: {name}_dataset is empty.")
+
         def _generator():
             while True:
+                empty = True
                 for batch in dataset:
+                    empty = False
                     yield batch
+                if empty:
+                    raise ValueError(f"SurgeryHFTrainer: {name}_dataset yielded no batches.")
         return _generator()
 
     def _next_batch(self, iterator: Optional[Iterator], name: str) -> Optional[Any]:
         if iterator is None:
             return None
-        try:
-            return next(iterator)
-        except Exception as e:
-            logger.warning(f"Failed to fetch next batch from {name} dataset: {e}")
-            return None
+        # No catch-all: a dataset that fails to yield (e.g. a collate error) must stop
+        # training, not drop the sink penalty and train as plain SFT.
+        return next(iterator)
 
     def _prepare_custom_batch(self, batch: Any, model: Any) -> Any:
         """Helper to process inputs efficiently."""
         if hasattr(self, "_prepare_inputs"):
             batch = self._prepare_inputs(batch)
-        if isinstance(batch, dict):
+        if isinstance(batch, Mapping):   # a dict or a tokenizer's BatchEncoding
             return {
                 k: v.to(model.device) if hasattr(v, "to") else v
                 for k, v in batch.items()
@@ -179,7 +189,7 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
             return False
             
         call_inputs = self._prepare_custom_batch(refusal_batch, model)
-        if isinstance(call_inputs, dict):
+        if isinstance(call_inputs, Mapping):
             call_inputs["output_attentions"] = True
 
         # No grad: the refusal sink profile is a detached reference target.
@@ -213,7 +223,7 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
         if harmful_batch is not None:
             # Faithful path: separate harmful dataset (paper Algorithm 1).
             harmful_call = self._prepare_custom_batch(harmful_batch, model)
-            if isinstance(harmful_call, dict):
+            if isinstance(harmful_call, Mapping):
                 harmful_call["output_attentions"] = True
                 
             # CRITICAL FIX: Removed `torch.no_grad()`. 
@@ -233,7 +243,7 @@ class SurgeryHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  #
             _require_attentions(attentions)
             mask_src = harmful_call if harmful_batch is not None else call_inputs
             penalty = self._surgery.compute_sink_penalty(
-                attentions, mask_src.get("attention_mask") if isinstance(mask_src, dict) else None)
+                attentions, mask_src.get("attention_mask") if isinstance(mask_src, Mapping) else None)
             if penalty.device != base_loss.device:
                 penalty = penalty.to(base_loss.device)
             loss = base_loss + penalty.to(base_loss.dtype)

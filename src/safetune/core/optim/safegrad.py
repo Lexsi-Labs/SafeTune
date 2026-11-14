@@ -32,7 +32,7 @@ This module provides the gradient-surgery primitive
 """
 
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 import torch.nn.functional as F
@@ -45,6 +45,7 @@ def safegrad_kl_alignment_loss(
     aligned_logits: torch.Tensor,
     temperature: float = 1.0,
     reduction: str = "batchmean",
+    attention_mask: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """KL(aligned || student) safety distillation loss (paper's KL mode, Eq. 6).
 
@@ -65,6 +66,9 @@ def safegrad_kl_alignment_loss(
             Should be detached so no grad flows back to the reference.
         temperature: softmax temperature. ``1.0`` is the paper default.
         reduction: passed to ``F.kl_div``.
+        attention_mask: optional ``(batch, seq)`` mask. Positions where it is 0
+            (padding) add nothing to the loss; the sum over the remaining
+            positions is still divided by the batch size for ``"batchmean"``.
 
     Returns:
         Scalar KL loss. ``loss.backward()`` populates ``student.grad`` with
@@ -75,9 +79,24 @@ def safegrad_kl_alignment_loss(
             f"safegrad_kl_alignment_loss: shape mismatch student={tuple(student_logits.shape)} "
             f"vs aligned={tuple(aligned_logits.shape)}"
         )
-    log_p_student = F.log_softmax(student_logits / temperature, dim=-1)
-    p_aligned = F.softmax(aligned_logits.detach() / temperature, dim=-1)
-    return F.kl_div(log_p_student, p_aligned, reduction=reduction) * (temperature * temperature)
+    # At least fp32: in bf16 the rounding of the two softmaxes alone gives a KL far from 0
+    # between identical logits, and the alignment gradient is then mostly that noise.
+    dtype = torch.promote_types(student_logits.dtype, torch.float32)
+    log_p_student = F.log_softmax(student_logits.to(dtype) / temperature, dim=-1)
+    p_aligned = F.softmax(aligned_logits.detach().to(dtype) / temperature, dim=-1)
+    if attention_mask is None:
+        return F.kl_div(log_p_student, p_aligned, reduction=reduction) * (temperature * temperature)
+    kl = F.kl_div(log_p_student, p_aligned, reduction="none")
+    kl = kl * attention_mask.to(kl.device, kl.dtype).unsqueeze(-1)
+    if reduction == "batchmean":
+        kl = kl.sum() / kl.shape[0]
+    elif reduction == "sum":
+        kl = kl.sum()
+    elif reduction == "mean":
+        kl = kl.sum() / (attention_mask.sum() * kl.shape[-1]).clamp(min=1)
+    elif reduction != "none":
+        raise ValueError(f"safegrad_kl_alignment_loss: unknown reduction {reduction!r}")
+    return kl * (temperature * temperature)
 
 
 class SafeGradProjector:

@@ -92,36 +92,33 @@ class SEALDataSelector:
         self.model.zero_grad()
 
         scores = []
+        # No catch-all: a failed example used to score 0.0 with a warning, so a broken
+        # scorer silently ranked every example the same.
         for i, example in enumerate(examples):
             self.model.zero_grad()
-            try:
-                ex_loss = compute_example_loss(self.model, example)
-                ex_loss.backward()
-                ex_grads = {
-                    n: p.grad.detach().clone()
-                    for n, p in self.model.named_parameters()
-                    if p.grad is not None
-                }
-                self.model.zero_grad()
+            ex_loss = compute_example_loss(self.model, example)
+            ex_loss.backward()
+            ex_grads = {
+                n: p.grad.detach().clone()
+                for n, p in self.model.named_parameters()
+                if p.grad is not None
+            }
+            self.model.zero_grad()
 
-                # Score = cosine similarity between example gradient and anchor gradient
-                # (High similarity = example points model in same direction as safety anchor)
-                dot, norm_ex, norm_anc = 0.0, 0.0, 0.0
-                for n in ex_grads:
-                    if n in anchor_grads:
-                        eg = ex_grads[n].view(-1).float()
-                        ag = anchor_grads[n].view(-1).float()
-                        dot += torch.dot(eg, ag).item()
-                        norm_ex += eg.norm().item() ** 2
-                        norm_anc += ag.norm().item() ** 2
+            # Score = cosine similarity between example gradient and anchor gradient
+            # (High similarity = example points model in same direction as safety anchor)
+            dot, norm_ex, norm_anc = 0.0, 0.0, 0.0
+            for n in ex_grads:
+                if n in anchor_grads:
+                    eg = ex_grads[n].view(-1).float()
+                    ag = anchor_grads[n].view(-1).float()
+                    dot += (eg * ag).sum().item()   # not torch.dot: fails on torch 2.10 + cu126
+                    norm_ex += eg.norm().item() ** 2
+                    norm_anc += ag.norm().item() ** 2
 
-                if norm_ex > 0 and norm_anc > 0:
-                    score = dot / ((norm_ex ** 0.5) * (norm_anc ** 0.5))
-                else:
-                    score = 0.0
-
-            except Exception as e:
-                logger.warning("SEAL: error scoring example %d: %s", i, e)
+            if norm_ex > 0 and norm_anc > 0:
+                score = dot / ((norm_ex ** 0.5) * (norm_anc ** 0.5))
+            else:
                 score = 0.0
 
             scores.append(float(score))

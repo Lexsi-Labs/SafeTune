@@ -69,7 +69,7 @@ from typing import Any, Optional
 
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,7 @@ def apply_safe_delta(
     ref_columns: int = 4096,
     blocksize: int = 2048,
     sub_block_size: int = 4,
+    strict: bool = False,
 ) -> Any:
     """Apply the Safe Delta post-hoc weight edit to ``model``.
 
@@ -155,6 +156,8 @@ def apply_safe_delta(
     s = float(projection_strength if strength is None else strength)
     filt = list(param_filter or [])
 
+    require_matched("apply_safe_delta", model, aligned, *([unsafe] if unsafe is not None else []),
+                    strict=strict)
     aligned_sd = aligned.state_dict()
     # theta_sft: from `unsafe` if supplied, else from `model` itself.
     sft_sd = unsafe.state_dict() if unsafe is not None else model.state_dict()

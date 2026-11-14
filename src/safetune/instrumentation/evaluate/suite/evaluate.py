@@ -186,6 +186,7 @@ def evaluate(
     max_prompts: Optional[int] = None,
     drift_task: Optional[str] = None,
     strict: Optional[bool] = None,
+    chat_template_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """Run ``model`` over ``benchmarks`` and return per-benchmark results.
 
@@ -214,6 +215,11 @@ def evaluate(
         drift_task: The SFT drift domain (e.g. ``"gsm8k"``, ``"code"``,
             ``"medical"``). Used for logging / result tagging; does not filter
             benchmarks (pass a custom ``benchmarks`` list for that).
+        chat_template_kwargs: Extra arguments for the tokenizer's ``apply_chat_template``. A
+            thinking model needs its switch off, e.g. Qwen3's ``{"enable_thinking": False}``:
+            with the default template the reply starts with ``<think>`` and most of the
+            ``max_new_tokens`` budget goes on reasoning, so the judge reads an unfinished chain
+            of thought, not an answer. Not used by the vLLM path.
         strict: ``True`` (default: runtime ``eval_strict``, True): the first
             benchmark that fails to load or score raises, with a note naming
             it. ``False``: the failure is logged, the entry is
@@ -260,6 +266,7 @@ def evaluate(
             max_prompts=max_prompts,
             desc=name,
             strict=strict,
+            chat_template_kwargs=chat_template_kwargs,
             **gen_kwargs,
         )
 
@@ -470,6 +477,7 @@ def _compute_metrics(
     max_prompts: Optional[int] = None,
     desc: str = "eval",
     strict: bool = True,
+    chat_template_kwargs: Optional[Dict[str, Any]] = None,
     **gen_kwargs,
 ) -> Dict[str, Any]:
     """Generate responses, judge them, and return the standard safety metrics.
@@ -539,6 +547,7 @@ def _compute_metrics(
                         tokenizer.apply_chat_template(
                             [{"role": "user", "content": p}],
                             tokenize=False, add_generation_prompt=True,
+                            **(chat_template_kwargs or {}),
                         )
                         for p in batch_prompts
                     ]

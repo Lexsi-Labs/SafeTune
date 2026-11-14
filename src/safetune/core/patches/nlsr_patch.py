@@ -86,6 +86,14 @@ class NLSRPatch(SafetyPatch):
                     "NLSRPatch: could not load donor from %s — %s", donor_param_path, exc
                 )
 
+        # Nothing to transplant, or no name in common with the model, would return it unchanged.
+        # A loaded donor is a full state dict; a donor_map names only the weights to edit.
+        from safetune.interventions.recover._invariant import require_matched
+        require_matched(
+            "NLSRPatch.apply_to_model", model, donor_state or donor_map,
+            strict=bool(self.params.get("strict", False)), sparse=not donor_state,
+        )
+
         self._backup_params(model)
         with _torch.no_grad():
             for name, param in model.named_parameters():

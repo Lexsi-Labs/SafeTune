@@ -1,6 +1,6 @@
 # Benchmarks
 
-20 registered benchmarks across 5 categories:
+22 registered benchmarks across 5 categories:
 
 | Category | Description |
 |---|---|
@@ -29,6 +29,8 @@
 | `beavertails` | jailbreak | — (keyword-match) |
 | `jailbreakbench` | jailbreak | — (jailbreakbench judge built-in) |
 | `safedialbench` | jailbreak | — (built-in scorer) |
+| `multijail` | jailbreak | the `evaluate(judge=...)` judge; see the note below |
+| `aya_redteaming` | jailbreak | the `evaluate(judge=...)` judge; see the note below |
 | `gsm8k` | capability | — (exact-match via lm-eval) |
 | `humaneval` | capability | — (pass@1 via lm-eval) |
 | `medmcqa` | capability | — (exact-match via lm-eval) |
@@ -50,6 +52,29 @@ Default prompt sets:
 - `orbench_hard` is OR-Bench hard-1k (benign prompts that sound harmful;
   refusing them is over-refusal) and `orbench_toxic` is OR-Bench toxic (655
   harmful prompts). `orbench` is both combined.
+- `multijail`: 315 prompts in each of 10 languages (`en`, `zh`, `it`, `vi`, `ar`,
+  `ko`, `th`, `bn`, `sw`, `jv`), translated from English, 3,150 rows in all.
+- `aya_redteaming`: 7,419 prompts written by native speakers of 8 languages (`ar`,
+  `en`, `es`, `fr`, `hi`, `ru`, `sr`, `tl`). Each language has its own prompts.
+
+Each row of these two has a `language` column, and `load_multijail(["bn", "sw"])` or
+`load_prompts("multijail", {"languages": "bn"})` picks languages.
+`evaluate(benchmarks=["multijail"])` runs every language and reports one pooled ASR, and it
+has no per-language option. For Aya Red-teaming, setting the dataset table's split runs one
+language, e.g. `safetune.configure(datasets={"aya_redteaming": {"split": "hindi"}})`. For
+MultiJail, take one language's rows from `load_multijail` or `load_prompts`. Rows of both
+alternate between languages, so `max_prompts` keeps a prefix that covers all of them.
+
+!!! warning "Thinking models"
+    A reasoning model such as Qwen3 starts every reply with `<think>` unless its template's switch
+    is off, so most of `max_new_tokens` goes on reasoning and the judge reads an unfinished chain of
+    thought. Pass `evaluate(..., chat_template_kwargs={"enable_thinking": False})`.
+
+!!! warning "Multilingual scores depend on the judge"
+    SafeTune's refusal string lists are English, and the default `wildguard` judge has
+    not been validated on these languages here. A refusal a judge can't read counts as an
+    attack success, which inflates the ASR. Check the judge on a labelled sample in each
+    language first.
 
 ## API
 

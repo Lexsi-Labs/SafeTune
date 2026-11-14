@@ -24,7 +24,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 from ._contract import keyword_refs
 
 
@@ -60,6 +60,7 @@ def apply_resta(
     dare_drop_rate: Optional[float] = None,
     dare_seed: Optional[int] = None,
     device: Optional[object] = None,
+    strict: bool = False,
 ) -> nn.Module:
     """Apply the RESTA safety vector ``(aligned - base)`` to a fine-tuned model.
 
@@ -107,6 +108,7 @@ def apply_resta(
             f"apply_resta needs safetune.core.optim.resta: {e}"
         ) from e
 
+    require_matched("apply_resta", finetuned, base, aligned, strict=strict)
     cfg = RESTAConfig(alpha=alpha, param_filter=param_filter or [])
     wrapper = RESTAWrapper(
         aligned_state_dict=aligned.state_dict(),

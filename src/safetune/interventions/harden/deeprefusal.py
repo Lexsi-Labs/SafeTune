@@ -83,6 +83,7 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass, field
+from collections.abc import Mapping
 from itertools import cycle
 from typing import Any, Iterator, List, Optional
 
@@ -252,9 +253,17 @@ def _next_batch(iterator: Iterator) -> Any:
         return None
 
 
+def _differentiable_zero(model: Any) -> Any:
+    """A zero loss connected to the trainable parameters, so backward() works."""
+    trainable = [p for p in model.parameters() if p.requires_grad]
+    if not trainable:
+        return next(iter(model.parameters())).sum() * 0.0
+    return sum(p.sum() for p in trainable) * 0.0
+
+
 def _prepare_batch(batch: Any, device: Any) -> Any:
-    """Move every tensor in *batch* to *device*."""
-    if not isinstance(batch, dict):
+    """Move every tensor in *batch* (a dict or a tokenizer's BatchEncoding) to *device*."""
+    if not isinstance(batch, Mapping):
         return batch
     return {
         k: (v.to(device) if hasattr(v, "to") else v)
@@ -271,7 +280,10 @@ class _AblationHook:
 
     Registered on a single decoder layer.  The hook is a no-op unless
     :attr:`active` is ``True`` **and** a Bernoulli draw with probability
-    :attr:`ablation_prob` succeeds.
+    :attr:`ablation_prob` succeeds.  The draw is made once per training step
+    (on the first call after the hook is armed) and reused for any later call
+    in that step, so a gradient-checkpointing recomputation of the layer sees
+    the same decision as the original forward.
 
     The projection implements Eq. (2) of the paper::
 
@@ -284,13 +296,21 @@ class _AblationHook:
         self.d_norm = d_norm          # unit refusal direction, shape (H,)
         self.ablation_prob = ablation_prob
         self.active: bool = False
+        self.gate: Optional[bool] = None  # Bernoulli draw for the current step
+
+    def set_active(self, active: bool) -> None:
+        """Arm or disarm the hook; a new gate is drawn on the next call."""
+        self.active = active
+        self.gate = None
 
     def __call__(self, module: Any, inputs: Any, outputs: Any) -> Any:
         if not self.active:
             return outputs
 
-        # Stochastic ablation gate.
-        if random.random() >= self.ablation_prob:
+        # Stochastic ablation gate, drawn once per step (see class docstring).
+        if self.gate is None:
+            self.gate = random.random() < self.ablation_prob
+        if not self.gate:
             return outputs
 
         # Unpack hidden states; HF decoder layers return tuples.
@@ -444,6 +464,7 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         # Install ablation forward hooks on decoder layers.
         # ------------------------------------------------------------------
         self._hooks: List[_AblationHook] = []
+        self._phase: Optional[str] = None  # set by training_step
         self._hook_handles: List[Any] = []
         self._install_hooks()
 
@@ -505,15 +526,15 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         """Register a post-forward ablation hook on every decoder layer."""
         layers = _get_decoder_layers(self.model)
         if not layers:
-            logger.warning(
+            # Without hooks there is no ablation, and training would be plain SFT
+            # reported as DeepRefusal.
+            raise ValueError(
                 "DeepRefusalTrainer: could not locate decoder layers "
                 "(expected model.model.language_model.layers [Gemma-3], "
-                "model.model.layers [LLaMA/Mistral/Qwen/Gemma], or "
-                "model.transformer.h [GPT-style]). "
-                "Ablation hooks will not be installed; the trainer will "
-                "still run but behaves like plain SFT (no ablation)."
+                "model.model.layers [LLaMA/Mistral/Qwen/Gemma], "
+                "model.transformer.h [GPT-style], or any nn.ModuleList), so the "
+                "refusal-direction ablation hooks cannot be installed."
             )
-            return
 
         for layer in layers:
             hook_obj = _AblationHook(self._d_norm, self._ablation_prob)
@@ -541,12 +562,12 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         k = random.randint(1, n)
         selected = set(random.sample(range(n), k))
         for i, hook in enumerate(self._hooks):
-            hook.active = (i in selected)
+            hook.set_active(i in selected)
 
     def _deactivate_all_hooks(self) -> None:
         """Set all ablation hooks to inactive (no-op forward pass)."""
         for hook in self._hooks:
-            hook.active = False
+            hook.set_active(False)
 
     # ------------------------------------------------------------------
     # Loss helpers
@@ -569,6 +590,11 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
             device = next(self.model.parameters()).device
 
         batch = _prepare_batch(batch, device)
+        if not isinstance(batch, Mapping):
+            raise TypeError(
+                "DeepRefusalTrainer: batches must be mappings of model inputs, got "
+                f"{type(batch).__name__}."
+            )
         valid_keys = {"input_ids", "attention_mask", "labels", "position_ids"}
         filtered = {k: v for k, v in batch.items() if k in valid_keys}
 
@@ -582,6 +608,39 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
             "DeepRefusalTrainer._forward_ce: model output has neither "
             ".loss nor .logits; cannot compute cross-entropy."
         )
+
+    # ------------------------------------------------------------------
+    # training_step: back-propagate each term under its own hook state
+    # ------------------------------------------------------------------
+
+    def training_step(self, model: Any, inputs: Any, *args: Any, **kwargs: Any) -> Any:  # type: ignore[override]
+        """Run the harmful (ablated) and benign terms as two backward passes.
+
+        With gradient checkpointing, ``backward()`` re-runs each decoder
+        layer's forward, and the ablation hooks must be in the same state then
+        as in the original forward.  A single backward over the combined loss
+        cannot satisfy that (the harmful pass is ablated, the benign pass is
+        not, and the hooks are already off by the time the Trainer calls
+        backward).  Calling the parent ``training_step`` once per term keeps
+        HF's loss scaling, AMP and accelerate handling unchanged; the
+        accumulated gradient is the gradient of the combined loss.
+
+        Under DeepSpeed each ``backward()`` can also step the optimizer (at a
+        gradient-accumulation boundary), so two passes would split one update
+        in two; there the combined loss is back-propagated once, as before.
+        """
+        if getattr(self, "is_deepspeed_enabled", False):
+            return super().training_step(model, inputs, *args, **kwargs)
+        try:
+            self._phase = "harmful"
+            loss_harmful = super().training_step(model, inputs, *args, **kwargs)
+            self._deactivate_all_hooks()
+            self._phase = "benign"
+            loss_benign = super().training_step(model, inputs, *args, **kwargs)
+        finally:
+            self._phase = None
+            self._deactivate_all_hooks()
+        return loss_harmful + loss_benign
 
     # ------------------------------------------------------------------
     # compute_loss (core of the DeepRefusal training loop)
@@ -608,33 +667,37 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         The Trainer-provided ``inputs`` (from the ``train_dataset`` DataLoader)
         serve as fallbacks when a dedicated dataset iterator is not available.
         """
-        # ------------------------------------------------------------------
-        # 1. Select layers to ablate this step.
-        # ------------------------------------------------------------------
-        self._select_active_layers()
-
-        # ------------------------------------------------------------------
-        # 2. Harmful loss — hooks active.
-        # ------------------------------------------------------------------
+        # ``training_step`` sets ``_phase`` to "harmful" / "benign" so that each
+        # term is back-propagated on its own while its hook state is in place.
+        # ``None`` (direct calls) returns the combined loss as before.
+        phase = self._phase
         loss_harmful: Optional[Any] = None
-        if self._harmful_iter is not None:
-            harmful_batch = _next_batch(self._harmful_iter)
-            if harmful_batch is not None:
-                try:
-                    loss_harmful = self._forward_ce(model, harmful_batch)
-                except Exception as exc:
-                    logger.warning(
-                        "DeepRefusalTrainer: L_harmful computation failed "
-                        "(%s); skipping this term for the current step.",
-                        exc,
-                    )
+        if phase != "benign":
+            # ------------------------------------------------------------------
+            # 1. Select layers to ablate this step.
+            # ------------------------------------------------------------------
+            self._select_active_layers()
 
-        if loss_harmful is None and inputs is not None:
-            # Fallback: no dedicated harmful iterator — use the DataLoader batch.
-            try:
+            # ------------------------------------------------------------------
+            # 2. Harmful loss — hooks active.
+            # ------------------------------------------------------------------
+            if self._harmful_iter is not None:
+                harmful_batch = _next_batch(self._harmful_iter)
+                # No catch-all: a failed term must stop training, not drop out of
+                # the objective while the run is still reported as DeepRefusal.
+                if harmful_batch is not None:
+                    loss_harmful = self._forward_ce(model, harmful_batch)
+
+            if loss_harmful is None and inputs is not None:
+                # Fallback: no dedicated harmful iterator — use the DataLoader batch.
                 loss_harmful = self._forward_ce(model, inputs)
-            except Exception:
-                pass
+
+            if phase == "harmful":
+                # Hooks stay active: training_step runs backward() on this
+                # term before switching them off.
+                loss = (self._alpha * loss_harmful if loss_harmful is not None
+                        else _differentiable_zero(model))
+                return (loss, None) if return_outputs else loss
 
         # ------------------------------------------------------------------
         # 3. Benign loss — hooks deactivated (benign data is never ablated).
@@ -645,14 +708,7 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
         if self._benign_iter is not None:
             benign_batch = _next_batch(self._benign_iter)
             if benign_batch is not None:
-                try:
-                    loss_benign = self._forward_ce(model, benign_batch)
-                except Exception as exc:
-                    logger.warning(
-                        "DeepRefusalTrainer: L_benign computation failed "
-                        "(%s); skipping this term for the current step.",
-                        exc,
-                    )
+                loss_benign = self._forward_ce(model, benign_batch)
 
         if loss_benign is None and self._benign_iter is None:
             # No dedicated benign iterator was configured.  How we recover the
@@ -664,10 +720,7 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
                 # harmful batch.  Using it for the benign retention term is the
                 # documented ``inputs``-for-both-terms fallback.
                 if inputs is not None:
-                    try:
-                        loss_benign = self._forward_ce(model, inputs)
-                    except Exception:
-                        pass
+                    loss_benign = self._forward_ce(model, inputs)
             else:
                 # Only a harmful dataset was supplied, so ``inputs`` IS the
                 # harmful batch.  Computing "benign" retention on harmful data
@@ -697,8 +750,7 @@ class DeepRefusalTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object): 
             loss = (1.0 - alpha) * loss_benign
         else:
             # No data at all; return a differentiable zero so autograd stays healthy.
-            dummy = next(iter(model.parameters()))
-            loss = dummy.sum() * 0.0
+            loss = _differentiable_zero(model)
 
         if return_outputs:
             return loss, None

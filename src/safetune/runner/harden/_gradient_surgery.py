@@ -1,4 +1,5 @@
 """Harden runner — gradient-surgery trainers (PlainSFT baseline + SafeGrad)."""
+import dataclasses
 import os
 import torch
 from torch.utils.data import DataLoader
@@ -42,6 +43,10 @@ class SafeGradTrainer(_HardenBase):
         rho: gradient surgery mixing weight. Default 1.0.
         kl_temperature: KL alignment temperature. Default 1.0.
         reference_model_path: HF path/ID for the reference model.
+        gradient_accumulation_steps: micro-batches per optimizer step. Default 1.
+            Above 1 it needs ``surgery_per_optimizer_step=True``.
+        surgery_per_optimizer_step: run the surgery once per optimizer step on the
+            accumulated gradient (see ``SafeGradHFTrainer``). Default False.
     """
 
     METHOD = "SafeGrad"
@@ -51,11 +56,15 @@ class SafeGradTrainer(_HardenBase):
                  rho: float = 1.0,
                  kl_temperature: float = 1.0,
                  reference_model_path: str = None,
+                 gradient_accumulation_steps: int = 1,
+                 surgery_per_optimizer_step: bool = False,
                  **kwargs):
         super().__init__(model, tokenizer, **kwargs)
         self.rho = rho
         self.kl_temperature = kl_temperature
         self.reference_model_path = reference_model_path
+        self.gradient_accumulation_steps = int(gradient_accumulation_steps)
+        self.surgery_per_optimizer_step = bool(surgery_per_optimizer_step)
 
     def train(self, train_dataset, out_dir: str = None, *,
               safety_dataset=None, **kwargs) -> str:
@@ -80,14 +89,17 @@ class SafeGradTrainer(_HardenBase):
             else self._build_safety_ds(),
             batch_size=self.batch_size, shuffle=True,
             collate_fn=default_data_collator)
+        args = dataclasses.replace(self._training_args(out_dir),
+                                   gradient_accumulation_steps=self.gradient_accumulation_steps)
         tr = HARD.SafeGradHFTrainer(
-            model=model, args=self._training_args(out_dir),
+            model=model, args=args,
             train_dataset=_keep_model_columns(train_dataset),
             data_collator=default_data_collator,
             safety_dataset=safety_loader,
             reference_model=reference,
             rho=self.rho,
-            kl_temperature=self.kl_temperature)
+            kl_temperature=self.kl_temperature,
+            surgery_per_optimizer_step=self.surgery_per_optimizer_step)
         tr.train()
         del reference; free()
         return self._save_merged(model, out_dir)

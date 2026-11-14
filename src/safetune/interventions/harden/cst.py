@@ -180,6 +180,28 @@ class CSTTrainer(DPOTrainer if _TRL_IMPORT_ERROR is None else object):  # type: 
 
         super().__init__(**kwargs)
 
+    def log(self, logs: Dict[str, float], start_time: Optional[float] = None) -> None:
+        name_dpo_eval_metrics(self, logs)
+        super().log(logs, start_time)
+
+
+def name_dpo_eval_metrics(trainer: Any, logs: Dict[str, float]) -> None:
+    """Prefix a DPO trainer's pending eval metrics with the eval set's name.
+
+    DPOTrainer.log adds the DPO eval metrics under a fixed ``eval_`` prefix, so with a
+    dict ``eval_dataset`` every set wrote ``eval_rewards/...`` and the last one won
+    (huggingface/trl#8307). Take the set's prefix from its loss key instead, e.g.
+    ``eval_alpha_loss`` -> ``eval_alpha_rewards/...``. Call it from ``log`` before
+    ``super().log``. No-op on TRL versions without ``_metrics``.
+    """
+    bucket = (getattr(trainer, "_metrics", None) or {}).get("eval")
+    loss_keys = [k for k in logs if k.startswith("eval_") and k.endswith("_loss")]
+    if bucket and loss_keys:
+        name = min(loss_keys, key=len)[len("eval_"):-len("loss")]   # "alpha_", or "" for one set
+        if name:
+            for key in list(bucket):
+                bucket[name + key] = bucket.pop(key)
+
 
 def _fold_dataset(ds: Any, name: str) -> Any:
     """Fold the system turn of a conversational ``prompt`` column (see :func:`_fold_system`)."""

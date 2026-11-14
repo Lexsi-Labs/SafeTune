@@ -25,6 +25,7 @@ it is exported but not used by this trainer.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator, List, Optional
 
@@ -145,9 +146,13 @@ class SEALHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
         """Compute flattened gradient of alignment loss on a safety batch."""
         device = next(model.parameters()).device
         batch = next(self._safety_iter)
-        if isinstance(batch, dict):
-            batch = {k: v.to(device) if hasattr(v, "to") else v
-                     for k, v in batch.items()}
+        if not isinstance(batch, Mapping):   # a dict or a tokenizer's BatchEncoding
+            raise TypeError(
+                "SEALHFTrainer: safety batches must be mappings of model inputs, got "
+                f"{type(batch).__name__}."
+            )
+        batch = {k: v.to(device) if hasattr(v, "to") else v
+                 for k, v in batch.items()}
         # NOTE: no ``model.zero_grad()`` here — ``_flat_grad`` uses the
         # functional ``torch.autograd.grad`` which never reads or writes
         # ``param.grad``, so zeroing would only destroy gradients accumulated
@@ -155,7 +160,7 @@ class SEALHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
         try:
             out = model(**batch)
             loss = out.loss
-        except Exception:
+        except TypeError:   # extra keys the model's forward does not take
             safe_keys = {"input_ids", "attention_mask", "labels"}
             filtered = {k: v for k, v in batch.items() if k in safe_keys}
             out = model(**filtered)
@@ -183,12 +188,7 @@ class SEALHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
             # functional (``torch.autograd.grad``) and never touches
             # ``param.grad``; zeroing here would erase user gradients
             # accumulated by earlier micro-batches.
-            try:
-                out = model(**single)
-                loss_i = out.loss
-            except Exception:
-                scores.append(torch.tensor(0.0))
-                continue
+            loss_i = model(**single).loss
             g_i = _flat_grad(model, loss_i, retain_graph=False)
             # SEAL (arXiv:2410.07471) UP-weights examples whose gradient ALIGNS
             # with the safe/alignment gradient and DOWN-weights those that
@@ -225,12 +225,10 @@ class SEALHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
             or self._cached_weights is None
         )
         if is_rescore_step:
-            try:
-                g_align = self._alignment_gradient(model)
-                self._cached_weights = self._score_examples(model, inputs, g_align)
-            except Exception as exc:
-                logger.warning("SEALHFTrainer: scoring failed (%s); using uniform weights.", exc)
-                self._cached_weights = torch.ones(B)
+            # No catch-all: failed scoring must stop training, not fall back to uniform
+            # weights (plain fine-tuning) while the run is still reported as SEAL.
+            g_align = self._alignment_gradient(model)
+            self._cached_weights = self._score_examples(model, inputs, g_align)
 
         # Non-rescore steps reuse the LAST computed weights (docstring:
         # "weights are recomputed every `seal_rescore_every` steps" —
@@ -250,12 +248,7 @@ class SEALHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # ty
         for i in range(B):
             single = {k: v[i:i+1].to(device) if hasattr(v, "to") else v
                       for k, v in inputs.items()}
-            try:
-                out_i = model(**single)
-                per_example_losses.append(out_i.loss)
-            except Exception:
-                per_example_losses.append(torch.tensor(0.0, device=device,
-                                                        requires_grad=True))
+            per_example_losses.append(model(**single).loss)
 
         losses_t = torch.stack(per_example_losses)
         loss = (losses_t * weights).mean()

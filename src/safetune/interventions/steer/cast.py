@@ -106,11 +106,12 @@ def _cast_similarity(h: torch.Tensor, condition_vector: torch.Tensor) -> float:
     """
     h = h.flatten().float()
     v = condition_vector.flatten().float().to(h.device)
-    vv = torch.dot(v, v).clamp_min(1e-12)
+    # (a * b).sum() rather than torch.dot, which fails on CUDA with torch 2.10 + cu126.
+    vv = (v * v).sum().clamp_min(1e-12)
     # P·h = v * (v·h) / (v·v)  — avoids materializing the (d,d) outer product.
-    proj = torch.tanh(v * (torch.dot(v, h) / vv))
+    proj = torch.tanh(v * ((v * h).sum() / vv))
     denom = (h.norm() * proj.norm()).clamp_min(1e-12)
-    return float(torch.dot(h, proj) / denom)
+    return float((h * proj).sum() / denom)
 
 
 def _condition_met(sim: float, threshold: float, comparator: str) -> bool:

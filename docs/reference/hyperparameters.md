@@ -77,7 +77,7 @@ safetune.configure(max_prompts=20, eval_limit=20, eval_strict=False)
 | Setting | Default | Significance |
 |---|---|---|
 | `judges` | `{}` | Per-judge overrides (e.g. `{"orbench": {"max_model_len": 4096}}`), merged over the built-in judge registry. |
-| `advbench_refusal_prefixes` | the built-in refusal-phrase tuple | The phrases `advbench_scorer="prefix"` looks for at the start of a response. Replace the tuple to count other refusal wording. |
+| `advbench_refusal_prefixes` | the built-in refusal-phrase tuple | The phrases `advbench_scorer="prefix"` looks for at the start of a response. Replace the tuple to count other refusal wording; for Hindi and Hinglish replies use `ADVBENCH_REFUSAL_PREFIXES + HINDI_REFUSAL_PREFIXES` (both in `safetune.config`). |
 | `advbench_scorer` | `"prefix"` | `"prefix"`: the response (minus any `<think>` block) starts with a standard refusal phrase. `"gcg"`: a looser match — any of a 29-phrase GCG test set appears anywhere in the response. |
 | `orbench_in_safety_mean` | `False` | `False`: OR-Bench's over-refusal and toxic splits are reported separately and `safety_mean()` only averages genuine harm benchmarks. `True`: a single combined OR-Bench score is averaged into `safety_mean` with the rest. |
 | `eval_strict` | `True` | `True`: `evaluate()` and every trainer's `.evaluate()` raise when a benchmark fails to load, generate, or score. `False`: that benchmark's metrics are recorded as an error entry and the run continues with the rest — useful when a gated benchmark shouldn't block an otherwise-successful run. |
@@ -209,7 +209,7 @@ Full guide: [Harden overview](../user-guide/harden.md).
 
 | Method | Params (non-default) | Significance | Guide |
 |---|---|---|---|
-| `SafeGradTrainer` | `rho=1.0`, `kl_temperature=1.0`, `reference_model_path=None` | `rho`: gradient-surgery alignment weight. `reference_model_path`: frozen reference for the KL signal — falls back to the tokenizer's model id if omitted. | [Guide](../user-guide/harden/gradient-surgery.md) |
+| `SafeGradTrainer` | `rho=1.0`, `kl_temperature=1.0`, `reference_model_path=None`, `gradient_accumulation_steps=1`, `surgery_per_optimizer_step=False` | `rho`: gradient-surgery alignment weight. `reference_model_path`: frozen reference for the KL signal — falls back to the tokenizer's model id if omitted. `gradient_accumulation_steps > 1` needs `surgery_per_optimizer_step=True`, which runs the surgery once per optimizer step. | [Guide](../user-guide/harden/gradient-surgery.md) |
 | `PlainSFTTrainer` | — | Undefended SFT baseline, no safety mechanism — the comparison baseline for benchmarking every other Harden method. | [Guide](../user-guide/harden/gradient-surgery.md) |
 
 ### Data shaping / alternation

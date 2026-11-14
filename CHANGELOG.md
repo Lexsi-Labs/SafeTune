@@ -26,8 +26,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that set, or a task whose function shares a builtin's name, fails with a warning. The evaluator
   is bounded in work and size, and refuses colliding hashes before it builds a set.
 
+### Added
+
+- `SafeGradHFTrainer(surgery_per_optimizer_step=True)` allows `gradient_accumulation_steps > 1`. The task gradient
+  accumulates over the micro-batches, and on the micro-batch that ends the window (`accelerator.sync_gradients`)
+  one safety batch is drawn and the surgery runs on the accumulated gradient, which is Algorithm 1 at the
+  effective batch size. Off by default; without it, accumulation still raises `ValueError` (reported in #80).
+- The `SafeGradTrainer` runner takes `gradient_accumulation_steps` and `surgery_per_optimizer_step` and passes them to
+  the training arguments and to `SafeGradHFTrainer`.
+- `multijail` and `aya_redteaming` benchmarks, in `evaluate()` and `load_prompts()`:
+  `load_multijail` gives 315 harmful prompts in each of 10 languages, and `load_aya_redteaming`
+  gives prompts written by native speakers of 8 languages. Each row has a `language` column, and
+  `languages=` picks a subset. The English refusal lists and the default judge have not been
+  validated on these languages, so check a judge before trusting the ASR. `evaluate()` pools all
+  languages into one ASR. Aya Red-teaming rows alternate between languages, so `max_prompts` keeps
+  every language, and a local one-split copy gets language codes and honours `languages=` (#87).
+- `evaluate(chat_template_kwargs=...)` is passed to the tokenizer's `apply_chat_template`. A thinking model
+  such as Qwen3 needs `{"enable_thinking": False}`: with the default template every reply began with
+  `<think>` and, in a run of Qwen3-1.7B on 20 MultiJail prompts per language with 256 new tokens, 16 to 18 of 20
+  replies per language never left the reasoning, so the judge read an unfinished chain of thought. Not used
+  by the vLLM path.
+- `layer_fraction=` on `circuit_info_from_node_scores`, `load_circuit_info_from_file` and
+  `get_circuit_info` ranks layers by total absolute node score (new `layer_mass` and `top_layers`).
+  By default a layer counts when it holds any top-20% node, and top nodes are spread through a
+  model, so `layer_subset` can cover nearly every layer (30 of 36 in the report on Tiny Aya; 16 of
+  16 on Llama-3.2-1B and 10 to 12 of 12 on GPT-2 in EAP-IG score files) and a circuit-restricted
+  edit restricts little. It is opt-in, so existing results don't change. With a
+  CircuitKIT 0.2 file it replaces the file's `safety_units` and `layer_suggestions` (#86).
+
 ### Fixed
 
+- **Results change for `SafeGradHFTrainer` in KL mode (`reference_model`) with padded alignment batches.**
+  `safegrad_kl_alignment_loss` takes an `attention_mask`, and the trainer passes the alignment batch's mask.
+  Padding positions added KL terms, so the alignment gradient depended on how much padding a batch had; the
+  built-in safety set is padded to `max_len`, so the default `SafeGradTrainer` run was affected. The loss is
+  still summed over positions and averaged over the batch (reported in #81).
+- **Results change for `SafeGradHFTrainer` in KL mode with a bf16 or fp16 model.** `safegrad_kl_alignment_loss`
+  computes the softmaxes in at least fp32. In bf16 their rounding alone gave a KL far from 0 between identical
+  logits (-0.022 for 2 x 64 positions over a 32k vocabulary, 0.61 per sequence reported for Tiny Aya), so early
+  in training the alignment gradient was mostly rounding noise. The fp32 logits this creates cost memory at large
+  vocabularies (reported in #83).
+- `SafeGradHFTrainer` raises when the alignment pass fails. It caught every exception there (a bad batch, a
+  dtype error, an out-of-memory error), logged a warning and ran the step without surgery, so a SafeGrad run could
+  turn into plain fine-tuning with only a log line per step. A safety batch that is a tokenizer's `BatchEncoding`
+  (from `DataCollatorWithPadding` or `tok.pad`) was skipped the same way and is now used. A safety batch that is
+  not a mapping and an alignment loss without a gradient (SFT mode with no `labels`) now raise, and
+  `reference_model` without `safety_dataset` raises at construction instead of warning every step (reported in #82).
+- AsFT, DeepRefusal, MART, SEAL, Surgery and CTRAP raise when their safety term fails, as SafeGrad now does. Each
+  caught every exception around that term, logged a warning and trained without it: `AsFTHFTrainer` without the
+  regularizer (dense path), `DeepRefusalTrainer` without the harmful or benign loss, `MARTTrainer` scoring every
+  response as safe when the reward function raised and returning empty responses when generation failed (so
+  nothing was trained), `SEALHFTrainer` with uniform weights or a zero loss for an example, `SurgeryHFTrainer`
+  without the sink penalty when the refusal dataset failed to yield a batch, and `CTRAPHFTrainer` with
+  `L_collapse = 0`. DeepRefusal, SEAL, Surgery and CTRAP also accept `BatchEncoding` batches. `AsFTHFTrainer`
+  without `aligned_state_dict` and `base_state_dict` still trains without the regularizer, and now warns once.
+- `AsFTWrapper` (the dense AsFT path) computes its dot products as `(a * b).sum()` instead of `torch.dot`. With
+  torch 2.10.0+cu126 `torch.dot` on CUDA raises `CUBLAS_STATUS_NOT_SUPPORTED`, so on such a setup the dense penalty
+  always failed and, before the change above, `AsFTHFTrainer` trained without it.
+- `DeepRefusalTrainer` raises `ValueError` when it cannot find the model's decoder layers. It used to warn and train
+  without the ablation hooks, which is plain SFT.
+- `SurgeryHFTrainer` raises `ValueError` for an empty `refusal_dataset` or `harmful_dataset`: at construction when the
+  dataset has a length, otherwise on the first step. Its cycling iterator used to loop forever on an empty dataset.
+- No `torch.dot` is left in SafeTune: SafeDelta's gradient projection, the Antibody attenuation, `SEALDataSelector`
+  scoring, the CAST condition similarity and `tracin_influence` compute their dot products as `(a * b).sum()`, so they
+  run on CUDA with torch 2.10.0+cu126. `SEALDataSelector.score_examples` also raises when an example fails instead of
+  scoring it 0.0 with a warning; with the `torch.dot` failure it scored every example 0.0 there.
+- `CSTTrainer` names the DPO eval metrics after each set of a dict `eval_dataset`: `eval_safe_rewards/margins`,
+  `eval_unsafe_rewards/margins` and so on. TRL logged every set's DPO metrics under the same `eval_rewards/...`
+  keys, so `evaluate()` returned only the last set's values and loggers overwrote one set with the next
+  (huggingface/trl#8307). A single eval set keeps the `eval_` prefix. With a dict `eval_dataset`, a
+  `metric_for_best_model` that names a DPO metric now needs the set name, e.g. `eval_safe_rewards/margins` (reported in #84).
+- `SafetyDOORTrainer` names the DPO eval metrics after each eval set the same way (it is also a `DPOTrainer`). With
+  `door_pure_mode=False` and a dict `eval_dataset`, every set's DPO metrics were logged as `eval_rewards/...` and
+  the last one won.
+- `DeepRefusalTrainer` gives the right gradient with gradient checkpointing. The ablation hooks were
+  switched off before the Trainer's `backward()`, so the checkpoint recomputation ran without the
+  ablation: reentrant checkpointing gave a gradient about 3% off, non-reentrant raised
+  `CheckpointError`. `training_step` now back-propagates the harmful (ablated) and benign terms
+  separately, each under its own hook state, and the ablation gate is drawn once per step. Under
+  DeepSpeed, where each backward can step the optimizer, the combined loss is still back-propagated
+  once. The no-data fallback loss is now connected to the trainable parameters (reported in #79).
+- `RefusalDirectionModel.installed` reports whether the hooks are attached. The
+  refusal-direction guide now calls `wrapped.generate(...)`, which applies the hooks
+  for the call, and notes that `wrapped.model.generate(...)` applies nothing unless
+  `install()` is active. Previously an uninstalled wrapper could look like a null
+  steering result (reported in #72).
+- AdvBench string matching can now read Hindi refusals. `safetune.config.HINDI_REFUSAL_PREFIXES`
+  holds Devanagari and Hinglish refusal openings; pass `ADVBENCH_REFUSAL_PREFIXES + HINDI_REFUSAL_PREFIXES`
+  as `prefixes=` or `configure(advbench_refusal_prefixes=...)`. With the English list alone every Hindi
+  refusal counted as a successful attack, which overstates ASR on Hindi output. The default list is
+  unchanged. Prefix mode now applies Unicode NFC before matching (reported in #76).
 - `eap_safety_circuit` no longer drops the BOS and the first tokens of the longest harmless prompt. When the
   harmless (corrupted) batch was longer than the harmful (clean) one it was cut from the left to the clean
   batch's length; the shorter batch is now padded up instead and nothing is truncated. Scores can change for
@@ -76,6 +164,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `apply_ctheta` and `apply_ctheta_from_state_dicts` raise a `ValueError` when they steer none of the matched
   parameters (a key missing from the positive or negative weights, or with another shape, was skipped silently),
   instead of returning the unchanged target. Code that relied on the silent no-op now fails.
+- `WiseFTTrainer` and the other RECOVER methods that match weights by name (`apply_wise_ft`, `apply_prepost_merge`,
+  `task_arithmetic`, `somf_merge`, `apply_resta`, `apply_lox`, `apply_safe_delta`, `apply_safemerge`, `apply_lssf`,
+  `apply_nlsr`, `apply_mscp`, `apply_safety_vector_restore`, `apply_grad_selective_recover`, and the training-free
+  fallback of `apply_safereact`) raise a `ValueError` when no parameter name of the model is in the reference (issue #88).
+  A PEFT-wrapped model against a bare reference has no name in common (`base_model.model.` prefix, LoRA factors), so the
+  call used to interpolate nothing and return the model, with only a log line. The error is raised before any edit, names
+  a sample from each side and says to merge the adapter with `merge_and_unload()` first. `apply_nlsr` with a `donor_map`
+  (`NLSRPatch.apply_to_model`) raises the same way, and also when it is given neither a donor state nor a map. Code that
+  relied on the silent no-op now fails.
+- New keyword `strict=False` on those functions and on the RECOVER trainers (`WiseFTTrainer(strict=True)`). By default a
+  partial overlap still applies to the matching names and logs one line with the counts (a warning when something is left
+  out). `strict=True` raises before any edit when a model parameter has no same-named entry in the reference(s); for a
+  sparse reference (`apply_nlsr` with a `donor_map`, the `apply_safereact` payload) it raises when a reference name is not a
+  model parameter. Return values are unchanged; the counts are in the log line.
+- New keyword `merge_adapter=False` on `apply_wise_ft` and `apply_prepost_merge` (and the two trainers). With
+  `merge_adapter=True` and a PEFT model, the adapter is merged into a deep copy, the copy is interpolated and returned as a
+  bare model; the PEFT model is not touched. With the reference being the base weights the adapter was trained on, the
+  result is `base + (1 - alpha) * lora_update`. The default keeps the clear error.
 - `SafeGradHFTrainer` under fp16 mixed precision (issue #37): `.grad` holds the loss-scaled task
   gradient while the alignment gradient was unscaled, so after the optimizer's unscale the alignment
   term shrank to `rho * g_align / s` (`s` = 65,536 at the start). The alignment gradient is now
@@ -135,6 +241,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- README: the note to run `pip uninstall -y torchao` before importing SafeTune covers Kaggle as
+  well as Colab. Kaggle's image has shipped torchao 0.10, which peft rejects when a Harden trainer
+  wraps the model in LoRA (#85).
 - Code rewards: a function under test must return plain builtin data (numbers, strings, bytes,
   booleans, `None`, and lists, tuples, dicts and sets of them); the child does not inherit
   environment variables or `PYTHONPATH`; an `assert` the grader can't split into a call and an

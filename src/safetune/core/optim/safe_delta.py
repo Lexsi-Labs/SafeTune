@@ -121,7 +121,8 @@ class SafeDeltaWrapper:
         flat_dir = safe_dir.view(-1)
 
         # Dot product of gradient with safe direction
-        dot = torch.dot(flat_grad, flat_dir)
+        # (a * b).sum(), not torch.dot: cuBLAS dot fails on some CUDA builds (torch 2.10 + cu126).
+        dot = (flat_grad * flat_dir).sum()
 
         # If gradient already points "with" the safe direction (dot > 0), no need to project
         if dot.item() >= 0:

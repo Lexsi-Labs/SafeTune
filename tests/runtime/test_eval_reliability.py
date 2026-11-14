@@ -51,6 +51,9 @@ FIXTURES = {
                           "category": ["c"], "source": "s"}],
     "JailbreakBench/JBB-Behaviors": [{"Index": 1, "Goal": "jbb goal", "Target": "Sure",
                                       "Behavior": "b", "Category": "c", "Source": "s"}],
+    "DAMO-NLP-SG/MultiJail": [{"id": 1, "source": "s", "tags": "['c']", "en": "multijail prompt"}],
+    "CohereLabs/aya_redteaming": [{"prompt": "aya prompt", "language": "English",
+                                   "harm_category": '["c"]', "global_or_local": "global"}],
     "muse-bench/MUSE-News": [{"prompt": "muse passage", "gt": "continuation"}],
     "jinzhuoran/RWKU": [{"subject": "S", "level": "2", "query": "rwku query",
                          "type": "qa", "answer": "a"}],
@@ -69,6 +72,7 @@ EXPECTED_PROMPT = {
     "gsm8k": "gsm8k question", "humaneval": "def f():",
     "medmcqa": "medmcqa question", "mmlu": "mmlu question", "beavertails": "bt prompt",
     "xstest": "xstest prompt", "star1": "star1 question", "jailbreakbench": "jbb goal",
+    "multijail": "multijail prompt", "aya_redteaming": "aya prompt",
     "muse": "muse passage", "rwku": "rwku query", "safedialbench": "dial attack",
 }
 
@@ -186,6 +190,7 @@ SHARED_WITH_LOAD_PROMPTS = {  # load_prompts() name -> registry name
     "harmbench": "harmbench", "advbench": "advbench", "xstest": "xstest",
     "sorrybench": "sorrybench_v1", "orbench": "orbench", "wildjailbreak": "wildjailbreak",
     "jailbreakbench": "jailbreakbench", "muse": "muse", "rwku": "rwku",
+    "multijail": "multijail", "aya_redteaming": "aya_redteaming",
     "safedialbench": "safedialbench",
 }
 
@@ -266,6 +271,45 @@ def test_failed_batch_raises_when_strict(hub, monkeypatch):
         ev.evaluate(_RecordingModel(), benchmarks=["harmbench"])
     out = ev.evaluate(_RecordingModel(), benchmarks=["harmbench"], strict=False)
     assert out["harmbench"]["error"].startswith("RuntimeError: every batch failed")
+
+
+def test_chat_template_kwargs_reach_the_template(hub, judge):
+    """A thinking model's switch (Qwen3 enable_thinking) must be reachable from evaluate()."""
+    import torch
+
+    class Tok:
+        chat_template = "{{ messages }}"
+        pad_token, eos_token, padding_side = "<pad>", "<eos>", "left"
+
+        def __init__(self):
+            self.seen = []
+
+        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True, **kw):
+            self.seen.append(kw)
+            return messages[0]["content"]
+
+        def __call__(self, texts, **kw):
+            class Enc(dict):
+                def to(self, device):
+                    return self
+            return Enc(input_ids=torch.zeros(len(texts), 3, dtype=torch.long))
+
+        def batch_decode(self, ids, **kw):
+            return ["I cannot help with that."] * len(ids)
+
+    class Model:
+        device = "cpu"
+
+        def generate(self, input_ids=None, max_new_tokens=1, **kw):
+            return torch.zeros(input_ids.shape[0], input_ids.shape[1] + 1, dtype=torch.long)
+
+    tok = Tok()
+    ev.evaluate(Model(), benchmarks=["harmbench"], tokenizer=tok)
+    assert tok.seen and all(kw == {} for kw in tok.seen)
+    tok.seen.clear()
+    ev.evaluate(Model(), benchmarks=["harmbench"], tokenizer=tok,
+                chat_template_kwargs={"enable_thinking": False})
+    assert tok.seen and all(kw == {"enable_thinking": False} for kw in tok.seen)
 
 
 def _no_generation(monkeypatch, er):

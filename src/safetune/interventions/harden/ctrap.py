@@ -125,6 +125,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from collections.abc import Mapping
 from itertools import cycle
 from typing import Any, Iterator, Optional
 
@@ -233,9 +234,11 @@ def _make_cycling_loader(dataset: Any, batch_size: int,
 
 
 def _prepare_batch(batch: Any, device: Any) -> Any:
-    """Move every tensor in *batch* to *device* (dict convention)."""
-    if not isinstance(batch, dict):
-        return batch
+    """Move every tensor in *batch* (a dict or a tokenizer's BatchEncoding) to *device*."""
+    if not isinstance(batch, Mapping):
+        raise TypeError(
+            f"CTRAPHFTrainer: batches must be mappings of model inputs, got {type(batch).__name__}."
+        )
     return {
         k: (v.to(device) if hasattr(v, "to") else v)
         for k, v in batch.items()
@@ -534,28 +537,21 @@ class CTRAPHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # t
             l_align = _harmful_ce_loss(align_outputs, labels)
 
         # ---- Collapse trap term @ simulated attack params θ′ ---------------
-        l_collapse: "torch.Tensor" = torch.zeros((), device=device)
-        try:
-            harm_raw = next(self._harm_iter)
-            harm_batch = _prepare_batch(harm_raw, device)
+        # No catch-all: a failed collapse term must stop training, not set
+        # L_collapse = 0 (plain fine-tuning) while the run is reported as CTRAP.
+        harm_batch = _prepare_batch(next(self._harm_iter), device)
 
-            # θ′ = θ − α·∇_θ L(θ; D_harmful)   (the simulated one-step adversary)
-            theta_prime, _l_harm = self._simulated_attack_params(model, harm_batch)
+        # θ′ = θ − α·∇_θ L(θ; D_harmful)   (the simulated one-step adversary)
+        theta_prime, _l_harm = self._simulated_attack_params(model, harm_batch)
 
-            # D_general: dedicated set if provided, else reuse alignment batch.
-            if self._general_iter is not None:
-                general_batch = _prepare_batch(next(self._general_iter), device)
-            else:
-                general_batch = inputs
+        # D_general: dedicated set if provided, else reuse alignment batch.
+        if self._general_iter is not None:
+            general_batch = _prepare_batch(next(self._general_iter), device)
+        else:
+            general_batch = inputs
 
-            # L_Collapse(θ′; D_general)  (Eq. 1 evaluated at θ′)
-            l_collapse = self._collapse_loss_at(model, theta_prime, general_batch)
-        except Exception as exc:
-            logger.warning(
-                "CTRAPHFTrainer: simulated-attack / collapse path failed (%s); "
-                "L_collapse=0 this step.", exc,
-            )
-            l_collapse = next(iter(model.parameters())).sum() * 0.0
+        # L_Collapse(θ′; D_general)  (Eq. 1 evaluated at θ′)
+        l_collapse = self._collapse_loss_at(model, theta_prime, general_batch)
 
         # ---- Eq. (2) combined objective ------------------------------------
         loss = l_align + self._lambda * l_collapse

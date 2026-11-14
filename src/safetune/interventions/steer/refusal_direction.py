@@ -602,8 +602,10 @@ class RefusalDirectionModel:
     block's input and of every attention and MLP output (as the official code does);
     ``steer`` adds ``strength * direction`` to every block's output.
 
-    The model is still a normal nn.Module; ``.generate()`` and ``.forward()``
-    work as usual.
+    ``wrapped.generate(...)`` and ``wrapped(...)`` apply the hooks for that call
+    even without ``install()``. ``wrapped.model`` is the bare model: calling it
+    directly applies nothing unless ``install()`` (or ``with wrapped:``) is active.
+    ``installed`` reports whether the hooks are attached.
     """
 
     def __init__(
@@ -707,6 +709,11 @@ class RefusalDirectionModel:
             except Exception:
                 pass
         self._handles.clear()
+
+    @property
+    def installed(self) -> bool:
+        """Whether ``install()`` hooks are attached (False after ``remove()``)."""
+        return bool(self._handles)
 
     def _steered(self, fn: Any, *args: Any, **kwargs: Any) -> Any:
         """Call ``fn`` with the hooks on: already on (``install()`` / ``with``) -> as is; otherwise

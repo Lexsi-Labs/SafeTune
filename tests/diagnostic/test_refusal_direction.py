@@ -376,3 +376,15 @@ def test_abliteration_attack_full_lifecycle(fixture):
         assert torch.equal(p, pristine[name]), (
             f"AbliterationAttack.revert did not restore {name}"
         )
+
+
+def test_installed_tracks_install_and_remove(fixture):
+    from safetune.interventions.steer.refusal_direction import RefusalDirectionModel
+
+    model, _ = fixture
+    rd = RefusalDirectionModel(model, direction=torch.ones(16), mode="steer")
+    assert rd.installed is False
+    rd.install()
+    assert rd.installed is True
+    rd.remove()
+    assert rd.installed is False

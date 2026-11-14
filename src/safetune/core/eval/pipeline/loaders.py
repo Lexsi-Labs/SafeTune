@@ -14,8 +14,8 @@ We keep the loader API uniform across benchmarks so the same Generator can
 dispatch over any of them.
 
 Benchmarks that ``evaluate()`` also runs (HarmBench, AdvBench, XSTest,
-SORRY-Bench, OR-Bench, WildJailbreak, JailbreakBench, MUSE, RWKU,
-SafeDialBench) are loaded by their one loader in
+SORRY-Bench, OR-Bench, WildJailbreak, JailbreakBench, MultiJail, Aya
+Red-teaming, MUSE, RWKU, SafeDialBench) are loaded by their one loader in
 :mod:`safetune.data.loaders.benchmarks`; the functions here only shape the rows.
 WildJailbreak keeps its load_prompts() defaults: adversarial_harmful rows only,
 at most 500.
@@ -318,6 +318,44 @@ def load_jailbreakbench(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     ]
 
 
+def load_multijail(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """MultiJail (Deng et al., arXiv:2310.06474): a row per prompt and language.
+    ``cfg["languages"]``: a code or a list, default all ten. ``behavior_id`` is
+    ``<id>-<language>``; ``multijail_id`` links a prompt's translations."""
+    return [
+        {
+            "source": "multijail",
+            "behavior_id": f"{item['id']}-{item['language']}",
+            "prompt": item["prompt"],
+            "language": item["language"],
+            "multijail_id": item["id"],
+            "multijail_category": item["category"],
+        }
+        for item in _take(B.load_multijail(cfg.get("languages"), **_spec(cfg)), cfg)
+    ]
+
+
+def load_aya_redteaming(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Aya Red-teaming (Aakanksha et al., arXiv:2406.18682). ``cfg["languages"]``: a
+    code or a list, default all eight. ``behavior_id`` is ``<language>-<row>``."""
+    seen: Counter = Counter()
+    rows: List[Dict[str, Any]] = []
+    for item in _take(B.load_aya_redteaming(cfg.get("languages"), **_spec(cfg)), cfg):
+        lang = item["language"]
+        rows.append(
+            {
+                "source": "aya_redteaming",
+                "behavior_id": f"{lang}-{seen[lang]}",
+                "prompt": item["prompt"],
+                "language": lang,
+                "aya_category": item["category"],
+                "aya_global_or_local": item["global_or_local"],
+            }
+        )
+        seen[lang] += 1
+    return rows
+
+
 def load_muse(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """MUSE (Shi et al., arXiv:2407.06460): ``cfg["domain"]`` ``"news"`` (default)
     or ``"books"``; default config ``verbmem``, split ``forget``. The passage is
@@ -373,6 +411,8 @@ LOADERS: Dict[str, LoaderFn] = {
     "airbench": load_airbench,
     "saladbench": load_saladbench,
     "jailbreakbench": load_jailbreakbench,
+    "multijail": load_multijail,
+    "aya_redteaming": load_aya_redteaming,
     "muse": load_muse,
     "rwku": load_rwku,
     "safedialbench": load_safedialbench,

@@ -30,6 +30,7 @@ class SOMFTrainer(_RecoverBase):
             base=self.base_model,
             mask_threshold=mask_threshold if mask_threshold is not None
             else self.mask_threshold,
+            strict=self.strict,
         )
 
 # ── TaskArithmeticTrainer ─────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ class TaskArithmeticTrainer(_RecoverBase):
             base=self.base_model,
             aligned=self.aligned_model,
             alpha=alpha if alpha is not None else self.alpha,
+            strict=self.strict,
         )
 
 # ── PrePostMergeTrainer ───────────────────────────────────────────────────────
@@ -68,20 +70,26 @@ class PrePostMergeTrainer(_RecoverBase):
     Args:
         pre_model: the pre-fine-tuning (aligned) model.
         alpha: interpolation coefficient toward pre. Default 0.5.
+        merge_adapter: for a PEFT model, interpolate a merged copy and return it (see
+            ``apply_wise_ft``). Default False.
     """
 
     METHOD = "PrePostMergeTrainer"
 
-    def __init__(self, model=None, *, pre_model=None, alpha: float = 0.5, **kwargs):
+    def __init__(self, model=None, *, pre_model=None, alpha: float = 0.5,
+                 merge_adapter: bool = False, **kwargs):
         super().__init__(model, **kwargs)
         self.pre_model = pre_model
         self.alpha = alpha
+        self.merge_adapter = merge_adapter
 
     def apply(self, *, alpha: float = None, **kwargs):
         return R.apply_prepost_merge(
             self.model,
             pre_model=self.pre_model,
             alpha=alpha if alpha is not None else self.alpha,
+            strict=self.strict,
+            merge_adapter=self.merge_adapter,
         )
 
 # ── WiseFTTrainer ─────────────────────────────────────────────────────────────
@@ -92,19 +100,27 @@ class WiseFTTrainer(_RecoverBase):
     Args:
         aligned_model: the aligned reference model.
         alpha: interpolation coefficient toward aligned. Default 0.5.
+        merge_adapter: for a PEFT (LoRA) model against a bare reference, interpolate a merged
+            copy and return it; ``apply`` then returns a bare model and leaves ``model`` as it
+            is. The LoRA update ends up scaled by ``1 - alpha``. Default False (a PEFT model
+            against a bare reference raises).
     """
 
     METHOD = "WiseFTTrainer"
 
-    def __init__(self, model=None, *, aligned_model=None, alpha: float = 0.5, **kwargs):
+    def __init__(self, model=None, *, aligned_model=None, alpha: float = 0.5,
+                 merge_adapter: bool = False, **kwargs):
         super().__init__(model, **kwargs)
         self.aligned_model = aligned_model
         self.alpha = alpha
+        self.merge_adapter = merge_adapter
 
     def apply(self, *, alpha: float = None, **kwargs):
         return R.apply_wise_ft(
             self.model,
             aligned=self.aligned_model,
             alpha=alpha if alpha is not None else self.alpha,
+            strict=self.strict,
+            merge_adapter=self.merge_adapter,
         )
 

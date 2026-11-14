@@ -34,7 +34,7 @@ from typing import Any, List, Optional
 
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -318,6 +318,7 @@ def apply_safereact(
     lora_iters: int = _SAFEREACT_ITERS,
     lora_lr: float = _SAFEREACT_LR,
     layer_stride: int = _SAFEREACT_LAYER_STRIDE,
+    strict: bool = False,
     **extra: Any,
 ) -> nn.Module:
     """Build a SafeReAct reactivation LoRA and merge it into ``model``.
@@ -334,6 +335,11 @@ def apply_safereact(
     training hyper-parameters. ``lora_rank``/``lora_alpha`` default to the
     paper's values (16 / 10). When ``peft`` is unavailable or training cannot
     run, a documented one-shot weight-merge fallback is used.
+
+    The fallback raises ``ValueError`` when no parameter name of ``model`` matches the payload or
+    ``reference_model``. ``strict=True`` also raises, before any edit, on a partial match: a
+    payload name that is not a model parameter, or (no payload names match) a model parameter that
+    is not in ``reference_model``. The training path ignores ``strict``.
     """
     try:
         from safetune.core.safereact import (
@@ -404,34 +410,28 @@ def apply_safereact(
     # model's parameters; otherwise merge directly toward the reference model
     # (the payload often carries neuron-indexed keys that DON'T match
     # named_parameters, which would silently no-op).
-    n_applied = 0
     with torch.no_grad():
         use_payload = any(
             name in aligned_sd and name in base_sd
             for name, _ in model.named_parameters()
         )
         if use_payload:
+            # The payload names only the targeted weights, so partial coverage is sparse.
+            require_matched("apply_safereact", model, aligned_sd, base_sd, strict=strict, sparse=True)
             for name, param in model.named_parameters():
                 if name not in aligned_sd or name not in base_sd:
                     continue
                 a = aligned_sd[name].to(param.device).to(param.dtype)
                 b = base_sd[name].to(param.device).to(param.dtype)
                 param.data.copy_(param.data + alpha * (a - b))
-                n_applied += 1
         else:
+            require_matched("apply_safereact", model, reference_model, strict=strict)
             ref_sd = reference_model.state_dict()
             for name, param in model.named_parameters():
                 if name not in ref_sd:
                     continue
                 r = ref_sd[name].to(param.device).to(param.dtype)
                 param.data.copy_(param.data + alpha * (r - param.data))
-                n_applied += 1
-    if n_applied == 0:
-        logger.warning(
-            "apply_safereact: training-free fallback applied no weight changes "
-            "(no parameter keys matched). Pass train_lora=True for the faithful "
-            "reactivation-LoRA path."
-        )
     return model
 
 

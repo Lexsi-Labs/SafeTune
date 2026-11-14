@@ -24,6 +24,7 @@ class NLSRTrainer(_RecoverBase):
             self.model,
             donor_state=self.donor_state,
             blend=blend if blend is not None else self.blend,
+            strict=self.strict,
         )
 
 # ── AntidoteTrainer ───────────────────────────────────────────────────────────
@@ -90,6 +91,7 @@ class MSCPTrainer(_RecoverBase):
             aligned_state=self.aligned_state,
             base_state=self.base_state,
             coefficient=coefficient if coefficient is not None else self.coefficient,
+            strict=self.strict,
         )
 
 # ── AntidoteV2Trainer ─────────────────────────────────────────────────────────

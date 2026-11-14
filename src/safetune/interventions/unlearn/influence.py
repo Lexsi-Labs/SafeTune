@@ -158,7 +158,8 @@ def tracin_influence(
             ):
                 continue
             # TracIn term for this checkpoint: eta_t * grad(z) . grad(z').
-            out[i] += eta * float(g.dot(test_grad).item())
+            # (a * b).sum(), not Tensor.dot: cuBLAS dot fails on torch 2.10 + cu126.
+            out[i] += eta * float((g * test_grad).sum().item())
 
     logger.info(
         "tracin_influence: scored %d training examples over %d checkpoint(s).",

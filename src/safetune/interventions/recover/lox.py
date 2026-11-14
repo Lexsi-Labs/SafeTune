@@ -34,7 +34,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ def apply_lox(
     rank: int = 64,
     extrapolation_factor: float = 1.5,
     param_filter: Optional[list] = None,
+    strict: bool = False,
 ) -> nn.Module:
     """Apply LoX low-rank safety extrapolation, hardening ``model`` in-place.
 
@@ -93,6 +94,7 @@ def apply_lox(
     # safety component is the rank-k truncation of the *alignment delta*
     # ``aligned - base``, extrapolated ONTO ``model``:
     #     W_out = W_model + coef * LowRank_k(W_aligned - W_base)
+    require_matched("apply_lox", model, base, aligned, strict=strict)
     w_model = model.state_dict()
     w_aligned = aligned.state_dict()
     w_base = base.state_dict()
