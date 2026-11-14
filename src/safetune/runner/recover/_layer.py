@@ -64,6 +64,7 @@ class ReStaTrainer(_RecoverBase):
             dare_drop_rate=dare_drop_rate if dare_drop_rate is not None else self.dare_drop_rate,
             dare_seed=dare_seed if dare_seed is not None else self.dare_seed,
             device=device if device is not None else self.device,
+            strict=self.strict,
         )
 
 # ── SafeLoRATrainer ───────────────────────────────────────────────────────────
@@ -135,6 +136,7 @@ class SafeMergeTrainer(_RecoverBase):
             aligned=self.aligned_model,
             threshold=threshold if threshold is not None else self.threshold,
             alpha=alpha if alpha is not None else self.alpha,
+            strict=self.strict,
         )
 
 # ── SafeDeltaTrainer ──────────────────────────────────────────────────────────
@@ -160,6 +162,7 @@ class SafeDeltaTrainer(_RecoverBase):
             self.model,
             aligned=self.aligned_model,
             strength=strength if strength is not None else self.strength,
+            strict=self.strict,
         )
 
 # ── QReSafeTrainer ────────────────────────────────────────────────────────────

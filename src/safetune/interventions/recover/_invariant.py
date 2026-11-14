@@ -24,6 +24,7 @@ false alarms on methods that deliberately skip embeddings / norms / biases.
 """
 from __future__ import annotations
 
+import copy
 import functools
 import logging
 from typing import Any, Callable, Optional
@@ -57,25 +58,61 @@ def _mutation_signature(model: Any) -> Optional[float]:
         return None
 
 
-def require_matched(method: str, n_matched: int, model: Any, reference: Any) -> None:
-    """Raise when no parameter of ``model`` has a same-named counterpart in ``reference``.
+def require_matched(
+    method: str, model: Any, *references: Any, strict: bool = False, sparse: bool = False
+) -> None:
+    """Check that ``model`` and the reference weights share parameter names, before any edit.
 
     Name-matched weight arithmetic skips every name it cannot find in the reference, so a
     PEFT-wrapped model against a bare one (``base_model.model.`` prefix, LoRA factors) or any
-    other renamed pair used to return the model untouched. ``reference`` is a module or a
-    state dict. Count matches before any ``param_filter`` / shape / dimension skip.
+    other renamed pair used to return the model untouched. Each reference is a module or a
+    name-keyed mapping (a state dict); a name must be in all of them.
+
+    * No name in common: always raises ``ValueError``.
+    * Partial overlap: logs one summary line with the counts (a warning when something is
+      left out), and raises ``ValueError`` when ``strict`` is true.
+
+    What partial coverage means depends on the method. By default it is a model parameter that
+    has no same-named entry in the references. ``sparse=True`` is for a reference that
+    names only the weights to edit (a neuron map): it is a reference name that is not a
+    model parameter. Filters, shape and dimension skips inside a method are never counted.
     """
-    if n_matched:
-        return
+    def names(x: Any) -> set:
+        return set((x.state_dict() if hasattr(x, "state_dict") else x).keys())
 
-    def sample(x: Any) -> list:
-        return list((x.state_dict() if hasattr(x, "state_dict") else x).keys())[:2]
+    own = [n for n, _ in model.named_parameters()]
+    shared = set.intersection(*(names(r) for r in references))
+    if sparse:
+        total, missing = len(shared), sorted(shared - set(own))
+        matched = total - len(missing)
+        side = "reference entries that are not model parameters"
+    else:
+        missing = [n for n in own if n not in shared]
+        total, matched = len(own), len(own) - len(missing)
+        side = "model parameters that are not in the reference"
+    if not matched:
+        def sample(x: Any) -> list:
+            return sorted(names(x))[:2]
 
-    raise ValueError(
-        f"{method}: no parameter name of the model is in the reference weights, so nothing would "
-        f"change (model has {sample(model)}, reference has {sample(reference)}). Both must share "
-        "parameter names; merge a PEFT adapter into its base first with merge_and_unload()."
+        raise ValueError(
+            f"{method}: no parameter name of the model is in the reference weights, so nothing "
+            f"would change (model has {sorted(own)[:2]}, reference has {sample(references[0])}). "
+            "Both must share parameter names; merge a PEFT adapter into its base first with "
+            "merge_and_unload() (apply_wise_ft and apply_prepost_merge do it with merge_adapter=True)."
+        )
+    summary = f"{method}: {matched} of {total} matched by name, {len(missing)} {side}"
+    if missing and strict:
+        raise ValueError(f"{summary} (e.g. {missing[:3]}); strict=True requires every one to match.")
+    (logger.warning if missing else logger.info)(
+        "%s%s.", summary, f" (e.g. {missing[:3]}), left unchanged" if missing else ""
     )
+
+
+def merged_adapter_copy(model: Any, method: str) -> Any:
+    """A bare copy of a PEFT ``model`` with its adapter merged in; ``model`` is left as it is."""
+    if not hasattr(model, "merge_and_unload"):
+        raise ValueError(f"{method}: merge_adapter=True needs a PEFT model with an adapter to merge.")
+    return copy.deepcopy(model).merge_and_unload()
 
 
 def assert_mutates(method_name: str) -> Callable:
@@ -116,4 +153,4 @@ def assert_mutates(method_name: str) -> Callable:
     return decorator
 
 
-__all__ = ["assert_mutates", "require_matched"]
+__all__ = ["assert_mutates", "merged_adapter_copy", "require_matched"]

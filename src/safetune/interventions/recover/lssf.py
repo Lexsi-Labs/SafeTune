@@ -153,6 +153,7 @@ def apply_lssf(
     eta: Optional[float] = None,
     weight_max: float = 1.0,
     subspace_basis: Optional[Dict[str, torch.Tensor]] = None,
+    strict: bool = False,
 ) -> nn.Module:
     """Apply Low-Rank Safety Subspace Fusion in place to ``finetuned``.
 
@@ -189,6 +190,7 @@ def apply_lssf(
     skip = list(skip_param_substrings or ["embed_tokens", "lm_head", "norm"])
     subspace_basis = subspace_basis or {}
 
+    require_matched("apply_lssf", finetuned, base, aligned, strict=strict)
     base_sd = base.state_dict()
     aligned_sd = aligned.state_dict()
     ft_sd = finetuned.state_dict()
@@ -196,10 +198,8 @@ def apply_lssf(
     edited = 0
     skipped = 0
     rank_sum = 0
-    n_matched = 0
     with torch.no_grad():
         for name, ft_w in ft_sd.items():
-            n_matched += name in base_sd and name in aligned_sd
             if any(s in name for s in skip):
                 skipped += 1
                 continue
@@ -254,7 +254,6 @@ def apply_lssf(
             edited += 1
             rank_sum += r
 
-    require_matched("apply_lssf", n_matched, finetuned, aligned)
     avg_rank = (rank_sum / edited) if edited else 0.0
     logger.info(
         "LSSF: edited %d 2-D params (skipped %d), alpha=%.2f eta=%s avg_rank=%.1f.",

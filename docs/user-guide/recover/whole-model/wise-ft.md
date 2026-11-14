@@ -14,6 +14,8 @@ WiseFTTrainer(
     *,
     aligned_model: nn.Module,
     alpha: float = 0.5,
+    strict: bool = False,
+    merge_adapter: bool = False,
 )
 ```
 
@@ -24,6 +26,11 @@ WiseFTTrainer(
 | `model` | `nn.Module` | required | Post-fine-tune (drifted) model — modified in-place |
 | `aligned_model` | `nn.Module` | required | Safety-aligned reference model |
 | `alpha` | `float` | `0.5` | Interpolation coefficient toward aligned; `0.0` = no recovery, `1.0` = fully replaces with aligned |
+
+| `strict` | `bool` | `False` | `True` raises (before any edit) when a model parameter has no same-named entry in the reference. The default leaves such parameters unchanged and logs how many |
+| `merge_adapter` | `bool` | `False` | For a PEFT (LoRA) model against a bare reference: interpolate a merged deep copy and return it (needs a second set of weights in memory; `model` is left as it is) |
+
+The model and the reference must share parameter names. A PEFT-wrapped model has a `base_model.model.` prefix and LoRA factors, so against a bare reference no name matches and `apply()` raises a `ValueError` (it used to return the model unchanged). Either merge the adapter yourself with `merge_and_unload()` or pass `merge_adapter=True`. With the reference being the base weights the adapter was trained on, the result is `base + (1 - alpha) * lora_update`: `alpha` scales the LoRA update by `1 - alpha`. The other RECOVER methods that match weights by name take the same `strict=` and raise the same error.
 
 ## Full example
 

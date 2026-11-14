@@ -78,6 +78,7 @@ def apply_mscp(
     base_param_path: Optional[str] = None,
     neuron_mask: Optional[Dict[str, Any]] = None,
     neuron_mask_path: Optional[str] = None,
+    strict: bool = False,
     **extra: Any,
 ) -> nn.Module:
     """Apply Multi-Level Safety Continual Projection to ``model`` in place.
@@ -196,6 +197,7 @@ def apply_mscp(
             base=resolved_base,
             neuron_mask=resolved_mask,
             coefficient=float(coefficient),
+            strict=strict,
         )
         return model
 
@@ -234,6 +236,7 @@ def _mscp_safety_projection(
     base: Dict[str, Any],
     neuron_mask: Optional[Dict[str, Any]],
     coefficient: float,
+    strict: bool = False,
 ) -> None:
     """Faithful MSCP sparse safety projection — paper Eq. 6-7.
 
@@ -254,16 +257,15 @@ def _mscp_safety_projection(
     """
     import torch as _torch
 
+    require_matched("apply_mscp", model, aligned, base, strict=strict)
     projected = 0
     skipped_shape = 0
     total = 0
-    n_matched = 0
 
     with _torch.no_grad():
         for name, param in model.named_parameters():
             if name not in aligned or name not in base:
                 continue
-            n_matched += 1
             # Eq. 6 builds W_safe = D @ D^T, which is only defined for a 2-D
             # weight matrix. 1-D params (biases, norms) have no neuron-level
             # projection in MSCP and are left untouched.
@@ -333,7 +335,6 @@ def _mscp_safety_projection(
             param.data.copy_(new_w.to(param.dtype))
             projected += 1
 
-    require_matched("apply_mscp", n_matched, model, aligned)
     logger.info(
         "apply_mscp: faithful MSCP projection — %d/%d 2-D weights projected "
         "(%d skipped on shape mismatch, neuron_mask=%s, coefficient=%.3f).",

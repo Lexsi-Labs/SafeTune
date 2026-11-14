@@ -42,6 +42,7 @@ class LoXTrainer(_RecoverBase):
             rank=rank if rank is not None else self.rank,
             extrapolation_factor=(extrapolation_factor if extrapolation_factor is not None
                                   else self.extrapolation_factor),
+            strict=self.strict,
         )
 
 # ── LSSFTrainer ───────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ class LSSFTrainer(_RecoverBase):
             alpha=alpha if alpha is not None else self.alpha,
             rank=rank if rank is not None else self.rank,
             eta=eta if eta is not None else self.eta,
+            strict=self.strict,
         )
 
 # ── SafetyVectorRestoreTrainer ────────────────────────────────────────────────
@@ -106,5 +108,6 @@ class SafetyVectorRestoreTrainer(_RecoverBase):
             aligned=self.aligned_model,
             alpha=alpha if alpha is not None else self.alpha,
             rank=rank if rank is not None else self.rank,
+            strict=self.strict,
         )
 

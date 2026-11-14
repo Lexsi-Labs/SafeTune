@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ._invariant import assert_mutates, require_matched
+from ._invariant import assert_mutates, merged_adapter_copy, require_matched
 from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,7 @@ def task_arithmetic(
     base: nn.Module,
     aligned: nn.Module,
     alpha: float = 1.0,
+    strict: bool = False,
 ) -> nn.Module:
     """Task-arithmetic safety recovery (Ilharco et al., 2023).
 
@@ -62,6 +63,7 @@ def task_arithmetic(
     finetuned: theta_safe = theta_ft + alpha * (theta_aligned - theta_base).
     Mutates and returns ``finetuned`` in place.
     """
+    require_matched("task_arithmetic", finetuned, base, aligned, strict=strict)
     ft_sd = finetuned.state_dict()
     base_sd = base.state_dict()
     aligned_sd = aligned.state_dict()
@@ -83,7 +85,6 @@ def task_arithmetic(
             updated = ft_p.to(torch.float32) + alpha * task_vec
             ft_p.copy_(updated.to(ft_p.dtype))
             n_applied += 1
-    require_matched("task_arithmetic", n_applied, finetuned, base)
     logger.info("task_arithmetic: applied safety vector to %d params (alpha=%.3f)", n_applied, alpha)
     return finetuned
 
@@ -131,6 +132,7 @@ def somf_merge(
     mask_threshold: float = 0.9,
     lam: float = 1.0,
     subspace_mask: dict | None = None,
+    strict: bool = False,
 ) -> nn.Module:
     """Subspace-Oriented Model Fusion (SOMF), Yi et al., 2024 (arXiv:2405.09055).
 
@@ -149,6 +151,7 @@ def somf_merge(
     A tied weight's mask may be keyed under any of its names in ``subspace_mask``; if several
     are, the first name in the state dict wins.
     """
+    require_matched("somf_merge", finetuned, aligned, strict=strict)
     ft_sd = finetuned.state_dict()
     aligned_sd = aligned.state_dict()
     n_applied = 0
@@ -184,7 +187,6 @@ def somf_merge(
             ft_p.copy_(merged.to(ft_p.dtype))
             n_applied += 1
             
-    require_matched("somf_merge", n_applied, finetuned, aligned)
     logger.info(
         "somf_merge: fused %d params (mask_threshold=%.2f, lam=%.3f, mask=%s)",
         n_applied,
@@ -389,13 +391,23 @@ def apply_prepost_merge(
     pre_model: Union[nn.Module, str],
     alpha: float = 0.5,
     param_filter: Optional[Callable] = None,
+    strict: bool = False,
+    merge_adapter: bool = False,
     **extra,
 ) -> nn.Module:
-    """Restore safety by interpolating toward the pre-fine-tuning checkpoint."""
+    """Restore safety by interpolating toward the pre-fine-tuning checkpoint.
+
+    ``strict`` and ``merge_adapter`` work as in ``apply_wise_ft``: ``strict=True`` raises when a
+    model parameter has no same-named entry in ``pre_model``; ``merge_adapter=True`` interpolates
+    a merged deep copy of a PEFT ``model`` and returns it, leaving ``model`` untouched.
+    """
     if not (0.0 <= alpha <= 1.0):
         raise ValueError(f"alpha must be in [0, 1], got {alpha}")
 
     pre = _resolve_pre_model(pre_model)
+    if merge_adapter:
+        model = merged_adapter_copy(model, "apply_prepost_merge")
+    require_matched("apply_prepost_merge", model, pre, strict=strict)
     pre_sd = pre.state_dict()
 
     n_applied = 0
@@ -415,7 +427,6 @@ def apply_prepost_merge(
             post_p.copy_(merged.to(post_p.dtype))
             n_applied += 1
 
-    require_matched("apply_prepost_merge", n_applied + n_skipped_filter, model, pre)
     logger.info(
         "apply_prepost_merge: interpolated %d params (alpha=%.3f, "
         "skipped_filter=%d, missing_in_pre=%d)",

@@ -32,6 +32,7 @@ class GradSelectiveRecoverTrainer(_RecoverBase):
             else self.harmful_inputs,
             top_fraction=top_fraction if top_fraction is not None else self.top_fraction,
             max_samples=self.max_samples,
+            strict=self.strict,
         )
 
 # ── OneShotSafetyPatchTrainer ─────────────────────────────────────────────────

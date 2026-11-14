@@ -117,6 +117,7 @@ def apply_safemerge(
     merge_type: str = "linear",
     density: Optional[float] = None,
     only_2d: bool = True,
+    strict: bool = False,
 ) -> nn.Module:
     """Selectively merge unsafe fine-tuned layers toward the safety-aligned model.
 
@@ -133,15 +134,15 @@ def apply_safemerge(
     if merge_type == "dare_linear" and density is None:
         density = 0.5
 
+    require_matched("apply_safemerge", finetuned, base, aligned, strict=strict)
     base_sd = base.state_dict()
     aligned_sd = aligned.state_dict()
     ft_params = dict(finetuned.named_parameters()) # Use parameters for in-place copy
 
-    merged, considered, n_matched = 0, 0, 0
+    merged, considered = 0, 0
     for key, param_ft in ft_params.items():
         if key not in base_sd or key not in aligned_sd:
             continue
-        n_matched += 1
             
         w_base = base_sd[key]
         w_aligned = aligned_sd[key]
@@ -193,7 +194,6 @@ def apply_safemerge(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    require_matched("apply_safemerge", n_matched, finetuned, aligned)
     if considered and not merged:
         logger.warning(
             "apply_safemerge: no layer was merged out of %d eligible. The fine-tune must start from "

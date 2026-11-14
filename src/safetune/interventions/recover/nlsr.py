@@ -152,10 +152,12 @@ def _nlsr_stage3_transplant(
     region_mask: Optional[Dict[str, Any]],
     blend: float,
     tau: Optional[float],
+    strict: bool = False,
 ) -> None:
     import torch as _torch
     import torch.nn.functional as _F
 
+    require_matched("apply_nlsr", model, donor, strict=strict)
     transplanted, gated_out, total = 0, 0, 0
     with _torch.no_grad():
         for name, param in model.named_parameters():
@@ -200,7 +202,6 @@ def _nlsr_stage3_transplant(
             param[mask] = new_region.to(param.dtype)
             transplanted += 1
 
-    require_matched("apply_nlsr", total, model, donor)
     logger.info("apply_nlsr: transplanted %d/%d (gated out: %d)", transplanted, total, gated_out)
 
 
@@ -214,9 +215,15 @@ def apply_nlsr(
     region_mask: Optional[Dict[str, Any]] = None,
     region_mask_path: Optional[str] = None,
     tau: Optional[float] = None,
+    strict: bool = False,
     **extra: Any,
 ) -> nn.Module:
-    """Transplant safety-reference neuron values into ``model`` using NLSR (stage 3)."""
+    """Transplant safety-reference neuron values into ``model`` using NLSR (stage 3).
+
+    A ``donor_state`` is dense: ``strict=True`` raises when a model parameter is not in it.
+    A ``donor_map`` is sparse by design: ``strict=True`` raises when one of its names is not a
+    model parameter. Either way, no name in common always raises.
+    """
     resolved_donor = dict(donor_state) if donor_state else (_load_state_dict(donor_param_path) if donor_param_path else None)
     
     resolved_mask = dict(region_mask) if region_mask else None
@@ -225,11 +232,11 @@ def apply_nlsr(
         resolved_mask = dict(_torch.load(region_mask_path, map_location="cpu", weights_only=True))
 
     if resolved_donor is not None:
-        _nlsr_stage3_transplant(model, donor=resolved_donor, region_mask=resolved_mask, blend=float(blend), tau=tau)
+        _nlsr_stage3_transplant(model, donor=resolved_donor, region_mask=resolved_mask, blend=float(blend), tau=tau, strict=strict)
         return model
 
     from safetune.core.patches.nlsr_patch import NLSRPatch
-    params = {"blend": blend, **extra}
+    params = {"blend": blend, "strict": strict, **extra}
     if donor_param_path: params["donor_param_path"] = donor_param_path
     if donor_map: params["donor_map"] = donor_map
     NLSRPatch(**params).apply_to_model(model)

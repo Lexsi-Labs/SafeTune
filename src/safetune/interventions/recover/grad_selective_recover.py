@@ -108,6 +108,7 @@ def apply_grad_selective_recover(
     target_modules: Optional[List[str]] = None,
     max_samples: int = 32,
     vllm_engine: Any = None,
+    strict: bool = False,
 ) -> nn.Module:
     """Gradient-guided selective weight rollback to the aligned checkpoint.
 
@@ -141,6 +142,7 @@ def apply_grad_selective_recover(
     if not 0.0 < top_fraction <= 1.0:
         raise ValueError(f"top_fraction must be in (0, 1], got {top_fraction}")
 
+    require_matched("grad_selective_recover", model, aligned, strict=strict)
     targets = target_modules or ["weight"]
 
     # Optional vLLM prompt ranking: use generation logprobs to put the most
@@ -185,10 +187,6 @@ def apply_grad_selective_recover(
     aligned_sd = aligned.state_dict()
     model_sd = model.state_dict()
 
-    require_matched(
-        "grad_selective_recover", any(n in aligned_sd and n in model_sd for n in saliency),
-        model, aligned,
-    )
     restored_params = 0
     restored_coords = 0
     with torch.no_grad():

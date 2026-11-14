@@ -96,6 +96,7 @@ def apply_safety_vector_restore(
     alpha: float = 1.0,
     rank: Optional[int] = 8,
     target_modules: Optional[List[str]] = None,
+    strict: bool = False,
 ) -> nn.Module:
     """Re-inject the (aligned − drifted) safety vector, projected to top-rank.
 
@@ -126,6 +127,7 @@ def apply_safety_vector_restore(
         logger.warning("apply_safety_vector_restore: alpha=0 — no change applied.")
         return model
 
+    require_matched("apply_safety_vector_restore", model, aligned, strict=strict)
     aligned_sd = aligned.state_dict()
     n_applied = 0
     n_missing = 0
@@ -163,10 +165,6 @@ def apply_safety_vector_restore(
             param.copy_(new_val.to(orig_dtype))
             n_applied += 1
 
-    require_matched(
-        "apply_safety_vector_restore",
-        any(n in aligned_sd for n, _ in model.named_parameters()), model, aligned,
-    )
     logger.info(
         "apply_safety_vector_restore: applied to %d params "
         "(alpha=%.3f, rank=%s, missing=%d).",

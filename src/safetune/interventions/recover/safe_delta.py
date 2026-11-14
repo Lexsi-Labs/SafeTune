@@ -89,6 +89,7 @@ def apply_safe_delta(
     ref_columns: int = 4096,
     blocksize: int = 2048,
     sub_block_size: int = 4,
+    strict: bool = False,
 ) -> Any:
     """Apply the Safe Delta post-hoc weight edit to ``model``.
 
@@ -155,6 +156,8 @@ def apply_safe_delta(
     s = float(projection_strength if strength is None else strength)
     filt = list(param_filter or [])
 
+    require_matched("apply_safe_delta", model, aligned, *([unsafe] if unsafe is not None else []),
+                    strict=strict)
     aligned_sd = aligned.state_dict()
     # theta_sft: from `unsafe` if supplied, else from `model` itself.
     sft_sd = unsafe.state_dict() if unsafe is not None else model.state_dict()
@@ -171,11 +174,8 @@ def apply_safe_delta(
 
     edited = 0
     skipped = 0
-    n_matched = 0
     with torch.no_grad():
         for name, param in model.named_parameters():
-            if name in aligned_sd and name in sft_sd:
-                n_matched += 1
             if not _matches(name):
                 continue
             if name not in aligned_sd or name not in sft_sd:
@@ -207,7 +207,6 @@ def apply_safe_delta(
             param.data.copy_(new_w.to(dtype=orig_dtype))
             edited += 1
 
-    require_matched("apply_safe_delta", n_matched, model, aligned)
     logger.info(
         "apply_safe_delta: edited %d weight matrices (s=%.4g), skipped %d.",
         edited,

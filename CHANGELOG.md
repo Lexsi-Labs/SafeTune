@@ -166,12 +166,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of returning the unchanged target. Code that relied on the silent no-op now fails.
 - `WiseFTTrainer` and the other RECOVER methods that match weights by name (`apply_wise_ft`, `apply_prepost_merge`,
   `task_arithmetic`, `somf_merge`, `apply_resta`, `apply_lox`, `apply_safe_delta`, `apply_safemerge`, `apply_lssf`,
-  `apply_nlsr` with a donor state, `apply_mscp`, `apply_safety_vector_restore`, `apply_grad_selective_recover`) raise a
-  `ValueError` when no parameter name of the model is in the reference (issue #88). A PEFT-wrapped model against a bare
-  reference has no name in common (`base_model.model.` prefix, LoRA factors), so the call used to interpolate nothing and
-  return the model, with only a log line. The error names a sample from each side and says to merge the adapter with
-  `merge_and_unload()` first. A partial overlap still applies to the matching names; `apply_wise_ft` now logs that case
-  as a warning. Code that relied on the silent no-op now fails.
+  `apply_nlsr`, `apply_mscp`, `apply_safety_vector_restore`, `apply_grad_selective_recover`, and the training-free
+  fallback of `apply_safereact`) raise a `ValueError` when no parameter name of the model is in the reference (issue #88).
+  A PEFT-wrapped model against a bare reference has no name in common (`base_model.model.` prefix, LoRA factors), so the
+  call used to interpolate nothing and return the model, with only a log line. The error is raised before any edit, names
+  a sample from each side and says to merge the adapter with `merge_and_unload()` first. `apply_nlsr` with a `donor_map`
+  (`NLSRPatch.apply_to_model`) raises the same way, and also when it is given neither a donor state nor a map. Code that
+  relied on the silent no-op now fails.
+- New keyword `strict=False` on those functions and on the RECOVER trainers (`WiseFTTrainer(strict=True)`). By default a
+  partial overlap still applies to the matching names and logs one line with the counts (a warning when something is left
+  out). `strict=True` raises before any edit when a model parameter has no same-named entry in the reference(s); for a
+  sparse reference (`apply_nlsr` with a `donor_map`, the `apply_safereact` payload) it raises when a reference name is not a
+  model parameter. Return values are unchanged; the counts are in the log line.
+- New keyword `merge_adapter=False` on `apply_wise_ft` and `apply_prepost_merge` (and the two trainers). With
+  `merge_adapter=True` and a PEFT model, the adapter is merged into a deep copy, the copy is interpolated and returned as a
+  bare model; the PEFT model is not touched. With the reference being the base weights the adapter was trained on, the
+  result is `base + (1 - alpha) * lora_update`. The default keeps the clear error.
 - `SafeGradHFTrainer` under fp16 mixed precision (issue #37): `.grad` holds the loss-scaled task
   gradient while the alignment gradient was unscaled, so after the optimizer's unscale the alignment
   term shrank to `rho * g_align / s` (`s` = 65,536 at the start). The alignment gradient is now
