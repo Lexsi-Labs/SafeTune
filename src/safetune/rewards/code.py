@@ -32,8 +32,16 @@ class CodeSyntaxReward(RewardFunction):
             return False
 
 
+_NO_TESTS_WARNED = set()
+
+
 class CodeExecutionReward(RewardFunction):
-    """Reward for code execution success."""
+    """Fraction of test cases the code passes.
+
+    Tests are ``assert`` strings or ``{"input": ..., "expected_output": ...}`` dicts, from
+    ``compute(test_cases=...)`` or ``params["test_cases"]``. With no tests the reward is 0.0 and a
+    warning is logged once: code that merely runs (a stub included) is not evidence of a correct answer.
+    """
     
     def __init__(self, config: RewardConfig):
         super().__init__(config)
@@ -47,7 +55,12 @@ class CodeExecutionReward(RewardFunction):
         
         if test_cases:
             return self._validate_with_test_cases(code, test_cases)
-        return 1.0 if self._execute_code_safely(code) else 0.0
+        # No tests: running is not evidence of a correct answer (a stub runs), so nothing is paid.
+        if type(self).__name__ not in _NO_TESTS_WARNED:
+            _NO_TESTS_WARNED.add(type(self).__name__)
+            logger.warning("code_execution got no test cases (test_cases); scoring 0.0. "
+                           "Pass test_cases (assert strings or input/expected_output dicts).")
+        return 0.0
 
     def _extract_code(self, text: str) -> str:
         blocks = re.findall(r'```python\s*(.*?)```', text, re.DOTALL) or re.findall(r'```\s*(.*?)```', text, re.DOTALL)
@@ -73,6 +86,8 @@ class CodeExecutionReward(RewardFunction):
         # via an in-process exec() with full builtins (which is an
         # arbitrary-code-execution vector in the reward process — it could read
         # files, open sockets, etc.). Exiting early doesn't count as running.
+        # compute() no longer pays for a bare run (no tests scores 0.0); this reports only
+        # whether the code ran to its end.
         return run_candidate(code, self.timeout) is not None
 
     def _validate_with_test_cases(self, code: str, test_cases: List[Any]) -> float:

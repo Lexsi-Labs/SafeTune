@@ -74,11 +74,19 @@ def test_correctness_with_no_tests_scores_zero():
     assert CodeCorrectnessReward(_config()).compute("") == 0.0
 
 
-def test_execution_with_no_tests_needs_a_full_run():
+def test_execution_with_no_tests_scores_zero_and_warns_once(caplog):
+    """With no tests, running is not evidence of a correct answer (a stub runs), so nothing is paid."""
+    from safetune.rewards import code as code_module
+
+    code_module._NO_TESTS_WARNED.clear()
     reward = CodeExecutionReward(_config())
-    assert reward.compute("```python\nx = 1\n```") == 1.0
-    assert reward.compute(CHEATS["exit_zero"]) == 0.0
-    assert reward.compute(CHEATS["hard_exit"]) == 0.0
+    with caplog.at_level("WARNING", logger=code_module.logger.name):
+        assert reward.compute("```python\nx = 1\n```") == 0.0
+        assert reward.compute("```python\ndef f(*a, **k): pass\n```") == 0.0
+        assert reward.compute(CHEATS["exit_zero"]) == 0.0
+        assert reward.compute(CHEATS["hard_exit"]) == 0.0
+    warned = [r for r in caplog.records if "code_execution got no test cases" in r.getMessage()]
+    assert len(warned) == 1
 
 
 def test_expected_value_never_reaches_the_child():
