@@ -53,7 +53,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
@@ -137,10 +137,11 @@ def apply_safemerge(
     aligned_sd = aligned.state_dict()
     ft_params = dict(finetuned.named_parameters()) # Use parameters for in-place copy
 
-    merged, considered = 0, 0
+    merged, considered, n_matched = 0, 0, 0
     for key, param_ft in ft_params.items():
         if key not in base_sd or key not in aligned_sd:
             continue
+        n_matched += 1
             
         w_base = base_sd[key]
         w_aligned = aligned_sd[key]
@@ -192,6 +193,7 @@ def apply_safemerge(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
+    require_matched("apply_safemerge", n_matched, finetuned, aligned)
     if considered and not merged:
         logger.warning(
             "apply_safemerge: no layer was merged out of %d eligible. The fine-tune must start from "

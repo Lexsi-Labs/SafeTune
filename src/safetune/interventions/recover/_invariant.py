@@ -57,6 +57,27 @@ def _mutation_signature(model: Any) -> Optional[float]:
         return None
 
 
+def require_matched(method: str, n_matched: int, model: Any, reference: Any) -> None:
+    """Raise when no parameter of ``model`` has a same-named counterpart in ``reference``.
+
+    Name-matched weight arithmetic skips every name it cannot find in the reference, so a
+    PEFT-wrapped model against a bare one (``base_model.model.`` prefix, LoRA factors) or any
+    other renamed pair used to return the model untouched. ``reference`` is a module or a
+    state dict. Count matches before any ``param_filter`` / shape / dimension skip.
+    """
+    if n_matched:
+        return
+
+    def sample(x: Any) -> list:
+        return list((x.state_dict() if hasattr(x, "state_dict") else x).keys())[:2]
+
+    raise ValueError(
+        f"{method}: no parameter name of the model is in the reference weights, so nothing would "
+        f"change (model has {sample(model)}, reference has {sample(reference)}). Both must share "
+        "parameter names; merge a PEFT adapter into its base first with merge_and_unload()."
+    )
+
+
 def assert_mutates(method_name: str) -> Callable:
     """Decorator that logs a WARNING if the model's weights are unchanged.
 
@@ -95,4 +116,4 @@ def assert_mutates(method_name: str) -> Callable:
     return decorator
 
 
-__all__ = ["assert_mutates"]
+__all__ = ["assert_mutates", "require_matched"]

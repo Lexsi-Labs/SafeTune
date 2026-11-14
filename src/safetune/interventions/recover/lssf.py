@@ -83,7 +83,7 @@ from typing import Dict, Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
@@ -196,8 +196,10 @@ def apply_lssf(
     edited = 0
     skipped = 0
     rank_sum = 0
+    n_matched = 0
     with torch.no_grad():
         for name, ft_w in ft_sd.items():
+            n_matched += name in base_sd and name in aligned_sd
             if any(s in name for s in skip):
                 skipped += 1
                 continue
@@ -252,6 +254,7 @@ def apply_lssf(
             edited += 1
             rank_sum += r
 
+    require_matched("apply_lssf", n_matched, finetuned, aligned)
     avg_rank = (rank_sum / edited) if edited else 0.0
     logger.info(
         "LSSF: edited %d 2-D params (skipped %d), alpha=%.2f eta=%s avg_rank=%.1f.",

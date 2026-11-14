@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +200,7 @@ def _nlsr_stage3_transplant(
             param[mask] = new_region.to(param.dtype)
             transplanted += 1
 
+    require_matched("apply_nlsr", total, model, donor)
     logger.info("apply_nlsr: transplanted %d/%d (gated out: %d)", transplanted, total, gated_out)
 
 

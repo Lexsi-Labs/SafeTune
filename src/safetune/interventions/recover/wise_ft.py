@@ -37,7 +37,7 @@ from typing import Callable, Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,8 @@ def apply_wise_ft(
 
     Computes  ``W_new = alpha * W_aligned + (1 - alpha) * W_drifted``  for
     every parameter pair that exists in both ``model`` and ``aligned``.
-    Mutates ``model`` in place and returns it.
+    Mutates ``model`` in place and returns it. Raises ``ValueError`` when no
+    parameter name matches (a PEFT-wrapped model against a bare one).
 
     Parameters
     ----------
@@ -98,7 +99,8 @@ def apply_wise_ft(
             param.copy_(merged.to(param.dtype))
             n_applied += 1
 
-    logger.info(
+    require_matched("apply_wise_ft", n_applied + n_skipped_filter, model, aligned)
+    (logger.warning if n_missing else logger.info)(
         "apply_wise_ft: interpolated %d params (alpha=%.3f toward aligned; "
         "skipped_filter=%d, missing_in_aligned=%d).",
         n_applied, alpha, n_skipped_filter, n_missing,

@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
@@ -83,6 +83,7 @@ def task_arithmetic(
             updated = ft_p.to(torch.float32) + alpha * task_vec
             ft_p.copy_(updated.to(ft_p.dtype))
             n_applied += 1
+    require_matched("task_arithmetic", n_applied, finetuned, base)
     logger.info("task_arithmetic: applied safety vector to %d params (alpha=%.3f)", n_applied, alpha)
     return finetuned
 
@@ -183,6 +184,7 @@ def somf_merge(
             ft_p.copy_(merged.to(ft_p.dtype))
             n_applied += 1
             
+    require_matched("somf_merge", n_applied, finetuned, aligned)
     logger.info(
         "somf_merge: fused %d params (mask_threshold=%.2f, lam=%.3f, mask=%s)",
         n_applied,
@@ -413,6 +415,7 @@ def apply_prepost_merge(
             post_p.copy_(merged.to(post_p.dtype))
             n_applied += 1
 
+    require_matched("apply_prepost_merge", n_applied + n_skipped_filter, model, pre)
     logger.info(
         "apply_prepost_merge: interpolated %d params (alpha=%.3f, "
         "skipped_filter=%d, missing_in_pre=%d)",

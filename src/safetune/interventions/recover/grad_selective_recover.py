@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +185,10 @@ def apply_grad_selective_recover(
     aligned_sd = aligned.state_dict()
     model_sd = model.state_dict()
 
+    require_matched(
+        "grad_selective_recover", any(n in aligned_sd and n in model_sd for n in saliency),
+        model, aligned,
+    )
     restored_params = 0
     restored_coords = 0
     with torch.no_grad():

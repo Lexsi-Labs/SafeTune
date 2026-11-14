@@ -24,7 +24,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 from ._contract import keyword_refs
 
 
@@ -130,6 +130,7 @@ def apply_resta(
     # DARE, where each name draws its own mask).
     keys = set(wrapper.keys)
     owner = {v.data_ptr(): k for k, v in ft_sd.items() if k in keys}
+    require_matched("apply_resta", len(owner), finetuned, aligned)
     with torch.no_grad():
         for key in wrapper.keys:  # aligned order: the DARE masks match a seed
             val = ft_sd.get(key)

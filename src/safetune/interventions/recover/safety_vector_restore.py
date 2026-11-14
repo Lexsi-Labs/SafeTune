@@ -48,7 +48,7 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +163,10 @@ def apply_safety_vector_restore(
             param.copy_(new_val.to(orig_dtype))
             n_applied += 1
 
+    require_matched(
+        "apply_safety_vector_restore",
+        any(n in aligned_sd for n, _ in model.named_parameters()), model, aligned,
+    )
     logger.info(
         "apply_safety_vector_restore: applied to %d params "
         "(alpha=%.3f, rank=%s, missing=%d).",

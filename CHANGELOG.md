@@ -159,6 +159,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `apply_ctheta` and `apply_ctheta_from_state_dicts` raise a `ValueError` when they steer none of the matched
   parameters (a key missing from the positive or negative weights, or with another shape, was skipped silently),
   instead of returning the unchanged target. Code that relied on the silent no-op now fails.
+- `WiseFTTrainer` and the other RECOVER methods that match weights by name (`apply_wise_ft`, `apply_prepost_merge`,
+  `task_arithmetic`, `somf_merge`, `apply_resta`, `apply_lox`, `apply_safe_delta`, `apply_safemerge`, `apply_lssf`,
+  `apply_nlsr` with a donor state, `apply_mscp`, `apply_safety_vector_restore`, `apply_grad_selective_recover`) raise a
+  `ValueError` when no parameter name of the model is in the reference (issue #88). A PEFT-wrapped model against a bare
+  reference has no name in common (`base_model.model.` prefix, LoRA factors), so the call used to interpolate nothing and
+  return the model, with only a log line. The error names a sample from each side and says to merge the adapter with
+  `merge_and_unload()` first. A partial overlap still applies to the matching names; `apply_wise_ft` now logs that case
+  as a warning. Code that relied on the silent no-op now fails.
 - `SafeGradHFTrainer` under fp16 mixed precision (issue #37): `.grad` holds the loss-scaled task
   gradient while the alignment gradient was unscaled, so after the optimizer's unscale the alignment
   term shrank to `rho * g_align / s` (`s` = 65,536 at the start). The alignment gradient is now

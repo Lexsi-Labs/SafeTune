@@ -34,7 +34,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 from ._contract import keyword_refs
 
 logger = logging.getLogger(__name__)
@@ -105,12 +105,16 @@ def apply_lox(
     new_state_dict = {}
     n_extrapolated = 0
     n_svd_failed = 0
+    n_matched = 0
 
     for name, w in w_model.items():
         # Default: keep the model's own weight (the LoX base point).
         new_state_dict[name] = w
 
-        if name not in w_base or name not in w_aligned or not _matches(name):
+        if name not in w_base or name not in w_aligned:
+            continue
+        n_matched += 1
+        if not _matches(name):
             continue
 
         # Only multi-dimensional tensors are extrapolated; 1-D params
@@ -145,6 +149,7 @@ def apply_lox(
         new_state_dict[name] = extrapolated.to(dtype)
         n_extrapolated += 1
 
+    require_matched("apply_lox", n_matched, model, aligned)
     model.load_state_dict(new_state_dict, strict=False)
     logger.info(
         "LoX: extrapolated %d params (coef=%.3f, rank=%s) onto the target "

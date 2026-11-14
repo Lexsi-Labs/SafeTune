@@ -43,7 +43,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -257,11 +257,13 @@ def _mscp_safety_projection(
     projected = 0
     skipped_shape = 0
     total = 0
+    n_matched = 0
 
     with _torch.no_grad():
         for name, param in model.named_parameters():
             if name not in aligned or name not in base:
                 continue
+            n_matched += 1
             # Eq. 6 builds W_safe = D @ D^T, which is only defined for a 2-D
             # weight matrix. 1-D params (biases, norms) have no neuron-level
             # projection in MSCP and are left untouched.
@@ -331,6 +333,7 @@ def _mscp_safety_projection(
             param.data.copy_(new_w.to(param.dtype))
             projected += 1
 
+    require_matched("apply_mscp", n_matched, model, aligned)
     logger.info(
         "apply_mscp: faithful MSCP projection — %d/%d 2-D weights projected "
         "(%d skipped on shape mismatch, neuron_mask=%s, coefficient=%.3f).",

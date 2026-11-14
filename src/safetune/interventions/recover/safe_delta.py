@@ -69,7 +69,7 @@ from typing import Any, Optional
 
 import torch.nn as nn
 
-from ._invariant import assert_mutates
+from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
 
@@ -171,8 +171,11 @@ def apply_safe_delta(
 
     edited = 0
     skipped = 0
+    n_matched = 0
     with torch.no_grad():
         for name, param in model.named_parameters():
+            if name in aligned_sd and name in sft_sd:
+                n_matched += 1
             if not _matches(name):
                 continue
             if name not in aligned_sd or name not in sft_sd:
@@ -204,6 +207,7 @@ def apply_safe_delta(
             param.data.copy_(new_w.to(dtype=orig_dtype))
             edited += 1
 
+    require_matched("apply_safe_delta", n_matched, model, aligned)
     logger.info(
         "apply_safe_delta: edited %d weight matrices (s=%.4g), skipped %d.",
         edited,
