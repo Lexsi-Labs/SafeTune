@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   process group on timeout, and limits on result size and memory). It returns plain data only, and
   the trainer compares it, so printed text, exit codes and always-equal objects no longer score.
   This is not a sandbox: the child can still read files, use the network and signal the parent, and
-  a completion can still forge a constant expected result such as `True`. Reported by Ebin Babu
+  a completion can still forge a constant expected result such as `True` (on Linux the child now also
+  confines itself, see Fixed below). Reported by Ebin Babu
   Thomas (@ebt55).
 - Code reward asserts are now decided in the trainer: the child only runs the completion's own
   calls and returns plain data, and the trainer evaluates the rest (`and`, `or`, `not`, chained
@@ -56,6 +57,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Code rewards: the child that runs model-written code now confines itself on Linux.** Before the candidate
+  runs, the child applies a seccomp filter and a Landlock ruleset. The filter refuses signals to other
+  processes, `ptrace` and `process_vm_readv`, sockets, new processes and threads, SysV IPC and POSIX message
+  queues, namespace, mount and credential calls, and calls that change another process (`prlimit64` and the
+  `sched_set*` calls on any process but itself, `setpriority`, `ioprio_set`, `perf_event_open`, `keyctl`,
+  `F_SETOWN`). Landlock limits writes to the child's own temporary directory and limits reads
+  to the interpreter's prefixes and library paths, the system library directories, its own `/proc/<pid>` and a
+  short list of files (`/dev/urandom`, `/proc/cpuinfo`, `/etc/ld.so.cache` and the like). The user's home, a
+  repository checkout, other `sys.path` entries, `/etc/passwd`, listings of `/dev` and `/proc`, and another
+  process's `/proc/<pid>` (including the trainer's memory) are refused. A completion that tries any of these
+  fails and scores 0. BLAS libraries are told to use one thread, so `numpy` still imports; a candidate can no
+  longer start threads or subprocesses. On Linux the grading process also marks itself non-dumpable while a
+  candidate runs. Each child reports the isolation it really got before the candidate runs, and the grader decides
+  on that report; without seccomp a candidate could start processes, so its process group is killed, and so is every
+  process still carrying the run's environment marker (Linux, best effort; `=1` exists for this). The report
+  travels over a pipe the child closes before the candidate runs. All of this is best effort: where the kernel offers neither seccomp nor Landlock (macOS, old
+  kernels, some containers) the child is still a separate process with limits, as before, and a one-time warning
+  says so. Set `SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1` (or `true`, `yes`, `full`) to score 0 unless both seccomp and
+  Landlock are active, or `=any` to score 0 only when neither is; a warning says which layer is missing.
+- **Results change for `code_execution` with no tests.** It scored 1.0 for any code that merely ran (a stub
+  passes), and now scores 0.0 and logs a warning once, as `code_correctness` already did. Pass `test_cases`.
 - **Results change for `SafeGradHFTrainer` in KL mode (`reference_model`) with padded alignment batches.**
   `safegrad_kl_alignment_loss` takes an `attention_mask`, and the trainer passes the alignment batch's mask.
   Padding positions added KL terms, so the alignment gradient depended on how much padding a batch had; the

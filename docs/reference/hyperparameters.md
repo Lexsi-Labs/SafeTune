@@ -82,6 +82,14 @@ safetune.configure(max_prompts=20, eval_limit=20, eval_strict=False)
 | `orbench_in_safety_mean` | `False` | `False`: OR-Bench's over-refusal and toxic splits are reported separately and `safety_mean()` only averages genuine harm benchmarks. `True`: a single combined OR-Bench score is averaged into `safety_mean` with the rest. |
 | `eval_strict` | `True` | `True`: `evaluate()` and every trainer's `.evaluate()` raise when a benchmark fails to load, generate, or score. `False`: that benchmark's metrics are recorded as an error entry and the run continues with the rest — useful when a gated benchmark shouldn't block an otherwise-successful run. |
 
+### Code rewards
+
+| Setting | Default | Significance |
+|---|---|---|
+| env `SAFETUNE_SANDBOX_REQUIRE_ISOLATION` | unset | The code rewards (`code_execution`, `code_correctness`, `mbpp_reward`) run model-written code in a child process that, on Linux, confines itself with seccomp and Landlock before the code runs. Where the kernel offers neither (macOS, old kernels, some containers) the code still runs with process limits and a one-time warning says so. `1`, `true`, `yes` or `full` score 0 unless BOTH seccomp and Landlock are active; `any` scores 0 only when neither is; a warning names the missing layer. |
+
+`code_execution` needs tests (`test_cases`): with none it scores 0.0 and logs a warning once, because code that only runs proves nothing.
+
 ### LoRA adapter defaults
 
 Used by every Harden trainer that wraps the model in a LoRA adapter, and by
