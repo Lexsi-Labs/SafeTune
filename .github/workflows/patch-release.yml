@@ -381,7 +381,7 @@ jobs:
           python -m twine upload --non-interactive --verbose dist/*
 
       - name: Send release notes to Slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        uses: slackapi/slack-github-action@fcfb566f8b0aab22203f066d80ca1d7e4b5d05b3 # v1.27.1
         continue-on-error: true
         with:
           channel-id: "lexsi-labs-safetune-release" #${{ vars.SLACK_CHANNEL }}
