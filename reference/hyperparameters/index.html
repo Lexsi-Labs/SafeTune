@@ -2417,7 +2417,7 @@ raises <code>TypeError</code> (with a "did you mean" suggestion).</p>
 <tr>
 <td><code>advbench_refusal_prefixes</code></td>
 <td>the built-in refusal-phrase tuple</td>
-<td>The phrases <code>advbench_scorer="prefix"</code> looks for at the start of a response. Replace the tuple to count other refusal wording.</td>
+<td>The phrases <code>advbench_scorer="prefix"</code> looks for at the start of a response. Replace the tuple to count other refusal wording; for Hindi and Hinglish replies use <code>ADVBENCH_REFUSAL_PREFIXES + HINDI_REFUSAL_PREFIXES</code> (both in <code>safetune.config</code>).</td>
 </tr>
 <tr>
 <td><code>advbench_scorer</code></td>
@@ -2654,8 +2654,8 @@ directly to HF <code>generate(logits_processor=[...])</code>.</p>
 <tbody>
 <tr>
 <td><code>SafeGradTrainer</code></td>
-<td><code>rho=1.0</code>, <code>kl_temperature=1.0</code>, <code>reference_model_path=None</code></td>
-<td><code>rho</code>: gradient-surgery alignment weight. <code>reference_model_path</code>: frozen reference for the KL signal — falls back to the tokenizer's model id if omitted.</td>
+<td><code>rho=1.0</code>, <code>kl_temperature=1.0</code>, <code>reference_model_path=None</code>, <code>gradient_accumulation_steps=1</code>, <code>surgery_per_optimizer_step=False</code></td>
+<td><code>rho</code>: gradient-surgery alignment weight. <code>reference_model_path</code>: frozen reference for the KL signal — falls back to the tokenizer's model id if omitted. <code>gradient_accumulation_steps &gt; 1</code> needs <code>surgery_per_optimizer_step=True</code>, which runs the surgery once per optimizer step.</td>
 <td><a href="../../user-guide/harden/gradient-surgery/">Guide</a></td>
 </tr>
 <tr>

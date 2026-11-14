@@ -1751,7 +1751,7 @@
 
 
 <h1 id="benchmarks">Benchmarks<a class="headerlink" href="#benchmarks" title="Permanent link">&para;</a></h1>
-<p>20 registered benchmarks across 5 categories:</p>
+<p>22 registered benchmarks across 5 categories:</p>
 <table>
 <thead>
 <tr>
@@ -1859,6 +1859,16 @@
 <td>— (built-in scorer)</td>
 </tr>
 <tr>
+<td><code>multijail</code></td>
+<td>jailbreak</td>
+<td>the <code>evaluate(judge=...)</code> judge; see the note below</td>
+</tr>
+<tr>
+<td><code>aya_redteaming</code></td>
+<td>jailbreak</td>
+<td>the <code>evaluate(judge=...)</code> judge; see the note below</td>
+</tr>
+<tr>
 <td><code>gsm8k</code></td>
 <td>capability</td>
 <td>— (exact-match via lm-eval)</td>
@@ -1908,7 +1918,31 @@
 <li><code>orbench_hard</code> is OR-Bench hard-1k (benign prompts that sound harmful;
   refusing them is over-refusal) and <code>orbench_toxic</code> is OR-Bench toxic (655
   harmful prompts). <code>orbench</code> is both combined.</li>
+<li><code>multijail</code>: 315 prompts in each of 10 languages (<code>en</code>, <code>zh</code>, <code>it</code>, <code>vi</code>, <code>ar</code>,
+  <code>ko</code>, <code>th</code>, <code>bn</code>, <code>sw</code>, <code>jv</code>), translated from English, 3,150 rows in all.</li>
+<li><code>aya_redteaming</code>: 7,419 prompts written by native speakers of 8 languages (<code>ar</code>,
+  <code>en</code>, <code>es</code>, <code>fr</code>, <code>hi</code>, <code>ru</code>, <code>sr</code>, <code>tl</code>). Each language has its own prompts.</li>
 </ul>
+<p>Each row of these two has a <code>language</code> column, and <code>load_multijail(["bn", "sw"])</code> or
+<code>load_prompts("multijail", {"languages": "bn"})</code> picks languages.
+<code>evaluate(benchmarks=["multijail"])</code> runs every language and reports one pooled ASR, and it
+has no per-language option. For Aya Red-teaming, setting the dataset table's split runs one
+language, e.g. <code>safetune.configure(datasets={"aya_redteaming": {"split": "hindi"}})</code>. For
+MultiJail, take one language's rows from <code>load_multijail</code> or <code>load_prompts</code>. Rows of both
+alternate between languages, so <code>max_prompts</code> keeps a prefix that covers all of them.</p>
+<div class="admonition warning">
+<p class="admonition-title">Thinking models</p>
+<p>A reasoning model such as Qwen3 starts every reply with <code>&lt;think&gt;</code> unless its template's switch
+is off, so most of <code>max_new_tokens</code> goes on reasoning and the judge reads an unfinished chain of
+thought. Pass <code>evaluate(..., chat_template_kwargs={"enable_thinking": False})</code>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Multilingual scores depend on the judge</p>
+<p>SafeTune's refusal string lists are English, and the default <code>wildguard</code> judge has
+not been validated on these languages here. A refusal a judge can't read counts as an
+attack success, which inflates the ASR. Check the judge on a labelled sample in each
+language first.</p>
+</div>
 <h2 id="api">API<a class="headerlink" href="#api" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.evaluate.suite</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_benchmark</span><span class="p">,</span> <span class="n">list_benchmarks</span><span class="p">,</span> <span class="n">benchmarks_by_category</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>

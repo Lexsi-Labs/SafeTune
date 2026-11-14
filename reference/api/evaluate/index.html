@@ -2003,7 +2003,7 @@ Judges &amp; monitoring: <code>JudgeAdapter</code>, <code>SpectralEntropyMonitor
 
 
 <h4 id="safetune.evaluate.evaluate.evaluate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">judge</span><span class="o">=</span><span class="s1">'wildguard'</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">generation_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_prompts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drift_task</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">judge</span><span class="o">=</span><span class="s1">'wildguard'</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">generation_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_prompts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drift_task</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">chat_template_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#safetune.evaluate.evaluate.evaluate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -2177,6 +2177,26 @@ first one. Rows with an empty prompt are dropped here (<code>n_evaluated</code> 
                 <p>The SFT drift domain (e.g. <code>"gsm8k"</code>, <code>"code"</code>,
 <code>"medical"</code>). Used for logging / result tagging; does not filter
 benchmarks (pass a custom <code>benchmarks</code> list for that).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>chat_template_kwargs</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Extra arguments for the tokenizer's <code>apply_chat_template</code>. A
+thinking model needs its switch off, e.g. Qwen3's <code>{"enable_thinking": False}</code>:
+with the default template the reply starts with <code>&lt;think&gt;</code> and most of the
+<code>max_new_tokens</code> budget goes on reasoning, so the judge reads an unfinished chain
+of thought, not an answer. Not used by the vLLM path.</p>
               </div>
             </td>
             <td>

@@ -1313,6 +1313,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#restricting-a-circuit-to-its-strongest-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restricting a circuit to its strongest layers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#when-to-use" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1704,6 +1715,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#restricting-a-circuit-to-its-strongest-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restricting a circuit to its strongest layers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#when-to-use" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1900,9 +1922,27 @@ metadata. Created by <code>safety_circuit_info()</code> and <code>eap_safety_cir
 </tr>
 <tr>
 <td><code>load_circuit_info_from_file(filepath)</code></td>
-<td><code>(str)</code></td>
+<td><code>(str, *, top_fraction=0.2, layer_fraction=None)</code></td>
 <td><code>CircuitInfo \| None</code></td>
 <td>Load from file</td>
+</tr>
+<tr>
+<td><code>circuit_info_from_node_scores(node_scores)</code></td>
+<td><code>(dict, *, top_fraction=0.2, layer_fraction=None, ...)</code></td>
+<td><code>CircuitInfo</code></td>
+<td>Build from CircuitKIT <code>node_scores</code></td>
+</tr>
+<tr>
+<td><code>layer_mass(node_scores)</code></td>
+<td><code>(dict)</code></td>
+<td><code>dict[int, float]</code></td>
+<td>Total absolute node score per layer</td>
+</tr>
+<tr>
+<td><code>top_layers(node_scores, layer_fraction)</code></td>
+<td><code>(dict, float)</code></td>
+<td><code>list[int]</code></td>
+<td>The top fraction of layers by that total</td>
 </tr>
 <tr>
 <td><code>apply_circuit_to_safety_lora(circuit_info, safety_lora_config)</code></td>
@@ -1918,6 +1958,15 @@ metadata. Created by <code>safety_circuit_info()</code> and <code>eap_safety_cir
 </tr>
 </tbody>
 </table>
+<h2 id="restricting-a-circuit-to-its-strongest-layers">Restricting a circuit to its strongest layers<a class="headerlink" href="#restricting-a-circuit-to-its-strongest-layers" title="Permanent link">&para;</a></h2>
+<p>By default a CircuitKIT score file selects every layer that holds a top node. Top nodes
+are spread through a model, so this can be nearly every layer. Pass <code>layer_fraction</code> to
+rank layers by total absolute node score instead:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">circuit</span> <span class="o">=</span> <span class="n">load_circuit_info_from_file</span><span class="p">(</span><span class="s2">"x_scores.json"</span><span class="p">,</span> <span class="n">layer_fraction</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">layer_suggestions</span><span class="o">.</span><span class="n">layer_subset</span><span class="p">)</span>  <span class="c1"># the strongest 20% of layers</span>
+</code></pre></div>
+<p><code>layer_fraction</code> needs <code>node_scores</code> in the file, and it replaces any <code>safety_units</code> and
+<code>layer_suggestions</code> there. <code>top_fraction</code> then picks among the nodes in those layers.</p>
 <h2 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h2>
 <p>CircuitInfo is the bridge between Interpret and Steer/Recover. Every method
 that discovers safety-relevant structure returns a CircuitInfo that other
@@ -1935,7 +1984,7 @@ methods can consume.</p>
 <li><strong>Saving:</strong> numpy / torch scalars are written as plain numbers, dict keys as strings; a NaN or infinite value raises
   <code>ValueError</code> and no file is written. <code>raw_output_path</code> is not saved.</li>
 <li><strong><code>CircuitInfoProvider</code></strong> is a typing <code>Protocol</code> that nothing implements; <code>get_circuit_info</code> is a file loader that ignores
-  <code>model_name</code> and every keyword except <code>top_fraction</code>.</li>
+  <code>model_name</code> and every keyword except <code>top_fraction</code> and <code>layer_fraction</code>.</li>
 </ul>
 
 

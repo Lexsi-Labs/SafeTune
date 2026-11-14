@@ -2212,7 +2212,9 @@ The standard robustness baseline from the WiSE-FT paper.</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">aligned_model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">merge_adapter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 </code></pre></div>
 <h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h2>
 <table>
@@ -2245,6 +2247,9 @@ The standard robustness baseline from the WiSE-FT paper.</p>
 </tr>
 </tbody>
 </table>
+<p>| <code>strict</code> | <code>bool</code> | <code>False</code> | <code>True</code> raises (before any edit) when a model parameter has no same-named entry in the reference. The default leaves such parameters unchanged and logs how many |
+| <code>merge_adapter</code> | <code>bool</code> | <code>False</code> | For a PEFT (LoRA) model against a bare reference: interpolate a merged deep copy and return it (needs a second set of weights in memory; <code>model</code> is left as it is) |</p>
+<p>The model and the reference must share parameter names. A PEFT-wrapped model has a <code>base_model.model.</code> prefix and LoRA factors, so against a bare reference no name matches and <code>apply()</code> raises a <code>ValueError</code> (it used to return the model unchanged). Either merge the adapter yourself with <code>merge_and_unload()</code> or pass <code>merge_adapter=True</code>. With the reference being the base weights the adapter was trained on, the result is <code>base + (1 - alpha) * lora_update</code>: <code>alpha</code> scales the LoRA update by <code>1 - alpha</code>. The other RECOVER methods that match weights by name take the same <code>strict=</code> and raise the same error.</p>
 <h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">safetune.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">recover</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>

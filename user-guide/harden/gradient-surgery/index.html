@@ -2194,6 +2194,18 @@ target or comparison baseline when benchmarking other harden methods.</p>
 <td><code>None</code></td>
 <td>HF path/ID of the frozen aligned reference for the KL signal; falls back to the tokenizer's model id</td>
 </tr>
+<tr>
+<td><code>gradient_accumulation_steps</code></td>
+<td><code>int</code></td>
+<td><code>1</code></td>
+<td>Micro-batches per optimizer step. Above 1 it needs <code>surgery_per_optimizer_step=True</code></td>
+</tr>
+<tr>
+<td><code>surgery_per_optimizer_step</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Run the surgery once per optimizer step, on the accumulated gradient (Algorithm 1 at the effective batch size)</td>
+</tr>
 </tbody>
 </table>
 <h3 id="full-example_1">Full example<a class="headerlink" href="#full-example_1" title="Permanent link">&para;</a></h3>
