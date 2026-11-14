@@ -179,7 +179,7 @@ def test_io_test_with_none_input():
     assert CodeExecutionReward(_config()).compute(code, test_cases=case) == 1.0
 
 
-def test_grandchild_dies_with_the_timeout(tmp_path):
+def test_grandchild_dies_with_the_timeout(tmp_path, unconfined):  # unconfined: a confined child can't fork at all
     mark = tmp_path / "alive"
     code = (
         "import os, time\nif os.fork() == 0:\n    time.sleep(3)\n"
