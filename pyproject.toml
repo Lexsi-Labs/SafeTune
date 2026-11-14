@@ -66,7 +66,7 @@ dependencies = [
     "bitsandbytes>=0.41.0",
     # <1.15: TRL 1.15.0 runs its DPO loss through a Triton kernel without checking for a GPU,
     # so DPO-based trainers fail on Linux CPU machines ("0 active drivers"). Lift when fixed upstream.
-    "trl>=0.12,<1.15",
+    "trl>=0.12,<1.18",
 
     # Core Python dependencies
     "numpy>=1.21.0",
