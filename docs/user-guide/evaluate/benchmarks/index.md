@@ -65,6 +65,11 @@ language, e.g. `safetune.configure(datasets={"aya_redteaming": {"split": "hindi"
 MultiJail, take one language's rows from `load_multijail` or `load_prompts`. Rows of both
 alternate between languages, so `max_prompts` keeps a prefix that covers all of them.
 
+!!! warning "Thinking models"
+    A reasoning model such as Qwen3 starts every reply with `<think>` unless its template's switch
+    is off, so most of `max_new_tokens` goes on reasoning and the judge reads an unfinished chain of
+    thought. Pass `evaluate(..., chat_template_kwargs={"enable_thinking": False})`.
+
 !!! warning "Multilingual scores depend on the judge"
     SafeTune's refusal string lists are English, and the default `wildguard` judge has
     not been validated on these languages here. A refusal a judge can't read counts as an

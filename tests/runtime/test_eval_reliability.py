@@ -273,6 +273,45 @@ def test_failed_batch_raises_when_strict(hub, monkeypatch):
     assert out["harmbench"]["error"].startswith("RuntimeError: every batch failed")
 
 
+def test_chat_template_kwargs_reach_the_template(hub, judge):
+    """A thinking model's switch (Qwen3 enable_thinking) must be reachable from evaluate()."""
+    import torch
+
+    class Tok:
+        chat_template = "{{ messages }}"
+        pad_token, eos_token, padding_side = "<pad>", "<eos>", "left"
+
+        def __init__(self):
+            self.seen = []
+
+        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True, **kw):
+            self.seen.append(kw)
+            return messages[0]["content"]
+
+        def __call__(self, texts, **kw):
+            class Enc(dict):
+                def to(self, device):
+                    return self
+            return Enc(input_ids=torch.zeros(len(texts), 3, dtype=torch.long))
+
+        def batch_decode(self, ids, **kw):
+            return ["I cannot help with that."] * len(ids)
+
+    class Model:
+        device = "cpu"
+
+        def generate(self, input_ids=None, max_new_tokens=1, **kw):
+            return torch.zeros(input_ids.shape[0], input_ids.shape[1] + 1, dtype=torch.long)
+
+    tok = Tok()
+    ev.evaluate(Model(), benchmarks=["harmbench"], tokenizer=tok)
+    assert tok.seen and all(kw == {} for kw in tok.seen)
+    tok.seen.clear()
+    ev.evaluate(Model(), benchmarks=["harmbench"], tokenizer=tok,
+                chat_template_kwargs={"enable_thinking": False})
+    assert tok.seen and all(kw == {"enable_thinking": False} for kw in tok.seen)
+
+
 def _no_generation(monkeypatch, er):
     import safetune.evaluate.pipeline as pipe
     calls = []

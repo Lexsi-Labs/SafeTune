@@ -41,6 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   validated on these languages, so check a judge before trusting the ASR. `evaluate()` pools all
   languages into one ASR. Aya Red-teaming rows alternate between languages, so `max_prompts` keeps
   every language, and a local one-split copy gets language codes and honours `languages=` (#87).
+- `evaluate(chat_template_kwargs=...)` is passed to the tokenizer's `apply_chat_template`. A thinking model
+  such as Qwen3 needs `{"enable_thinking": False}`: with the default template every reply began with
+  `<think>` and, in a run of Qwen3-1.7B on 20 MultiJail prompts per language with 256 new tokens, 16 to 18 of 20
+  replies per language never left the reasoning, so the judge read an unfinished chain of thought. Not used
+  by the vLLM path.
 - `layer_fraction=` on `circuit_info_from_node_scores`, `load_circuit_info_from_file` and
   `get_circuit_info` ranks layers by total absolute node score (new `layer_mass` and `top_layers`).
   By default a layer counts when it holds any top-20% node, and top nodes are spread through a
