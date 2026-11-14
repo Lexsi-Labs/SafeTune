@@ -212,7 +212,7 @@ def isolate(tmp, require):
                 try:
                     trees.add(sysconfig.get_path(key))
                 except Exception:
-                    pass
+                    pass  # a missing sysconfig path means one fewer readable directory; Landlock stays default-deny
             trees.discard(None)
             # Single files: what the dynamic loader, the C library and Python read. Not /proc/<other pid>
             # (so not the trainer's mem, maps, environ or cmdline), not a listing of /dev or /etc, not
@@ -231,7 +231,7 @@ def isolate(tmp, require):
                 st["landlock"] = abi
             os.close(rfd)
     except Exception:
-        pass
+        pass  # best effort: Landlock unavailable or refused, so the child reports landlock=0 and is never counted as confined
     # --- seccomp: no signals to others, no ptrace, no sockets, no new processes or programs,
     #     and nothing that changes or reads another process (limits, scheduling, memory, perf) ---
     try:
@@ -247,7 +247,7 @@ def isolate(tmp, require):
             if libc.prctl(22, 2, ctypes.addressof(fp), 0, 0) == 0:  # PR_SET_SECCOMP, FILTER
                 st["seccomp"] = True
     except Exception:
-        pass
+        pass  # best effort: seccomp unavailable or refused, so the child reports seccomp=False
     return st
 '''
 
@@ -323,7 +323,7 @@ def parse_report(data: bytes) -> Any:
         if isinstance(obj, dict) and isinstance(obj.get("seccomp"), bool) and type(obj.get("landlock")) is int:
             return {"seccomp": obj["seccomp"], "landlock": obj["landlock"]}
     except Exception:
-        pass
+        pass  # not a plain state report: None, which every caller treats as no isolation
     return None
 
 
@@ -382,7 +382,7 @@ def kill_marked(marker: str, wait: float = 2.0) -> bool:
             try:
                 os.kill(pid, signal.SIGKILL)
             except OSError:
-                pass
+                pass  # already gone, or not ours to signal: nothing left to kill
         if time.monotonic() > deadline:
             return False
         time.sleep(0.01)
@@ -443,4 +443,4 @@ def release_parent() -> None:
                 libc.prctl(4, 1, 0, 0, 0)  # PR_SET_DUMPABLE
                 _hold["restore"] = False
     except Exception:
-        pass
+        pass  # restoring is best effort; if it fails the trainer stays non-dumpable, the safe direction
