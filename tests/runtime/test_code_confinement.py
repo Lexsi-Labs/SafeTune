@@ -46,6 +46,15 @@ BLOCKS_PTRACE = SECCOMP or LANDLOCK >= 1
 BLOCKS_SIGNALS = SECCOMP or LANDLOCK >= 6
 
 
+# SAFETUNE_EXPECT_ISOLATION=1 (for CI and the Linux runs): the module fails instead of skipping its Linux
+# tests when seccomp or Landlock are not active here (conftest.py also turns any other skip into a failure).
+if os.environ.get("SAFETUNE_EXPECT_ISOLATION", "").strip().lower() in ("1", "true", "yes") and not (LINUX and SECCOMP and LANDLOCK):
+    raise RuntimeError(
+        "SAFETUNE_EXPECT_ISOLATION is set but seccomp=%s and Landlock ABI=%s are not both active here (Linux: %s)"
+        % (SECCOMP, LANDLOCK, LINUX)
+    )
+
+
 def _config():
     return RewardConfig(reward_type=RewardType.CODE_EXECUTION, params={"timeout": 30.0})
 
@@ -172,6 +181,15 @@ def test_seccomp_program_refuses_the_wrong_architecture_and_x32():
     assert _run_bpf(prog, arch, 0x40000000 | 0, (0,)) == EPERM  # x32 numbers reach the same kernel code
 
 
+# Calls newer than some distributions' kernel headers: a header that lacks them is old, not wrong.
+NEWER_THAN_OLD_HEADERS = {
+    "pidfd_send_signal", "pidfd_open", "pidfd_getfd", "process_madvise", "process_mrelease", "clone3", "io_uring_setup",
+    "io_uring_enter", "io_uring_register", "open_tree", "move_mount", "fsopen", "fsconfig", "fsmount", "fspick",
+    "mount_setattr", "quotactl_fd", "kexec_file_load", "finit_module", "userfaultfd", "bpf", "kcmp", "sched_setattr",
+    "execveat", "perf_event_open", "fanotify_init", "name_to_handle_at", "open_by_handle_at", "setns", "prlimit64",
+}
+
+
 @pytest.mark.skipif(not LINUX, reason="kernel headers")
 def test_syscall_numbers_match_the_kernel_headers_where_installed():
     import re
@@ -179,7 +197,7 @@ def test_syscall_numbers_match_the_kernel_headers_where_installed():
     every = {n: nrs for n, nrs in DENY.items()}
     every.update({n: v[:2] for n, v in SELF_ONLY.items()})
     every.update({n: v[:2] for n, v in CMD_DENY.items()})
-    found = 0
+    found, skipped = 0, set()
     for path, col in (("/usr/include/x86_64-linux-gnu/asm/unistd_64.h", 0), ("/usr/include/asm/unistd_64.h", 0),
                       ("/usr/include/asm-generic/unistd.h", 1)):
         if not os.path.exists(path):
@@ -188,7 +206,10 @@ def test_syscall_numbers_match_the_kernel_headers_where_installed():
         for name, nrs in every.items():
             m = re.search(r"#define __NR3264_%s\s+(\d+)" % name, text) or re.search(r"#define __NR_%s\s+(\d+)" % name, text)
             if m is None:
-                assert nrs[col] is None, (path, name)  # fork and vfork only exist on x86_64
+                if nrs[col] is None:
+                    continue  # fork, vfork, chown and lchown only exist on x86_64
+                assert name in NEWER_THAN_OLD_HEADERS, (path, name)  # an old header may lack a new call, nothing else
+                skipped.add(name)
                 continue
             assert int(m.group(1)) == nrs[col], (path, name)
             found += 1
@@ -273,27 +294,68 @@ KILL_PARENT = {
 }
 
 
+@pytest.fixture
+def no_hold(monkeypatch):
+    """The trainer's non-dumpable hold alone would stop these reads; switch it off to test the filter and Landlock."""
+    monkeypatch.setattr(_code_grader, "hold_parent", lambda: False)
+
+
+@pytest.fixture
+def landlock_only(monkeypatch):
+    """Both layers' state with seccomp left out: the child skips its filter (and reports so)."""
+    ask = "prog = seccomp_program(platform.machine())"
+    for name, harness in _ORIGINAL_HARNESSES.items():
+        assert ask in harness
+        monkeypatch.setattr(_code_grader, name, harness.replace(ask, "prog = None"))
+
+
 @pytest.mark.skipif(not (LINUX and BLOCKS_MEMORY_READS), reason="needs Landlock to refuse reads of another process's memory")
-def test_the_parents_memory_cannot_be_read_through_proc(sentinel):
+def test_the_parents_memory_cannot_be_read_through_proc(sentinel, no_hold):
     value, _ = sentinel
     assert _scores(SCAN_PROC_MEM, value) == (0.0, 0.0)
 
 
 @pytest.mark.skipif(not (LINUX and BLOCKS_MEMORY_READS), reason="needs Landlock to refuse reads of another process's memory")
-def test_the_parents_memory_cannot_be_read_at_a_known_address_through_proc(sentinel):
+def test_the_parents_memory_cannot_be_read_at_a_known_address_through_proc(sentinel, no_hold):
     value, addr = sentinel
     assert _scores(PREAD_AT_ADDRESS % {"addr": addr, "size": len(value)}, value) == (0.0, 0.0)
 
 
 @pytest.mark.skipif(not (LINUX and BLOCKS_PTRACE), reason="no seccomp or Landlock here")
-def test_the_parents_memory_cannot_be_read_with_process_vm_readv(sentinel):
+def test_the_parents_memory_cannot_be_read_with_process_vm_readv(sentinel, no_hold):
     value, addr = sentinel
     code = PROCESS_VM_READV % {"addr": addr, "size": len(value)}
     assert _scores(code, value) == (0.0, 0.0)
 
 
 @pytest.mark.skipif(not (LINUX and BLOCKS_PTRACE), reason="no seccomp or Landlock here")
-def test_the_parent_cannot_be_traced():
+def test_the_parent_cannot_be_traced(no_hold):
+    assert _scores(PTRACE, "attached") == (0.0, 0.0)
+
+
+@pytest.mark.skipif(not LINUX, reason="ptrace is Linux-only")
+def test_control_unconfined_candidate_can_trace_the_parent(unconfined, no_hold):
+    """Without confinement and without the hold the same attach works (given a kernel that allows it), so the blocked
+    result above is the filter's or Landlock's doing."""
+    if _scores(PTRACE, "attached") != (1.0, 1.0):
+        pytest.skip("this kernel refuses ptrace attach even without protection (Yama or a container)")
+
+
+@pytest.mark.skipif(not (LINUX and LANDLOCK), reason="needs Landlock")
+def test_landlock_alone_blocks_every_memory_read_and_ptrace(sentinel, landlock_only, no_hold):
+    """No seccomp filter (the child reports none) and no hold: Landlock's own ptrace rule refuses all four."""
+    value, addr = sentinel
+    for code in (SCAN_PROC_MEM, PREAD_AT_ADDRESS % {"addr": addr, "size": len(value)},
+                 PROCESS_VM_READV % {"addr": addr, "size": len(value)}):
+        assert _scores(code, value) == (0.0, 0.0)
+    assert _scores(PTRACE, "attached") == (0.0, 0.0)
+
+
+@pytest.mark.skipif(not (LINUX and SECCOMP), reason="needs seccomp")
+def test_seccomp_alone_blocks_process_vm_readv_and_ptrace(sentinel, seccomp_only, no_hold):
+    """No Landlock and no hold: the filter still refuses process_vm_readv and ptrace (reads through /proc are Landlock's or the hold's)."""
+    value, addr = sentinel
+    assert _scores(PROCESS_VM_READV % {"addr": addr, "size": len(value)}, value) == (0.0, 0.0)
     assert _scores(PTRACE, "attached") == (0.0, 0.0)
 
 
@@ -721,7 +783,7 @@ def _under(path, roots):
     return any(path == r or path.startswith(r.rstrip("/") + "/") for r in map(os.path.realpath, roots))
 
 
-ALLOWED_ROOTS = ["/usr", "/lib", "/lib64", "/lib32", "/bin", "/sbin", "/etc", "/dev", "/proc", "/sys", "/opt", "/nix",
+ALLOWED_ROOTS = ["/usr", "/lib", "/lib64", "/lib32", "/bin", "/sbin", "/etc", "/dev", "/proc", "/sys", "/nix",
                  sys.prefix, sys.base_prefix, sys.exec_prefix, sys.base_exec_prefix]
 
 
@@ -830,6 +892,95 @@ def test_proc_dev_etc_and_sys_are_narrowed_to_what_a_python_child_needs():
     assert {k: got[k] for k in allowed} == {k: True for k in allowed}
 
 
+@pytest.mark.skipif(not (LINUX and SECCOMP), reason="needs seccomp")
+def test_ownership_xattrs_and_truncate_by_path_are_refused_but_chmod_utime_and_copy2_work():
+    """Landlock doesn't cover these; the filter refuses chown, xattr writes and truncate(path). chmod and timestamps are NOT
+    prevented (shutil.copy2 and common code use them)."""
+    code = textwrap.dedent('''
+        import os, shutil
+
+        def denied(fn):
+            try:
+                fn()
+                return "allowed"
+            except PermissionError:
+                return "EPERM"
+            except OSError as e:
+                return "other %d" % e.errno
+
+        def f(x):
+            with open("data.txt", "w") as fh:
+                fh.write("hello world")
+            out = {}
+            out["chown"] = denied(lambda: os.chown("data.txt", -1, -1))
+            out["lchown"] = denied(lambda: os.lchown("data.txt", -1, -1))
+            fd = os.open("data.txt", os.O_RDWR)
+            out["fchown"] = denied(lambda: os.fchown(fd, -1, -1))
+            out["fchownat"] = denied(lambda: os.chown("data.txt", -1, -1, follow_symlinks=False))
+            out["setxattr"] = denied(lambda: os.setxattr("data.txt", "user.k", b"v"))
+            out["fsetxattr"] = denied(lambda: os.setxattr(fd, "user.k", b"v"))
+            out["lsetxattr"] = denied(lambda: os.setxattr("data.txt", "user.k", b"v", follow_symlinks=False))
+            out["removexattr"] = denied(lambda: os.removexattr("data.txt", "user.k"))
+            out["fremovexattr"] = denied(lambda: os.removexattr(fd, "user.k"))
+            out["lremovexattr"] = denied(lambda: os.removexattr("data.txt", "user.k", follow_symlinks=False))
+            out["truncate path"] = denied(lambda: os.truncate("data.txt", 3))
+            os.close(fd)
+            # what still works
+            with open("data.txt", "r+") as fh:
+                fh.truncate(5)  # ftruncate
+            out["ftruncate"] = open("data.txt").read()
+            os.chmod("data.txt", 0o600)
+            os.utime("data.txt", (1, 1))
+            shutil.copy2("data.txt", "copy.txt")
+            out["copy2"] = open("copy.txt").read()
+            out["utime"] = int(os.stat("copy.txt").st_mtime)
+            return out
+    ''')
+    result = _code_grader.run_candidate(code, 30, ("f(1)",))
+    assert result is not None
+    got = result[0]
+    denied = ["chown", "lchown", "fchown", "fchownat", "setxattr", "fsetxattr", "lsetxattr", "removexattr", "fremovexattr",
+              "lremovexattr", "truncate path"]
+    assert {k: got[k] for k in denied} == {k: "EPERM" for k in denied}
+    assert got["ftruncate"] == "hello" and got["copy2"] == "hello" and got["utime"] == 1
+
+
+@pytest.mark.skipif(not (LINUX and LANDLOCK) or not os.path.isdir("/opt"), reason="needs Landlock and an /opt directory")
+def test_opt_is_not_readable_unless_it_is_under_the_interpreter_prefix():
+    if _under("/opt", ALLOWED_ROOTS) or any(_under(p, ["/opt"]) for p in (sys.prefix, sys.base_prefix)):
+        pytest.skip("the interpreter lives under /opt, so its prefix (part of /opt) is readable by design")
+    code = "import os\ndef f(x):\n    try:\n        os.listdir('/opt')\n        return True\n    except OSError:\n        return False\n"
+    assert _code_grader.run_candidate(code, 20, ("f(1)",)) == [False]
+
+
+def test_a_prefix_that_contains_the_home_or_working_directory_is_warned_about_once(monkeypatch, tmp_path, caplog):
+    sub = tmp_path / "home" / "me"
+    sub.mkdir(parents=True)
+    monkeypatch.setattr(sys, "prefix", str(tmp_path))
+    monkeypatch.setattr(sys, "base_prefix", str(tmp_path))
+    monkeypatch.setattr(sys, "exec_prefix", str(tmp_path))
+    monkeypatch.setattr(sys, "base_exec_prefix", str(tmp_path))
+    monkeypatch.setenv("HOME", str(sub))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(_code_confine, "_prefix_warned", {})
+    with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
+        _code_confine.warn_broad_prefix()
+        _code_confine.warn_broad_prefix()
+    warned = [r.getMessage() for r in caplog.records if "interpreter prefix" in r.getMessage()]
+    assert len(warned) == 2  # the home directory and the working directory, each once
+    assert any("home directory" in m for m in warned) and any("working directory" in m for m in warned)
+    # a prefix that contains neither: no warning
+    monkeypatch.setattr(sys, "prefix", "/nonexistent-prefix-for-the-test")
+    monkeypatch.setattr(sys, "base_prefix", "/nonexistent-prefix-for-the-test")
+    monkeypatch.setattr(sys, "exec_prefix", "/nonexistent-prefix-for-the-test")
+    monkeypatch.setattr(sys, "base_exec_prefix", "/nonexistent-prefix-for-the-test")
+    monkeypatch.setattr(_code_confine, "_prefix_warned", {})
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
+        _code_confine.warn_broad_prefix()
+    assert not [r for r in caplog.records if "interpreter prefix" in r.getMessage()]
+
+
 @pytest.mark.skipif(not (LINUX and LANDLOCK), reason="needs Landlock")
 def test_dev_urandom_and_os_urandom_work_in_the_confined_child():
     code = "import os, random\ndef f(x):\n    return [len(os.urandom(16)), len(open('/dev/urandom', 'rb').read(8)), 0 <= random.SystemRandom().random() < 1]\n"
@@ -894,7 +1045,7 @@ def test_the_decision_uses_the_childs_report_not_a_probe(monkeypatch, caplog):
     assert _code_grader.run_candidate(HONEST, 10, ("f(1)",)) is None
     # a harness that never writes its status
     for name, harness in _ORIGINAL_HARNESSES.items():
-        monkeypatch.setattr(_code_grader, name, harness.replace("_write(report, _dumps(state).encode())\n    _close(report)\n", "_close(report)\n"))
+        monkeypatch.setattr(_code_grader, name, harness.replace("    if report >= 0:  # -1 on Windows, where there is no pipe to pass\n        _write(report, _dumps(state).encode())\n        _close(report)\n", "    _close(report)\n"))
     with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
         monkeypatch.setattr(_code_confine, "_unmet_logged", set())
         assert _code_grader.run_candidate(HONEST, 10, ("f(1)",)) is None
@@ -945,12 +1096,130 @@ def test_the_report_pipe_is_read_with_a_size_cap_and_a_timeout():
     os.close(r)
     r, w = pipe_with(b"", close=False)  # a child that hangs before reporting
     start = time.monotonic()
-    assert _code_confine.read_report(r, 0.3) is None and time.monotonic() - start < 2
+    timed_out = _code_confine.read_report(r, 0.3)
+    assert not timed_out and isinstance(timed_out, _code_confine._TimedOut) and time.monotonic() - start < 2
     os.close(r)
     os.close(w)
     r, w = pipe_with(b"")  # a child that died before reporting
     assert _code_confine.read_report(r, 1.0) is None
     os.close(r)
+
+
+def test_the_report_timeout_is_a_constant_that_scales_with_the_candidates_timeout():
+    assert _code_confine.REPORT_TIMEOUT == 10.0
+    assert _code_confine.report_timeout(1) == 10.0 and _code_confine.report_timeout(5) == 10.0
+    assert _code_confine.report_timeout(30) == 60.0
+    assert _code_confine.report_timeout(10_000) == 120.0
+
+
+def test_a_child_that_does_not_report_in_time_is_logged_as_such(monkeypatch, caplog):
+    monkeypatch.setenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", "1")
+    monkeypatch.setattr(_code_confine, "_unmet_logged", set())
+    monkeypatch.setattr(_code_confine, "_partial_logged", {})
+    with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
+        assert _code_confine.judge_report(_code_confine._TimedOut()) is False
+    text = " ".join(r.getMessage() for r in caplog.records)
+    assert "did not report in time" in text and "reported nothing" not in text
+    monkeypatch.setattr(_code_confine, "_unmet_logged", set())
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
+        assert _code_confine.judge_report(None) is False
+    assert "reported nothing" in " ".join(r.getMessage() for r in caplog.records)
+
+
+def test_a_child_that_hangs_before_reporting_scores_zero_under_require_and_the_run_is_not_stuck(monkeypatch):
+    """The harness never writes its report and never closes the pipe's write end... until it exits: a short timeout is honoured."""
+    monkeypatch.setenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", "1")
+    monkeypatch.setattr(_code_confine, "REPORT_TIMEOUT", 0.5)
+    monkeypatch.setattr(_code_grader, "report_timeout", lambda t: 0.5)
+    for name, harness in _ORIGINAL_HARNESSES.items():
+        monkeypatch.setattr(_code_grader, name, "import time\ntime.sleep(60)\n" + harness)
+    start = time.monotonic()
+    assert _code_grader.run_candidate(HONEST, 10, ("f(1)",)) is None
+    assert time.monotonic() - start < 15
+
+
+def _many_descriptors(count):
+    """Raise the soft limit if it allows and open ``count`` descriptors, so the next ones are numbered above 1024."""
+    import resource
+
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    want = count + 200
+    if soft < want:
+        if hard != resource.RLIM_INFINITY and hard < want:
+            pytest.skip("the hard descriptor limit is too low here")
+        resource.setrlimit(resource.RLIMIT_NOFILE, (want, hard))
+    return (soft, hard), [os.open(os.devnull, os.O_RDONLY) for _ in range(count)]
+
+
+@pytest.mark.parametrize("which", ["run_candidate", "run_candidate_many"])
+def test_a_trainer_with_many_open_files_still_gets_its_candidates_graded(monkeypatch, which):
+    """select.select() fails for descriptors >= 1024 (FD_SETSIZE); the report is read with selectors instead. The report
+    pipe is forced above 1024 here (a trainer that holds this many files gets such descriptors for its temporary files)."""
+    import resource
+
+    if os.name == "nt":
+        pytest.skip("POSIX descriptors")
+    import fcntl
+
+    limits, held = _many_descriptors(1100)
+    real_pipe = os.pipe
+
+    def high_pipe():
+        r, w = real_pipe()
+        r2, w2 = fcntl.fcntl(r, fcntl.F_DUPFD_CLOEXEC, 1200), fcntl.fcntl(w, fcntl.F_DUPFD_CLOEXEC, 1200)
+        os.close(r)
+        os.close(w)
+        seen.append((r2, w2))
+        return r2, w2
+
+    seen = []
+    try:
+        assert max(held) >= 1024
+        monkeypatch.setattr(os, "pipe", high_pipe)
+        if which == "run_candidate":
+            assert _code_grader.run_candidate(HONEST, 20, ("f(1)",)) == [2]
+        else:
+            assert _code_grader.run_candidate_many(HONEST, [("f(1)",), ("f(2)",)], 20) == [[2], [3]]
+        assert _scores(HONEST, 2) == (1.0, 1.0)
+        assert seen and all(r >= 1024 for r, _ in seen)  # the reports really came over descriptors above 1024
+    finally:
+        monkeypatch.undo()
+        for fd in held:
+            os.close(fd)
+        resource.setrlimit(resource.RLIMIT_NOFILE, limits)
+
+
+class _AsWindows:
+    """The ``os`` module as seen on Windows by the grader: ``os.name == "nt"``, everything else as it is here."""
+
+    name = "nt"
+
+    def __getattr__(self, attr):
+        return getattr(os, attr)
+
+
+def test_on_windows_no_report_pipe_is_passed_and_the_run_goes_on(monkeypatch, caplog):
+    """``pass_fds`` is POSIX-only: without it every candidate would score 0 there. The child reports nothing."""
+    monkeypatch.setattr(_code_grader, "os", _AsWindows())
+    monkeypatch.delenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", raising=False)
+    seen = {}
+    real_popen = subprocess.Popen
+
+    def spy(*args, **kwargs):
+        seen.update(kwargs)
+        return real_popen(*args, **kwargs)
+
+    monkeypatch.setattr(_code_grader.subprocess, "Popen", spy)
+    assert _code_grader.run_candidate(HONEST, 20, ("f(1)",)) == [2]
+    assert "pass_fds" not in seen
+    # ... and the requirement is refused, with a clear reason
+    monkeypatch.setattr(_code_confine, "os", _AsWindows())
+    monkeypatch.setenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", "1")
+    monkeypatch.setattr(_code_confine, "_unmet_logged", set())
+    with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
+        assert _code_grader.run_candidate(HONEST, 20, ("f(1)",)) is None
+    assert "no report channel" in " ".join(r.getMessage() for r in caplog.records)
 
 
 @pytest.mark.parametrize("which", ["run_candidate", "run_candidate_many"])
@@ -1061,6 +1330,39 @@ def test_without_seccomp_a_process_that_left_the_group_is_found_by_the_marker_an
             os.kill(pid, signal.SIGKILL)
         except OSError:
             pass
+
+
+@pytest.mark.skipif(not (LINUX and os.path.isdir("/proc")), reason="needs /proc")
+@pytest.mark.skipif(not LINUX, reason="PR_SET_DUMPABLE is Linux-only")
+def test_the_hold_is_kept_while_survivors_remain_for_a_bounded_time_then_released_with_one_warning(monkeypatch, caplog):
+    """A leftover that can't be killed keeps the trainer non-dumpable until the budget is spent, then it is released
+    anyway and the warning is logged once."""
+    _pretend_isolation(monkeypatch, False, False)
+    monkeypatch.setattr(_code_grader, "_REAP_BUDGET", 0.6)
+    monkeypatch.setattr(_code_grader, "_survivors_logged", [])
+    states = []
+
+    def stuck(marker, wait=2.0):
+        states.append(("scan", _dumpable()))
+        time.sleep(wait)
+        return False
+
+    def never_gone(pgid, wait=1.0):
+        states.append(("group", _dumpable()))
+        time.sleep(wait)
+        return False
+
+    monkeypatch.setattr(_code_grader, "kill_marked", stuck)
+    monkeypatch.setattr(_code_grader, "group_gone", never_gone)
+    before = _dumpable()
+    with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
+        start = time.monotonic()
+        assert _code_grader.run_candidate(HONEST, 10, ("f(1)",)) == [2]
+        assert _code_grader.run_candidate(HONEST, 10, ("f(1)",)) == [2]
+        assert time.monotonic() - start < 8  # bounded: about the budget per run, not forever
+    assert states and all(d == 0 for _, d in states)  # held the whole time it waited
+    assert _dumpable() == before  # released after
+    assert len([r for r in caplog.records if "survived the cleanup" in r.getMessage()]) == 1
 
 
 @pytest.mark.skipif(not (LINUX and os.path.isdir("/proc")), reason="needs /proc")

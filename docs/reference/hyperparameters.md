@@ -90,6 +90,8 @@ safetune.configure(max_prompts=20, eval_limit=20, eval_strict=False)
 
 `code_execution` needs tests (`test_cases`): with none it scores 0.0 and logs a warning once, because code that only runs proves nothing.
 
+On Linux a confined answer can no longer: fork, start threads (`threading`, `concurrent.futures`, `multiprocessing`) or run `subprocess` and `os.system`; open sockets; send signals, including to itself (`os.kill`, `signal.raise_signal`); call `os.nice` or `os.setpriority`; call `getpass.getuser()` (it reads `/etc/passwd`); or write anywhere outside its own temporary directory, which includes hard-coded `/tmp/...` paths (`tempfile` works: `TMPDIR` points there). `chmod` and timestamp changes on files the user can write are not prevented. Known limits: a trainer running as root is weaker (root keeps CAP_SYS_PTRACE; `mknod`, clock and some scheduling calls are not refused), and on a host with seccomp but no Landlock the `/proc` entries of sibling processes are not protected. Run the trainer unprivileged, and set `SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1` where the confinement must not silently be missing.
+
 ### LoRA adapter defaults
 
 Used by every Harden trainer that wraps the model in a LoRA adapter, and by
