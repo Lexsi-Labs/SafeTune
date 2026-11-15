@@ -30,9 +30,19 @@ trainer evaluates the rest of the assert, on plain data, with a whitelist of
 builtins, ``math`` functions and methods: ``and``, ``or``, ``not``, chained
 comparisons, arithmetic, ``len``, ``sorted``, ``isinstance`` and the like all run
 here, so a candidate can't change them by redefining names or patching
-``builtins``. An assert that uses anything else fails with a warning. A task
-whose required function shares a builtin's name can't be graded either: its
-tests fail, with a warning.
+``builtins``. An assert that uses anything else fails with a warning. When the
+task's function shares a builtin's name (MBPP's ``sum(a, b)``), the candidate's
+definition is used only as the function under test (see ``_own_builtins``); a
+builtin the candidate redefines anywhere else fails the test, with a warning.
+
+Plain data is exact ``None``, ``bool``, ``int``, ``float``, ``complex``, ``str``,
+``list``, ``tuple``, ``set``, ``frozenset`` and ``dict``, plus
+``collections.Counter`` and ``OrderedDict`` (rebuilt here from their items) and a
+``defaultdict`` (as a dict). Any other value an assert's call returns, a subclass
+or an object with its own ``__eq__`` included, crosses as its truth value only:
+``assert f(x)`` and ``assert not f(x)`` work as in Python (an ``re.Match``), and
+it equals nothing. ``input``/``expected_output`` tests compare floats, also
+inside lists, tuples and dict values, within an absolute 1e-6 or a relative 1e-9.
 
 What remains: the candidate can still return a forged plain value, so a test
 whose expected value it can guess is not protected.
@@ -50,6 +60,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections import Counter, OrderedDict
 from collections.abc import Iterator
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -88,6 +99,9 @@ def _main():
     _eval, _exec, _compile, _open, _dump = eval, exec, compile, open, json.dump
     _type, _bool, _int, _str, _float, _repr = type, bool, int, str, float, repr
     _list, _tuple, _set, _frozenset, _dict = list, tuple, set, frozenset, dict
+    import collections
+    _complex, _dict_items = complex, dict.items
+    _Counter, _OrderedDict, _defaultdict = collections.Counter, collections.OrderedDict, collections.defaultdict
     _Exception, _TypeError, _isfunction, _callable, _getattr = Exception, TypeError, inspect.isfunction, callable, getattr
     try:
         import resource
@@ -126,16 +140,25 @@ def _main():
         t = _type(x)
         if x is None or t is _bool or t is _int or t is _str: return x
         if t is _float: return {"f": _repr(x)}
+        if t is _complex: return {"c": [_repr(x.real), _repr(x.imag)]}
         if t is _list or t is _tuple or t is _set or t is _frozenset: return {t.__name__: [enc(i) for i in x]}
-        if t is _dict: return {"dict": [[enc(k), enc(v)] for k, v in x.items()]}
+        if t is _dict or t is _defaultdict or t is _Counter or t is _OrderedDict:
+            # a defaultdict crosses as a dict (its factory can't); Counter and OrderedDict keep their type
+            return {"dict" if t is _defaultdict else t.__name__: [[enc(k), enc(v)] for k, v in _dict_items(x)]}
         raise _TypeError(t)
+
+    def enc_or_truth(x):  # anything else (an re.Match, say) crosses as its truth value only
+        try:
+            return enc(x)
+        except _TypeError:
+            return {"o": _bool(x)}
 
     ns = {"__name__": "__main__"}
     _exec(_compile(job["code"], "<candidate>", "exec"), ns)
     values = []
     for e in job["exprs"]:
         try:
-            values.append(enc(_eval(e, ns)))
+            values.append(enc_or_truth(_eval(e, ns)))
         except _Exception:
             values.append({"e": 0})
     if job["has_call"]:
@@ -161,6 +184,9 @@ def _main():
     _eval, _exec, _compile, _open, _dump = eval, exec, compile, open, json.dump
     _type, _bool, _int, _str, _float, _repr = type, bool, int, str, float, repr
     _list, _tuple, _set, _frozenset, _dict = list, tuple, set, frozenset, dict
+    import collections
+    _complex, _dict_items = complex, dict.items
+    _Counter, _OrderedDict, _defaultdict = collections.Counter, collections.OrderedDict, collections.defaultdict
     _BaseException, _Exception, _TypeError = BaseException, Exception, TypeError
     try:
         import resource
@@ -199,9 +225,18 @@ def _main():
         t = _type(x)
         if x is None or t is _bool or t is _int or t is _str: return x
         if t is _float: return {"f": _repr(x)}
+        if t is _complex: return {"c": [_repr(x.real), _repr(x.imag)]}
         if t is _list or t is _tuple or t is _set or t is _frozenset: return {t.__name__: [enc(i) for i in x]}
-        if t is _dict: return {"dict": [[enc(k), enc(v)] for k, v in x.items()]}
+        if t is _dict or t is _defaultdict or t is _Counter or t is _OrderedDict:
+            # a defaultdict crosses as a dict (its factory can't); Counter and OrderedDict keep their type
+            return {"dict" if t is _defaultdict else t.__name__: [[enc(k), enc(v)] for k, v in _dict_items(x)]}
         raise _TypeError(t)
+
+    def enc_or_truth(x):  # anything else (an re.Match, say) crosses as its truth value only
+        try:
+            return enc(x)
+        except _TypeError:
+            return {"o": _bool(x)}
 
     try:
         code = _compile(job["code"], "<candidate>", "exec")
@@ -216,7 +251,7 @@ def _main():
                 values = []
                 for e in exprs:
                     try:
-                        values.append(enc(_eval(e, ns)))
+                        values.append(enc_or_truth(_eval(e, ns)))
                     except _Exception:
                         values.append({"e": 0})
         except _BaseException:
@@ -232,6 +267,8 @@ _main()
 """
 
 _CONTAINERS = {"list": list, "tuple": tuple, "set": set, "frozenset": frozenset}
+# Counter and OrderedDict are rebuilt here from their items, so their __eq__ is the standard library's.
+_MAPPINGS = {"dict": dict, "Counter": lambda pairs: Counter(dict(pairs)), "OrderedDict": OrderedDict}
 
 _COMPARE = {
     ast.Eq: operator.eq,
@@ -252,6 +289,21 @@ class _Failed:
 
 
 _FAILED = _Failed()
+
+
+class _Opaque:
+    """A value that isn't plain data (an ``re.Match``, an object with its own ``__eq__``): only its truth value crossed.
+    It supports truth testing (``assert f(x)``, ``assert not f(x)``) and equals nothing but itself."""
+
+    __slots__ = ("_truthy",)
+
+    def __init__(self, truthy: bool):
+        self._truthy = truthy
+
+    def __bool__(self) -> bool:
+        return self._truthy
+
+    __hash__ = object.__hash__
 
 
 def _member_key(x: Any) -> Tuple[str, str]:
@@ -292,10 +344,15 @@ def _decode(value: Any, budget: List[int]) -> Any:
             return _FAILED
         if kind == "f":
             return float(payload)
-        if kind == "dict":
+        if kind == "c":
+            real, imag = payload
+            return complex(float(real), float(imag))
+        if kind == "o" and type(payload) is bool:
+            return _Opaque(payload)
+        if kind in _MAPPINGS:
             pairs = [(_decode(k, budget), _decode(v, budget)) for k, v in payload]
             _hashed([k for k, _ in pairs])
-            return dict(pairs)
+            return _MAPPINGS[kind](pairs)
         items = [_decode(i, budget) for i in payload]
         if kind in ("set", "frozenset"):
             _hashed(items)
@@ -559,7 +616,9 @@ _METHODS = frozenset(
     "difference symmetric_difference copy".split()
 )
 _SET_METHODS = frozenset("union intersection difference symmetric_difference issubset issuperset".split())
-_PLAIN = (bool, int, float, str, list, tuple, set, frozenset, dict, type(None))
+_PLAIN = (bool, int, float, complex, str, list, tuple, set, frozenset, dict, Counter, OrderedDict, type(None))
+_SIZED = (str, list, tuple, set, frozenset, dict, Counter, OrderedDict)
+_HASHED = (set, frozenset, dict, Counter, OrderedDict)
 _BUILTIN_NAMES = frozenset(dir(builtins))
 # Every container, string and repeat the trainer builds or reads while evaluating a test is held to
 # this many elements, and an assert may visit this many nodes, so a forged value or a big literal
@@ -599,12 +658,12 @@ def _no_collisions(items: Any) -> None:
 def _small(v: "_Vals", *things: Any) -> None:
     """Refuse a big container or string, and a total past the cap for this assert."""
     for t in things:
-        if type(t) in (str, list, tuple, set, frozenset, dict):
+        if type(t) in _SIZED:
             if len(t) > _MAX_REPEAT:
                 raise _Fail
             v.touched += len(t)
             # Values that hash alike make building or combining a set or dict quadratic.
-            if type(t) in (set, frozenset, dict):
+            if type(t) in _HASHED:
                 _no_collisions(t)
     if v.touched > 10 * _MAX_REPEAT:
         raise _Fail
@@ -618,13 +677,16 @@ def _is_chain(node: ast.expr) -> bool:
     return isinstance(node, ast.Name)
 
 
-def _candidate(node: ast.expr) -> bool:
-    """Whether ``node`` is the candidate's: a name it defines, or a call to one (``f(1)``, ``mod.f(1)``)."""
+def _candidate(node: ast.expr, own: frozenset = frozenset()) -> bool:
+    """Whether ``node`` is the candidate's: a name it defines, or a call to one (``f(1)``, ``mod.f(1)``).
+    Names in ``own`` are builtin names the candidate's function takes over (see ``_own_builtins``)."""
     if isinstance(node, ast.Call):
-        return _is_chain(node.func) and _candidate(node.func)
+        return _is_chain(node.func) and _candidate(node.func, own)
     if isinstance(node, ast.Attribute):
-        return _is_chain(node) and _candidate(node.value)
+        return _is_chain(node) and _candidate(node.value, own)
     if isinstance(node, ast.Name):
+        if node.id in own:
+            return True
         if node.id in _FUNCS or node.id == "math":
             return False
         if node.id in _BUILTIN_NAMES:
@@ -683,7 +745,7 @@ def _compile_node(node: ast.expr, calls: List[str]) -> Ev:
         return lambda v: literal
     except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
         pass
-    if _candidate(node):
+    if _candidate(node, getattr(calls, "own", frozenset())):
         calls.append(ast.unparse(node))
         i = len(calls) - 1
 
@@ -820,13 +882,21 @@ def _compile_slice(node: ast.expr, calls: List[str]) -> Ev:
     return _compile(node, calls)
 
 
-def _plan_assert(assertion: str) -> Optional[Tuple[List[str], Callable[[List[Any]], bool]]]:
-    """Split an assert into the candidate calls the child runs and the check the trainer applies."""
+class _Calls(list):
+    """The candidate calls of one assert, plus the builtin names the candidate takes over."""
+
+    own: frozenset = frozenset()
+
+
+def _plan_assert(assertion: str, own: frozenset = frozenset()) -> Optional[Tuple[List[str], Callable[[List[Any]], bool]]]:
+    """Split an assert into the candidate calls the child runs and the check the trainer applies.
+    Builtin names in ``own`` are the candidate's (see ``_own_builtins``)."""
     try:
         body = ast.parse(assertion.strip()).body
         if len(body) != 1 or not isinstance(body[0], ast.Assert):
             return None
-        calls: List[str] = []
+        calls = _Calls()
+        calls.own = own
         ev = _compile(body[0].test, calls)
     except (SyntaxError, ValueError, MemoryError, RecursionError, _Undecomposable):
         return None
@@ -849,17 +919,72 @@ def _bound_names(code: str) -> set:
     return names
 
 
-def grade_assertion(code: str, assertion: str, timeout: float) -> bool:
-    """Whether ``assertion`` holds for values produced by ``code``."""
-    plan = _plan_assert(assertion)
+def _own_builtins(code: str, test: str) -> frozenset:
+    """The one builtin name in ``test`` that means the candidate's function: the task's function shares a builtin's
+    name (MBPP 126 asks for a ``sum(a, b)``), so plain Python would call the candidate's definition.
+
+    Only for the function under test: the callee of a call that is the whole assert (``assert is_prime(7)``) or one
+    whole side of a single top-level comparison, whose name the candidate binds, that occurs nowhere else in the
+    assert, whose arguments call no other builtin name the candidate binds, and only when the assert names nothing
+    else of the candidate's (no other function, constant or object: ``len(VALUE)``, ``sorted(s.run())``). Every other builtin name is the real one (a candidate-bound one fails the test), so
+    a candidate can't take over a builtin on the expected side or around its answer (``f(x) == sorted([...])``,
+    ``len(f(x)) == 3``). Any other shape gets nothing here, as before."""
+    try:
+        body = ast.parse(test.strip()).body
+    except (SyntaxError, ValueError, MemoryError, RecursionError):
+        return frozenset()
+    if len(body) != 1 or not isinstance(body[0], ast.Assert):
+        return frozenset()
+    t = body[0].test
+    bound = _bound_names(code)
+
+    def bound_builtin_call(n: ast.AST) -> bool:
+        return isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in _BUILTIN_NAMES and n.func.id in bound
+
+    if not any(bound_builtin_call(n) for n in ast.walk(t)):
+        return frozenset()
+    sides = [t] if not isinstance(t, ast.Compare) else [t.left, *t.comparators] if len(t.ops) == 1 else []
+    under_test = [s for s in sides if bound_builtin_call(s)]
+    names = [n.id for n in ast.walk(t) if isinstance(n, ast.Name)]  # no candidate name but the one under test
+    ok = len(under_test) == 1 and all(name in _BUILTIN_NAMES or name == "math" for name in names)
+    if ok:
+        call = under_test[0]
+        name = call.func.id
+        ok = sum(1 for n in ast.walk(t) if isinstance(n, ast.Name) and n.id == name) == 1 and not any(
+            bound_builtin_call(n) for a in [*call.args, *(k.value for k in call.keywords)] for n in ast.walk(a))
+    if not ok:
+        if not _own_logged:
+            _own_logged.append(True)
+            logger.debug("A test calls a builtin's name that the candidate defines, but not as the one function under "
+                         "test: the real builtin is meant, so the test fails: %.80s", test)
+        return frozenset()
+    return frozenset({name})
+
+
+_own_logged: List[bool] = []
+
+
+def _plan_for(code: str, assertion: str) -> Optional[Tuple[List[str], Callable[[List[Any]], bool]]]:
+    """``_plan_assert`` for this candidate, or None (with a warning) if the test can't be graded or uses a builtin's
+    name that the candidate redefines."""
+    own = _own_builtins(code, assertion)
+    plan = _plan_assert(assertion, own)
     if plan is None:
         logger.warning("Can't grade test, counting it as failed: %.80s", assertion)
+        return None
+    used = {n.id for n in ast.walk(ast.parse(assertion.strip())) if isinstance(n, ast.Name)}
+    if used & (set(_FUNCS) | {"math"}) & _bound_names(code) - own:
+        logger.warning("Test uses a builtin's name that the candidate defines, counting it as failed: %.80s", assertion)
+        return None
+    return plan
+
+
+def grade_assertion(code: str, assertion: str, timeout: float) -> bool:
+    """Whether ``assertion`` holds for values produced by ``code``."""
+    plan = _plan_for(code, assertion)
+    if plan is None:
         return False
     calls, check = plan
-    used = {n.id for n in ast.walk(ast.parse(assertion.strip())) if isinstance(n, ast.Name)}
-    if used & (set(_FUNCS) | {"math"}) & _bound_names(code):
-        logger.warning("Test uses a builtin's name that the candidate defines, counting it as failed: %.80s", assertion)
-        return False
     values = run_candidate(code, timeout, exprs=tuple(calls))
     if values is None:
         return False
@@ -892,15 +1017,10 @@ def grade_assertions(code: str, tests: List[str], timeout: float) -> List[bool]:
     results = [False] * len(tests)
     runnable: List[Tuple[int, Tuple[str, ...], Callable[[List[Any]], bool]]] = []
     for i, assertion in enumerate(tests):
-        plan = _plan_assert(assertion)
+        plan = _plan_for(code, assertion)
         if plan is None:
-            logger.warning("Can't grade test, counting it as failed: %.80s", assertion)
             continue
         calls, check = plan
-        used = {n.id for n in ast.walk(ast.parse(assertion.strip())) if isinstance(n, ast.Name)}
-        if used & (set(_FUNCS) | {"math"}) & _bound_names(code):
-            logger.warning("Test uses a builtin's name that the candidate defines, counting it as failed: %.80s", assertion)
-            continue
         runnable.append((i, tuple(calls), check))
     if not runnable:
         return results
@@ -915,12 +1035,27 @@ def grade_assertions(code: str, tests: List[str], timeout: float) -> List[bool]:
     return results
 
 
+def _close(actual: Any, expected: Any) -> bool:
+    """``actual == expected``, but floats (also inside lists, tuples and dict values) within the tolerance HumanEval's own
+    checks use (an absolute 1e-6) or a relative 1e-9: ``3.33 % 1.0`` is ``0.33000000000000007``. Containers must
+    have the same type, dict keys must be equal, and a bool is not a number here."""
+    if type(actual) is float or type(expected) is float:
+        if type(actual) in (int, float) and type(expected) in (int, float):
+            return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-6)
+        return bool(actual == expected)
+    if type(actual) in (list, tuple) and type(actual) is type(expected):
+        return len(actual) == len(expected) and all(_close(a, e) for a, e in zip(actual, expected))
+    if type(actual) is dict and type(expected) is dict:
+        return actual.keys() == expected.keys() and all(_close(actual[k], expected[k]) for k in actual)
+    return bool(actual == expected)
+
+
 def grade_io(code: str, test_case: Dict[str, Any], timeout: float) -> bool:
-    """Whether the candidate's function maps the test's input to its output."""
+    """Whether the candidate's function maps the test's input to its output (floats within a small tolerance)."""
     values = run_candidate(code, timeout, call=test_case.get("input"))
     if values is None:
         return False
     try:
-        return bool(values[-1] == test_case.get("expected_output"))
-    except RecursionError:
+        return _close(values[-1], test_case.get("expected_output"))
+    except (RecursionError, OverflowError):
         return False

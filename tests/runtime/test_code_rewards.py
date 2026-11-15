@@ -265,10 +265,78 @@ def test_patched_builtins_do_not_change_the_test():
     assert _mbpp(code, "assert len(f()) == 3") == 1.0
 
 
-def test_name_clash_with_a_builtin_fails_with_a_warning(caplog):
+def test_a_task_function_named_like_a_builtin_is_the_candidates():
+    """MBPP 126 asks for ``sum(a, b)``: its tests call only that name, so the candidate's definition is used."""
+    code = "def sum(a,b):\n    s = 0\n    for i in range(1, min(a, b)):\n        if a % i == 0 and b % i == 0:\n            s += i\n    return s\n"
+    tests = ["assert sum(10,15) == 6", "assert sum(100,150) == 93", "assert sum(4,6) == 3"]
+    assert _mbpp(code, *tests) == 1.0
+    assert CodeExecutionReward(_config()).compute(code, test_cases=tests) == 1.0
+    assert _mbpp(code, "assert sum(10,15) == 7") == 0.0
+    assert _mbpp("def sorted(x): return [1]\n", "assert sorted([2, 1]) == [1, 2]") == 0.0  # graded, and wrong
+
+
+@pytest.mark.parametrize("test", [
+    "assert sorted(f()) == [9, 9]",  # the builtin wraps the candidate's answer
+    "assert sorted([7]) == sorted([1, 2])",  # called twice: it would compute the expected side too
+])
+def test_a_builtin_the_candidate_redefines_is_not_taken_over_otherwise(caplog, test):
     with caplog.at_level("WARNING"):
-        assert _mbpp("def sorted(x): return [1]\n", "assert sorted([2, 1]) == [1, 2]") == 0.0
+        assert _mbpp("def f(): return [1]\ndef sorted(x, **k): return [9, 9]\n", test) == 0.0
+        assert CodeExecutionReward(_config()).compute("def f(): return [1]\ndef sorted(x, **k): return [9, 9]\n",
+                                                      test_cases=[test]) == 0.0
     assert "builtin's name" in caplog.text
+
+
+# MBPP reference solutions and tests (sanitized split) whose results are not plain builtin data.
+NOT_PLAIN = {
+    "mbpp_88_counter": ("import collections\ndef freq_count(list1):\n  freq_count= collections.Counter(list1)\n  return freq_count",
+                        ["assert freq_count([10,10,10,10,20,20,20,20,40,40,50,50,30])==({10: 4, 20: 4, 40: 2, 50: 2, 30: 1})",
+                         "assert freq_count([1,2,3,4,3,2,4,1,3,1,4])==({1:3, 2:2,3:3,4:3})"]),
+    "mbpp_590_complex": ("import cmath\ndef polar_rect(x,y):\n cn = complex(x,y)\n cn=cmath.polar(cn)\n cn1 = cmath.rect(2, cmath.pi)\n"
+                         " return (cn,cn1)",
+                         ["assert polar_rect(3,4)==((5.0, 0.9272952180016122), (-2+2.4492935982947064e-16j))",
+                          "assert polar_rect(4,7)==((8.06225774829855, 1.0516502125483738), (-2+2.4492935982947064e-16j))"]),
+    "mbpp_737_match": ("import re \nregex = '^[aeiouAEIOU][A-Za-z0-9_]*'\ndef check_str(string): \n\treturn re.search(regex, string)",
+                       ['assert check_str("annie")', 'assert not check_str("dawood")', 'assert check_str("Else")']),
+    "mbpp_787_match": ("import re\ndef text_match_three(text):\n        patterns = 'ab{3}?'\n        return re.search(patterns,  text)",
+                       ['assert not text_match_three("ac")', 'assert not text_match_three("dc")', 'assert text_match_three("abbbba")']),
+}
+
+
+@pytest.mark.parametrize("case", sorted(NOT_PLAIN))
+def test_correct_answers_with_results_that_are_not_plain_builtins_score_full_marks(case):
+    code, tests = NOT_PLAIN[case]
+    text = "```python\n" + code + "\n```"
+    assert _mbpp(text, *tests) == 1.0
+    assert CodeExecutionReward(_config()).compute(text, test_cases=tests) == 1.0
+    assert CodeCorrectnessReward(_config()).compute(text, test_cases=tests) == 1.0
+
+
+def test_a_value_that_is_not_plain_data_crosses_as_its_truth_value_only():
+    code = ("import re, collections\n"
+            "class C(collections.Counter):\n    def __eq__(self, o): return True\n"
+            "def m(s): return re.search('a', s)\n"
+            "def c(): return C(a=1)\n"
+            "def od(): return collections.OrderedDict([(1, 2)])\n"
+            "def dd(): return collections.defaultdict(int, {1: 2})\n")
+    tests = ["assert m('a')", "assert not m('b')", "assert m('a') == True", "assert c() == {'z': 9}", "assert c()",
+             "assert od() == {1: 2}", "assert dd() == {1: 2}"]
+    # an re.Match is truthy and equals nothing; a Counter with its own __eq__ is not a Counter, so it can't pass ==
+    assert [_mbpp(code, t) for t in tests] == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0]
+
+
+def test_float_dict_tests_compare_within_a_tolerance():
+    """HumanEval/2: ``3.33 % 1.0`` is ``0.33000000000000007``; floats inside lists, tuples and dicts too."""
+    code = "def truncate_number(number):\n    return number % 1.0\n"
+    tests = [{"input": 3.5, "expected_output": 0.5}, {"input": 1.33, "expected_output": 0.33},
+             {"input": 123.456, "expected_output": 0.456}]
+    assert CodeCorrectnessReward(_config()).compute(code, test_cases=tests) == 1.0
+    nested = "def f(x):\n    return [x % 1.0, (x % 1.0, 2), {'k': [x % 1.0]}]\n"
+    want = [0.33, (0.33, 2), {"k": [0.33]}]
+    assert CodeExecutionReward(_config()).compute(nested, test_cases=[{"input": 3.33, "expected_output": want}]) == 1.0
+    # still a difference beyond the tolerance, a different container type or different keys fails
+    for wrong in ([0.331, (0.33, 2), {"k": [0.33]}], [0.33, [0.33, 2], {"k": [0.33]}], [0.33, (0.33, 2), {"j": [0.33]}]):
+        assert CodeExecutionReward(_config()).compute(nested, test_cases=[{"input": 3.33, "expected_output": wrong}]) == 0.0
 
 
 COMPOUND_CODE = (
@@ -627,3 +695,35 @@ def test_imported_helper_before_the_function_does_not_hijack_the_call():
 
     code = "from functools import lru_cache\ndef add(a, b):\n    return a + b"
     assert grade_io(code, {"input": [2, 3], "expected_output": 5}, 5.0)
+
+
+# A wrong answer (f returns 0) plus a redefined builtin that would make the assert hold if the candidate's builtin
+# were used: on the expected side, around the call, or as the callee of a whole side. Every one must score 0.
+TAKEOVERS = [
+    ("sorted", "def sorted(*a, **k): return 0", "assert f(1) == sorted([3, 1, 2])"),
+    ("sorted", "def sorted(*a, **k): return [1, 2, 3]", "assert sorted(f(1)) == [1, 2, 3]"),
+    ("len", "def len(x): return 3", "assert len(f(1)) == 3"),
+    ("len", "def len(x): return 0", "assert f(1) == len([1, 2, 3])"),
+    ("set", "def set(*a): return {1, 2}", "assert set(f(1)) == {1, 2}"),
+    ("set", "def set(*a): return 0", "assert f(1) == set([1, 2])"),
+    ("abs", "def abs(x): return 0", "assert abs(f(1) - 2.5) < 1e-6"),
+    ("round", "def round(*a): return 2.5", "assert round(f(1), 2) == 2.5"),
+    ("sum", "def sum(*a): return 6", "assert sum(f(1)) == 6"),
+    ("sum", "def sum(*a): return 0", "assert f(1) == sum([1, 2, 3])"),
+    ("sum", "def sum(*a): return 3", "assert sum(1, 2) == sum([3])"),
+    ("max", "def max(*a): return 9", "assert max(f(1)) == 9"),
+    ("min", "def min(*a): return 0", "assert f(1) == min([4, 5])"),
+    ("isinstance", "def isinstance(*a): return True", "assert isinstance(f(1), list)"),
+    ("any", "def any(*a): return True", "assert any(f(1))"),
+    ("any", "def any(*a): return True", "assert any([f(1)]) == True"),
+    ("len", "VALUE = [1]\ndef len(x): return 3", "assert len(VALUE) == 3"),
+    ("sorted", "class S:\n    def run(self): return [0]\ns = S()\ndef sorted(x): return [1, 2, 3]", "assert sorted(s.run()) == [1, 2, 3]"),
+    ("sum", "def sum(*a): return 5\ndef len(x): return 5", "assert sum(len([1])) == 5"),
+]
+
+
+@pytest.mark.parametrize("name, redefined, test", TAKEOVERS, ids=[f"{n}-{i}" for i, (n, _, _) in enumerate(TAKEOVERS)])
+def test_a_redefined_builtin_never_makes_a_wrong_answer_pass(name, redefined, test):
+    code = "def f(x):\n    return 0\n" + redefined + "\n"
+    assert _mbpp(code, test) == 0.0
+    assert CodeExecutionReward(_config()).compute(code, test_cases=[test]) == 0.0
