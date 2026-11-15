@@ -21,7 +21,10 @@ def unconfined(monkeypatch):
 
 # With SAFETUNE_EXPECT_ISOLATION=1 a skipped test in the confinement module is a failure: a silent skip is how a
 # broken confinement would go unnoticed on a host that was supposed to have it.
-_ALLOWED_SKIPS = ("no kernel headers installed", "could not import", "not available in this Python build", "only meaningful off Linux")
+# The last two depend on the host, not on the confinement: an interpreter installed under /opt (GitHub runners), and
+# no root or user namespace (Ubuntu 24.04 restricts unprivileged user namespaces). CI runs the root test under sudo.
+_ALLOWED_SKIPS = ("no kernel headers installed", "could not import", "not available in this Python build", "only meaningful off Linux",
+                  "the interpreter lives under /opt", "needs root, or a user namespace")
 
 
 @pytest.hookimpl(hookwrapper=True)

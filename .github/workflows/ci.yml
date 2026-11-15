@@ -110,3 +110,11 @@ jobs:
         run: >-
           pytest tests/runtime/test_code_rewards.py tests/runtime/test_mbpp_one_child.py
           tests/runtime/test_code_confinement.py -p no:cacheprovider -rs --timeout=300
+      # The capability drop needs a process that holds capabilities. The runners do not allow an unprivileged user
+      # namespace, so run that one test as real root.
+      - name: Run the capability-drop test as root
+        env:
+          SAFETUNE_EXPECT_ISOLATION: "1"
+        run: >-
+          sudo -E env "PATH=$PATH" python -P -m pytest tests/runtime/test_code_confinement.py
+          -k as_root_a_confined_candidate -p no:cacheprovider -rs --timeout=300
