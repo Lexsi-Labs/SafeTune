@@ -45,6 +45,28 @@ def _get_decoder_layers(model: Any) -> List[Any]:
     return []
 
 
+def _last_logit_only(model: Any) -> dict:
+    """Forward kwargs that keep only the last position's logits, for passes that read hidden states.
+
+    A plain forward builds a ``(batch, seq, vocab)`` logits tensor nobody reads; with a 262k
+    vocabulary that is gigabytes per batch. Returns ``{"logits_to_keep": 1}`` (or
+    ``num_logits_to_keep`` on older transformers) when the forward takes it, else ``{}``. A peft
+    model's forward hides the argument behind ``**kwargs`` but passes it on, so the base model's
+    signature decides.
+    """
+    import inspect
+
+    base = model.get_base_model() if hasattr(model, "get_base_model") else model
+    try:
+        params = inspect.signature(base.forward).parameters
+    except (TypeError, ValueError, AttributeError):
+        return {}
+    for name in ("logits_to_keep", "num_logits_to_keep"):
+        if name in params:
+            return {name: 1}
+    return {}
+
+
 _VISION_TOWER_NAMES = ("vision_tower", "visual", "vision_model")
 
 

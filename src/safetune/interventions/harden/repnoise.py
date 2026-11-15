@@ -92,6 +92,7 @@ skipped and the trainer falls back to plain benign SFT (graceful degradation).
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
 from itertools import cycle
 from typing import Any, Iterable, Iterator, List, Optional
@@ -245,11 +246,48 @@ if _TORCH_IMPORT_ERROR is None:
         )
         return loss
 
+    def masked_token_ce_from_hidden(
+        hidden: "torch.Tensor",
+        project: Any,
+        labels: "torch.Tensor",
+        mask: "torch.Tensor",
+    ) -> "torch.Tensor":
+        """``masked_token_ce_loss(project(hidden), labels, mask)`` without the full logits tensor.
+
+        Projecting every position of every hidden state through the output embeddings builds a
+        ``(batch, seq, vocab)`` tensor per layer, all kept for backward. With a 262k vocabulary
+        (Tiny Aya) that is the bulk of the step's memory, yet only the positions that carry a
+        label contribute. This computes the same value from those positions alone:
+
+        * positions whose label survives the mask and is non-zero are the only ones counted;
+        * among them, positions whose logit is masked out see all-zero logits in the reference,
+          i.e. a uniform distribution, so each contributes the constant ``log(vocab)``;
+        * the rest go through ``project`` and plain cross-entropy.
+
+        ``project`` must act position-wise (final norm, then output embeddings), as it does here.
+        """
+        device = hidden.device
+        mask = mask.to(device)
+        shift_labels = (labels[..., 1:].to(device) * mask[..., 1:]).long()
+        counted = shift_labels != 0
+        live = counted & mask[..., :-1].bool()
+        logits = project(hidden[..., :-1, :][live])
+        # Per-token CE in the logits' dtype, summed in fp32: a half-precision sum overflows
+        # (fp16 max 65504) once a step counts a few thousand tokens; the mean CE does not.
+        loss_live = F.cross_entropy(logits, shift_labels[live], reduction="none").float().sum()
+        n_dead = (counted & ~live).sum()
+        # log(vocab) rounded to the logits' dtype, as the reference's per-token CE stores it.
+        log_v = torch.tensor(math.log(logits.size(-1)), dtype=logits.dtype).float().item()
+        return ((loss_live + n_dead * log_v) / counted.sum()).to(logits.dtype)
+
 else:  # pragma: no cover
     MMD_loss = object  # type: ignore[assignment,misc]
 
     def masked_token_ce_loss(*args: Any, **kwargs: Any):  # type: ignore[misc]
         raise ImportError("torch is required for masked_token_ce_loss")
+
+    def masked_token_ce_from_hidden(*args: Any, **kwargs: Any):  # type: ignore[misc]
+        raise ImportError("torch is required for masked_token_ce_from_hidden")
 
 
 class RepNoiseHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  # type: ignore[misc]
@@ -466,11 +504,11 @@ class RepNoiseHFTrainer(Trainer if _TRAINER_IMPORT_ERROR is None else object):  
         norm = self._get_final_norm(model)
 
         if hidden_states is not None and output_embeddings is not None and norm is not None:
+            project = lambda x: output_embeddings(norm(x))  # noqa: E731
             for h in hidden_states:
-                out = output_embeddings(norm(h.to(device)))
-                harmful_losses = harmful_losses + masked_token_ce_loss(
-                    out.to(device), harmful_input_ids.to(device), mask
-                )
+                harmful_losses = harmful_losses + masked_token_ce_from_hidden(
+                    h.to(device), project, harmful_input_ids.to(device), mask
+                ).to(harmful_losses.dtype)
             harmful_losses = harmful_losses / len(hidden_states)
         return harmful_losses
 

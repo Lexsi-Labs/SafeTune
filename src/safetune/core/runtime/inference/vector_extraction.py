@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from tqdm.auto import tqdm
-from safetune._refusal_helpers import _get_decoder_layers
+from safetune._refusal_helpers import _get_decoder_layers, _last_logit_only
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +158,7 @@ class SteeringVectorExtractor:
                 self._batch_mask = inputs.get("attention_mask")
 
                 with torch.no_grad():
-                    self.model(**inputs)
+                    self.model(**inputs, **_last_logit_only(self.model))
         finally:
             if _prev_side is not None:
                 self.tokenizer.padding_side = _prev_side

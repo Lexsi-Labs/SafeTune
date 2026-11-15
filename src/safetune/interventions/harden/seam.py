@@ -286,10 +286,17 @@ def _unlearning_loss(model: Any, batch: Any) -> Any:
         out_emb = None
 
     if hidden_states is not None and out_emb is not None and norm is not None:
+        # Project only the positions whose next-token label counts: a full projection builds a
+        # fp32 (batch, seq, vocab) tensor per hidden state, all kept for backward. The norm and
+        # the head act position-wise, so the mean CE over the counted positions is unchanged.
+        shift_labels = labels[:, 1:]
+        counted = shift_labels != -100
+        targets = shift_labels[counted]
         total = base_ce
-        for h in hidden_states:
-            projected = out_emb(norm(h).to(dtype=out_emb.weight.dtype))
-            total = total + masked_ce(projected, labels)
+        for h in hidden_states:          # layers can sit on different devices (device_map="auto")
+            projected = out_emb(norm(h[:, :-1][counted.to(h.device)]).to(dtype=out_emb.weight.dtype))
+            ce = F.cross_entropy(projected.float(), targets.to(projected.device))
+            total = total + ce.to(total.device)
         mean_ce = total / len(hidden_states) + 1.0
     else:
         logger.debug("SEAM L_ul: layer-wise read-out unavailable; using final-logit CE.")

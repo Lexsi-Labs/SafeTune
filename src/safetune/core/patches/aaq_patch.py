@@ -32,6 +32,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from safetune._refusal_helpers import _last_logit_only
+
 logger = logging.getLogger(__name__)
 
 
@@ -177,7 +179,7 @@ class AAQPatch(SafetyPatch):
 
             # Get quantized model hidden states
             try:
-                out_q = model(probe_ids, output_hidden_states=True)
+                out_q = model(probe_ids, output_hidden_states=True, **_last_logit_only(model))
                 q_hidden = out_q.hidden_states[-1]
             except Exception:
                 out_q = model(probe_ids)
@@ -194,11 +196,13 @@ class AAQPatch(SafetyPatch):
             with torch.no_grad():
                 try:
                     aligned_h = (
-                        aligned_model(probe_ids, output_hidden_states=True).hidden_states[-1]
+                        aligned_model(probe_ids, output_hidden_states=True,
+                                      **_last_logit_only(aligned_model)).hidden_states[-1]
                         if aligned_model else q_hidden.detach()
                     )
                     base_h = (
-                        base_model(probe_ids, output_hidden_states=True).hidden_states[-1]
+                        base_model(probe_ids, output_hidden_states=True,
+                                   **_last_logit_only(base_model)).hidden_states[-1]
                         if base_model else torch.zeros_like(aligned_h)
                     )
                 except Exception:

@@ -52,3 +52,25 @@ def test_only_pooled_vectors_are_held_and_the_result_is_unchanged(pool):
     safe, unsafe = _reference(model, tok, _SAFE, layers, pool), _reference(model, tok, _UNSAFE, layers, pool)
     for li in layers:
         assert torch.allclose(got[li], safe[li] - unsafe[li], atol=1e-5), li
+
+
+def test_forward_asks_for_last_position_logits_only():
+    """The hooks read hidden states only, so the forward must not build (batch, seq, vocab) logits."""
+    tok = _word_tok(preamble_words=40)
+    model = _tiny_llama(0, torch.float32).eval()
+    model.resize_token_embeddings(len(tok))
+    layers = [1, 4]
+    ext = SteeringVectorExtractor(model, tok, VectorExtractionConfig(target_layers=layers, pool_method="last_token",
+                                                                     normalize=False, batch_size=2))
+    logit_rows = []
+    hook = model.lm_head.register_forward_hook(lambda m, i, o: logit_rows.append(o.shape[1]))
+    try:
+        got = ext.extract(_SAFE, _UNSAFE)
+    finally:
+        hook.remove()
+
+    assert logit_rows and set(logit_rows) == {1}, logit_rows
+    safe = _reference(model, tok, _SAFE, layers, "last_token")
+    unsafe = _reference(model, tok, _UNSAFE, layers, "last_token")
+    for li in layers:
+        assert torch.allclose(got[li], safe[li] - unsafe[li], atol=1e-5), li

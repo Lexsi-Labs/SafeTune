@@ -18,6 +18,7 @@ This module provides:
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+from safetune._refusal_helpers import _last_logit_only
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ class SafetyProber:
         for batch, label in [(safe_inputs, 0), (unsafe_inputs, 1)]:
             for inp in batch:
                 with torch.no_grad():
-                    out = model(**inp, output_hidden_states=True)
+                    out = model(**inp, output_hidden_states=True, **_last_logit_only(model))
                 feats = self._extract_features(out.hidden_states)
                 features.append(feats[0])  # batch size 1
                 labels.append(label)
@@ -179,7 +180,7 @@ class SafeSwitchRunner:
         import torch
         with torch.no_grad():
             out = self.model(input_ids=input_ids, attention_mask=attention_mask,
-                             output_hidden_states=True)
+                             output_hidden_states=True, **_last_logit_only(self.model))
         return prober_probs(self.prober, out.hidden_states, attention_mask)
 
     def generate(self, input_ids: Any, **kwargs: Any) -> Any:
