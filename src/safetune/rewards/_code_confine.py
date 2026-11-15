@@ -12,6 +12,9 @@ child confines itself with
   ``perf_event_open``/``keyctl``, and no ``F_SETOWN``/``FIOSETOWN`` (they make the kernel signal
   another process). It also refuses the file changes Landlock doesn't cover: ``chown``,
   extended-attribute writes and ``truncate(2)`` by path;
+* capabilities: all dropped (bounding, effective, permitted, inheritable and ambient sets) before
+  anything else, so a trainer that runs as root does not hand them over; the child reports
+  ``caps_dropped``;
 * Landlock: writes (create, modify, delete, truncate on open) only under its own temporary
   directory; reads only from the interpreter's prefixes and library paths (stdlib,
   site-packages), the system library directories, its own ``/proc/<pid>`` and a short list of
@@ -24,7 +27,9 @@ child confines itself with
   readable by candidates (a one-time warning says so).
 
 Both are best effort. Without them (non-Linux, an old kernel, some containers) the child
-is still a separate process with resource limits, and a one-time warning says so. Without
+is still a separate process with resource limits, and a one-time warning says so. On Linux,
+though, a child that reports no seccomp is refused by default (the candidate is not run, one error
+is logged); ``SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP=1`` restores the best-effort behaviour. Without
 seccomp it can also start processes, so the grader kills its process group, then finds and
 kills every process that still carries the run's marker in its environment (Linux, best
 effort: that is why ``SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1`` exists). Each child writes what
@@ -166,8 +171,42 @@ def seccomp_program(m):
     return prog
 
 
+def drop_capabilities(libc, status_path="/proc/self/status", last_cap_path="/proc/sys/kernel/cap_last_cap"):
+    """Give up every capability before the candidate runs, so a trainer that runs as root does not hand them over.
+
+    Clears the bounding set (when we hold CAP_SETPCAP), then the effective, permitted and inheritable sets with
+    capset(), then the ambient set. Returns True if the status file then shows no effective, permitted, inheritable
+    or ambient capability (also when there were none to begin with); False if any is left or it can't be checked.
+    The bounding set of an unprivileged process stays full: with no_new_privs and no execve it gives nothing."""
+    try:
+        import ctypes, platform, struct
+        try:
+            with open(last_cap_path) as f:
+                last = int(f.read())
+        except Exception:
+            last = 40
+        for cap in range(last + 1):
+            libc.prctl(24, cap, 0, 0, 0)  # PR_CAPBSET_DROP (EPERM without CAP_SETPCAP: nothing to drop then)
+        libc.prctl(47, 4, 0, 0, 0)  # PR_CAP_AMBIENT, PR_CAP_AMBIENT_CLEAR_ALL
+        nr = {"x86_64": 126, "AMD64": 126, "aarch64": 91, "arm64": 91}.get(platform.machine())
+        if nr is None:
+            return False
+        header = ctypes.create_string_buffer(struct.pack("Ii", 0x20080522, 0))  # _LINUX_CAPABILITY_VERSION_3, this process
+        data = ctypes.create_string_buffer(24)  # two (effective, permitted, inheritable) u32 triples, all zero
+        libc.syscall(ctypes.c_long(nr), ctypes.c_void_p(ctypes.addressof(header)), ctypes.c_void_p(ctypes.addressof(data)))
+        seen = {}
+        with open(status_path) as f:
+            for line in f:
+                if line.startswith("Cap"):
+                    key, _, value = line.partition(":")
+                    seen[key] = int(value.strip(), 16)
+        return all(seen.get(k, 0) == 0 for k in ("CapInh", "CapPrm", "CapEff", "CapAmb")) and "CapEff" in seen
+    except Exception:
+        return False
+
+
 def isolate(tmp, require):
-    st = {"seccomp": False, "landlock": 0}
+    st = {"seccomp": False, "landlock": 0, "caps_dropped": False}
     try:
         import ctypes, platform
         libc = ctypes.CDLL(None, use_errno=True)
@@ -178,6 +217,7 @@ def isolate(tmp, require):
             raise OSError("no_new_privs")
     except Exception:
         return st
+    st["caps_dropped"] = drop_capabilities(libc)  # first: seccomp will refuse capset, and Landlock needs no capability
     # --- Landlock: writes only under tmp, reads only from Python + system dirs, no TCP ---
     try:
         def sc(*a):
@@ -286,8 +326,19 @@ def require_isolation() -> str:
 
 def isolation_met(mode: str, state: Dict[str, Any]) -> bool:
     if mode == "full":
-        return bool(state.get("seccomp") and state.get("landlock"))
+        return bool(state.get("seccomp") and state.get("landlock") and state.get("caps_dropped", True))
     return bool(state.get("seccomp") or state.get("landlock"))
+
+
+def allow_no_seccomp() -> bool:
+    """``SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP=1`` (or true, yes): run candidates on Linux even where seccomp is not active."""
+    return os.environ.get("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", "").strip().lower() in ("1", "true", "yes")
+
+
+def refuses_without_seccomp() -> bool:
+    """Linux only (not macOS or Windows, which have no seccomp by design): candidate code is not run, and scores 0,
+    unless the child reports that seccomp is active, or the opt-out above is set."""
+    return sys.platform.startswith("linux") and os.name != "nt" and not allow_no_seccomp()
 
 
 _unmet_logged = set()
@@ -316,6 +367,19 @@ def judge_report(state: Any) -> bool:
             "=any (at least one) to refuse to run candidate code without them.",
             st.get("seccomp"), st.get("landlock"), "; " + nothing if no_report else "",
             "; without seccomp it can also start processes" if not st.get("seccomp") else "")
+    if st.get("caps_dropped") is False and st.get("seccomp") and "caps" not in _partial_logged:
+        _partial_logged["caps"] = True
+        logger.warning("SafeTune code-reward sandbox: the candidate's process still holds Linux capabilities after the "
+                       "attempt to drop them (caps_dropped=false); SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1 refuses to run it.")
+    if refuses_without_seccomp() and not st.get("seccomp"):
+        why = ("seccomp is not active in the grading child on this Linux host (%s), so a candidate could start processes "
+               "and signal other programs. Candidate code is not run and scores 0. Set SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP=1 "
+               "to run candidates without seccomp anyway (best effort), or run where the kernel allows seccomp filters."
+               % (nothing if no_report else "the kernel refused the filter or does not have it"))
+        if why not in _unmet_logged:
+            _unmet_logged.add(why)
+            logger.error("SafeTune code-reward sandbox: " + why)
+        return False
     mode = require_isolation()
     if not mode or isolation_met(mode, st):
         return True
@@ -351,7 +415,12 @@ def parse_report(data: bytes) -> Any:
     try:
         obj = json.loads(data.decode("utf-8"))
         if isinstance(obj, dict) and isinstance(obj.get("seccomp"), bool) and type(obj.get("landlock")) is int:
-            return {"seccomp": obj["seccomp"], "landlock": obj["landlock"]}
+            state = {"seccomp": obj["seccomp"], "landlock": obj["landlock"]}
+            if "caps_dropped" in obj:
+                if not isinstance(obj["caps_dropped"], bool):
+                    return None
+                state["caps_dropped"] = obj["caps_dropped"]
+            return state
     except Exception:
         pass  # not a plain state report: None, which every caller treats as no isolation
     return None

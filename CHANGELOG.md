@@ -77,11 +77,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   processes, so its process group is killed, and so is every process still carrying the run's environment marker
   (Linux, best effort, bounded to about 5 seconds; `=1` exists for this). All of this is best effort: where the
   kernel offers neither seccomp nor Landlock (macOS, old kernels, some containers) the child is still a separate
-  process with limits, as before, and a one-time warning says so. Set `SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1` (or
-  `true`, `yes`, `full`) to score 0 unless both seccomp and Landlock are active, or `=any` to score 0 only when
-  neither is; a warning says which layer is missing. Known limits: a trainer running as root is weaker (root keeps
-  CAP_SYS_PTRACE, and `mknod`, clock and some scheduling calls are not refused); without Landlock the `/proc`
-  entries of sibling processes are not protected; run the trainer unprivileged.
+  process with limits, as before, and a one-time warning says so; but on Linux a child that reports no seccomp is
+  now refused by default: the candidate is not run, scores 0, and one error is logged naming the reason and the
+  opt-out `SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP=1`, which restores the old best-effort behaviour (macOS and Windows have
+  no seccomp by design and keep limits plus a warning). The child also drops every Linux capability before the
+  candidate runs (the bounding set, then the effective, permitted, inheritable and ambient sets), so a trainer that
+  runs as root is not weaker: root's `CAP_SYS_PTRACE`, `mknod` and clock powers do not reach the candidate; the child
+  reports `caps_dropped`. Set `SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1` (or `true`, `yes`, `full`) to score 0 unless seccomp
+  and Landlock are both active and the capabilities are gone, or `=any` to score 0 only when neither layer is active; a
+  warning says which is missing. Known limit: without Landlock the `/proc` entries of sibling processes (other than the
+  trainer's, which is held non-dumpable) are not protected.
 - **Results change for `code_execution` with no tests.** It scored 1.0 for any code that merely ran (a stub
   passes), and now scores 0.0 and logs a warning once, as `code_correctness` already did. Pass `test_cases`.
 - **Results change for `SafeGradHFTrainer` in KL mode (`reference_model`) with padded alignment batches.**

@@ -61,6 +61,7 @@ from ._code_confine import (
     judge_report,
     kill_marked,
     read_report,
+    refuses_without_seccomp,
     release_parent,
     report_timeout,
     require_isolation,
@@ -115,7 +116,10 @@ def _main():
         _write(report, _dumps(state).encode())
         _close(report)
     if job.get("require") and not (
-            (state["seccomp"] and state["landlock"]) if job["require"] == "full" else (state["seccomp"] or state["landlock"])):
+            (state["seccomp"] and state["landlock"] and state.get("caps_dropped", True)) if job["require"] == "full"
+            else (state["seccomp"] or state["landlock"])):
+        os._exit(3)
+    if job.get("refuse_no_seccomp") and not state["seccomp"]:  # the default on Linux: no seccomp, no candidate
         os._exit(3)
 
     def enc(x):
@@ -185,7 +189,10 @@ def _main():
         _write(report, _dumps(state).encode())
         _close(report)
     if job.get("require") and not (
-            (state["seccomp"] and state["landlock"]) if job["require"] == "full" else (state["seccomp"] or state["landlock"])):
+            (state["seccomp"] and state["landlock"] and state.get("caps_dropped", True)) if job["require"] == "full"
+            else (state["seccomp"] or state["landlock"])):
+        os._exit(3)
+    if job.get("refuse_no_seccomp") and not state["seccomp"]:  # the default on Linux: no seccomp, no candidate
         os._exit(3)
 
     def enc(x):
@@ -326,7 +333,7 @@ def run_candidate(
             with open(job, "w") as f:
                 json.dump(
                     {"code": code, "exprs": list(exprs), "has_call": has_call, "call": None if not has_call else call,
-                     "require": require_isolation()}, f
+                     "require": require_isolation(), "refuse_no_seccomp": refuses_without_seccomp()}, f
                 )
             held = hold_parent()
             proc, marker, state = _start(harness, job, result, work, timeout)
@@ -460,7 +467,8 @@ def run_candidate_many(
             with open(harness, "w") as f:
                 f.write(_HARNESS_MANY)
             with open(job, "w") as f:
-                json.dump({"code": code, "asserts": [list(e) for e in jobs], "require": require_isolation()}, f)
+                json.dump({"code": code, "asserts": [list(e) for e in jobs], "require": require_isolation(),
+                           "refuse_no_seccomp": refuses_without_seccomp()}, f)
             open(result, "wb").close()
             with open(result, "rb") as reader:
                 held = hold_parent()
