@@ -363,7 +363,7 @@ def test_seccomp_alone_blocks_process_vm_readv_and_ptrace(sentinel, seccomp_only
 @pytest.mark.parametrize("how", sorted(KILL_PARENT))
 def test_the_parent_cannot_be_signalled(how):
     if how == "pidfd_send_signal" and not hasattr(signal, "pidfd_send_signal"):
-        pytest.skip("needs Python 3.9+")
+        pytest.skip("signal.pidfd_send_signal is not available in this Python build")
     hits = []
     old = signal.signal(signal.SIGUSR1, lambda *a: hits.append(1))
     try:
