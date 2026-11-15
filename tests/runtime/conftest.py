@@ -21,7 +21,7 @@ def unconfined(monkeypatch):
 
 # With SAFETUNE_EXPECT_ISOLATION=1 a skipped test in the confinement module is a failure: a silent skip is how a
 # broken confinement would go unnoticed on a host that was supposed to have it.
-_ALLOWED_SKIPS = ("no kernel headers installed", "could not import", "not available in this Python build")
+_ALLOWED_SKIPS = ("no kernel headers installed", "could not import", "not available in this Python build", "only meaningful off Linux")
 
 
 @pytest.hookimpl(hookwrapper=True)

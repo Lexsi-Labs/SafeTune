@@ -840,7 +840,7 @@ def test_other_platforms_keep_best_effort_with_a_warning(monkeypatch):
     assert _code_confine.refuses_without_seccomp() is True
 
 
-@pytest.mark.skipif(LINUX, reason="this checks a host without seccomp: macOS (or any non-Linux) keeps running candidates")
+@pytest.mark.skipif(LINUX, reason="only meaningful off Linux: a host without seccomp by design keeps running candidates")
 def test_a_host_without_seccomp_still_grades_here_with_limits_and_a_warning():
     assert _scores(HONEST, 2) == (1.0, 1.0)
 
@@ -969,7 +969,10 @@ ROOT_SCRIPT = textwrap.dedent('''
             h = h if drop else h.replace(keep_caps, 'st["caps_dropped"] = False')
             setattr(g, n, h)
 
-    run = lambda code: g.run_candidate(code, 30, ("f(1)",))
+    def run(code):  # a call that raised comes back as the grader's _Failed marker: say so in plain data
+        r = g.run_candidate(code, 30, ("f(1)",))
+        return None if r is None else ["FAILED" if type(x).__name__ == "_Failed" else x for x in r]
+
     use(landlock=False, drop=False)  # control: seccomp only, capabilities kept
     out["control_caps"] = run(status)
     out["control_reads_other_process"] = run(read)
@@ -998,7 +1001,7 @@ def test_as_root_a_confined_candidate_has_no_capabilities_and_cannot_read_anothe
         cmd = ["unshare", "-r"] + cmd
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     line = next((l for l in proc.stdout.splitlines() if l.startswith("JSON:")), None)
-    assert line, proc.stderr[-2000:]
+    assert line, proc.stderr[proc.stderr.rfind("Traceback"):][-2500:] or proc.stderr[-1500:]
     out = json.loads(line[5:])
     assert out["euid"] == 0
     # control: seccomp only, capabilities kept: the capability reads the sibling's memory
@@ -1006,8 +1009,8 @@ def test_as_root_a_confined_candidate_has_no_capabilities_and_cannot_read_anothe
     assert out["control_reads_other_process"] == [out["sentinel"]]
     # with the drop: no capability, and the read fails (the candidate raised, so there is no result)
     assert out["dropped_caps"] == [[0, 0]]
-    assert out["dropped_reads_other_process"] is None
-    assert out["full_reads_other_process"] is None
+    assert out["dropped_reads_other_process"] in (None, ["FAILED"])
+    assert out["full_reads_other_process"] in (None, ["FAILED"])
     assert out["full_ordinary_answer"] == [2]
     # mknod of a device and clock_settime are refused (as real root they work without the drop)
     assert out["dropped_syscalls"] == [["mknod 1", "clock_settime 1"]]
@@ -1266,6 +1269,7 @@ def test_a_virtualenv_under_the_home_directory_is_still_readable(tmp_path):
     ({"seccomp": False, "landlock": 4}, True), (None, True),
 ])
 def test_partial_isolation_warns_once(monkeypatch, caplog, state, warns):
+    monkeypatch.setenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", "1")  # a Linux grader refuses states without seccomp by default
     monkeypatch.setattr(_code_confine, "_partial_logged", {})
     with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
         assert _code_confine.judge_report(state) is True
