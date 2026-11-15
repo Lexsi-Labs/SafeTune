@@ -303,6 +303,7 @@ def no_hold(monkeypatch):
 @pytest.fixture
 def landlock_only(monkeypatch):
     """Both layers' state with seccomp left out: the child skips its filter (and reports so)."""
+    monkeypatch.setenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", "1")  # a Linux grader refuses a child without seccomp by default
     ask = "prog = seccomp_program(platform.machine())"
     for name, harness in _ORIGINAL_HARNESSES.items():
         assert ask in harness
@@ -714,8 +715,12 @@ HONEST = "def f(x):\n    return x + 1"
 _ORIGINAL_HARNESSES = {name: getattr(_code_grader, name) for name in ("_HARNESS", "_HARNESS_MANY")}
 
 
-def _pretend_isolation(monkeypatch, seccomp, landlock):
-    """What the child reports (and checks itself against): the harness with isolate() replaced by a fixed state."""
+def _pretend_isolation(monkeypatch, seccomp, landlock, allow_no_seccomp=True):
+    """What the child reports (and checks itself against): the harness with isolate() replaced by a fixed state.
+    A Linux grader refuses a child without seccomp by default; ``allow_no_seccomp`` sets the opt-out so the tests
+    that pretend one layer is missing can look at the other behaviour."""
+    if allow_no_seccomp:
+        monkeypatch.setenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", "1")
     call = 'state = isolate(os.getcwd(), job.get("require", False))'
     stub = 'state = {"seccomp": %s, "landlock": %d}' % (bool(seccomp), 4 if landlock else 0)
     for name, harness in _ORIGINAL_HARNESSES.items():
@@ -774,6 +779,240 @@ def test_require_isolation_follows_the_real_kernel(monkeypatch, value, needs_bot
     monkeypatch.setenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", value)
     runs = (SECCOMP and LANDLOCK) if needs_both else (SECCOMP or LANDLOCK)
     assert _scores(HONEST, 2) == ((1.0, 1.0) if runs else (0.0, 0.0))
+
+
+# --- no seccomp: refused by default on Linux, with an opt-out ---------------------------------------------------
+
+@pytest.mark.skipif(not LINUX, reason="the default refusal is Linux-only")
+@pytest.mark.parametrize("which", ["run_candidate", "run_candidate_many"])
+def test_without_seccomp_candidates_are_refused_by_default_on_linux(monkeypatch, caplog, tmp_path, which):
+    marker = tmp_path / "ran"
+    code = f"open({str(marker)!r}, 'w').write('x')\ndef f(x):\n    return 1"
+    monkeypatch.delenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", raising=False)
+    monkeypatch.delenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", raising=False)
+    _pretend_isolation(monkeypatch, False, True, allow_no_seccomp=False)  # Landlock yes, seccomp no
+    monkeypatch.setattr(_code_confine, "_unmet_logged", set())
+    monkeypatch.setattr(_code_confine, "_partial_logged", {})
+    run = (lambda: _code_grader.run_candidate(code, 10, ("f(1)",))) if which == "run_candidate" else (
+        lambda: _code_grader.run_candidate_many(code, [("f(1)",)], 10))
+    with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):
+        assert run() in (None, [None])
+        assert run() in (None, [None])
+    assert not marker.exists()  # the child exited before the candidate ran
+    errors = [r for r in caplog.records if r.levelno >= logging.ERROR]
+    assert len(errors) == 1  # one clear error, not one per call
+    text = errors[0].getMessage()
+    assert "seccomp is not active" in text and "SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP=1" in text and "scores 0" in text
+
+
+@pytest.mark.skipif(not LINUX, reason="the default refusal is Linux-only")
+@pytest.mark.parametrize("value", ["1", "true", "yes"])
+def test_the_opt_out_restores_the_best_effort_behaviour(monkeypatch, tmp_path, value):
+    marker = tmp_path / "ran"
+    code = f"open({str(marker)!r}, 'w').write('x')\ndef f(x):\n    return 1"
+    _pretend_isolation(monkeypatch, False, True, allow_no_seccomp=False)
+    monkeypatch.setenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", value)
+    assert _code_grader.run_candidate(code, 10, ("f(1)",)) == [1]
+    assert marker.exists()
+
+
+@pytest.mark.skipif(not LINUX, reason="the default refusal is Linux-only")
+def test_a_linux_child_that_reports_nothing_is_refused_by_default(monkeypatch):
+    monkeypatch.delenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", raising=False)
+    monkeypatch.delenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", raising=False)
+    monkeypatch.setattr(_code_confine, "_unmet_logged", set())
+    for name, harness in _ORIGINAL_HARNESSES.items():
+        monkeypatch.setattr(_code_grader, name, harness.replace(
+            "    if report >= 0:  # -1 on Windows, where there is no pipe to pass\n        _write(report, _dumps(state).encode())\n        _close(report)\n",
+            "    _close(report)\n"))
+    assert _code_grader.run_candidate(HONEST, 10, ("f(1)",)) is None
+
+
+def test_other_platforms_keep_best_effort_with_a_warning(monkeypatch):
+    monkeypatch.delenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", raising=False)
+    for platform_name, refuses in (("linux", True), ("darwin", False), ("win32", False), ("freebsd14", False)):
+        monkeypatch.setattr(sys, "platform", platform_name)
+        assert _code_confine.refuses_without_seccomp() is refuses, platform_name
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", "1")
+    assert _code_confine.refuses_without_seccomp() is False
+    monkeypatch.setenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", "0")
+    assert _code_confine.refuses_without_seccomp() is True
+
+
+@pytest.mark.skipif(LINUX, reason="this checks a host without seccomp: macOS (or any non-Linux) keeps running candidates")
+def test_a_host_without_seccomp_still_grades_here_with_limits_and_a_warning():
+    assert _scores(HONEST, 2) == (1.0, 1.0)
+
+
+# --- capabilities: dropped before the candidate runs --------------------------------------------------------------
+
+class _FakeLibc:
+    def __init__(self):
+        self.prctl_calls, self.syscalls = [], []
+
+    def prctl(self, *args):
+        self.prctl_calls.append(args)
+        return 0
+
+    def syscall(self, nr, header, data):
+        import struct
+
+        self.syscalls.append((nr.value, ctypes.string_at(header.value, 8), ctypes.string_at(data.value, 24)))
+        return 0
+
+
+def _status_file(tmp_path, **caps):
+    lines = ["Name:\tpython"] + ["%s:\t%016x" % (k, v) for k, v in caps.items()]
+    path = tmp_path / "status"
+    path.write_text("\n".join(lines) + "\n")
+    return str(path)
+
+
+@pytest.mark.parametrize("machine, nr", [("x86_64", 126), ("aarch64", 91)])
+def test_drop_capabilities_with_a_mocked_kernel(tmp_path, monkeypatch, machine, nr):
+    import struct
+
+    monkeypatch.setattr(platform, "machine", lambda: machine)
+    last_cap = tmp_path / "cap_last_cap"
+    last_cap.write_text("40\n")
+    drop = _tables()["drop_capabilities"]
+    libc = _FakeLibc()
+    done = drop(libc, status_path=_status_file(tmp_path, CapInh=0, CapPrm=0, CapEff=0, CapBnd=0, CapAmb=0), last_cap_path=str(last_cap))
+    assert done is True
+    assert [c[1] for c in libc.prctl_calls if c[0] == 24] == list(range(41))  # PR_CAPBSET_DROP for every cap
+    assert (47, 4, 0, 0, 0) in libc.prctl_calls  # PR_CAP_AMBIENT_CLEAR_ALL
+    (called_nr, header, data), = libc.syscalls  # capset(version 3, this process, all zero)
+    assert called_nr == nr and header == struct.pack("Ii", 0x20080522, 0) and data == bytes(24)
+
+
+def test_drop_capabilities_says_so_when_something_is_left_or_cannot_be_checked(tmp_path, monkeypatch):
+    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
+    drop = _tables()["drop_capabilities"]
+    last_cap = tmp_path / "cap_last_cap"
+    last_cap.write_text("40\n")
+    left = _status_file(tmp_path, CapInh=0, CapPrm=0x1FFFFFFFFFF, CapEff=0x1FFFFFFFFFF, CapBnd=0, CapAmb=0)
+    assert drop(_FakeLibc(), status_path=left, last_cap_path=str(last_cap)) is False
+    assert drop(_FakeLibc(), status_path=_status_file(tmp_path, CapEff=0, CapPrm=0, CapInh=0, CapAmb=1), last_cap_path=str(last_cap)) is False
+    assert drop(_FakeLibc(), status_path=str(tmp_path / "missing"), last_cap_path=str(last_cap)) is False
+    monkeypatch.setattr(platform, "machine", lambda: "riscv64")  # no capset number known
+    assert drop(_FakeLibc(), status_path=_status_file(tmp_path, CapEff=0, CapPrm=0, CapInh=0, CapAmb=0), last_cap_path=str(last_cap)) is False
+
+
+def test_the_report_carries_caps_dropped_and_full_mode_needs_it():
+    assert _code_confine.parse_report(b'{"seccomp": true, "landlock": 4, "caps_dropped": true}') == {"seccomp": True, "landlock": 4, "caps_dropped": True}
+    assert _code_confine.parse_report(b'{"seccomp": true, "landlock": 4, "caps_dropped": "yes"}') is None
+    both = {"seccomp": True, "landlock": 4}
+    assert _code_confine.isolation_met("full", both) and _code_confine.isolation_met("full", dict(both, caps_dropped=True))
+    assert not _code_confine.isolation_met("full", dict(both, caps_dropped=False))
+    assert _code_confine.isolation_met("any", dict(both, caps_dropped=False))
+
+
+@pytest.mark.skipif(not (LINUX and SECCOMP), reason="needs a Linux kernel with seccomp")
+def test_the_real_child_drops_its_capabilities_and_reports_it():
+    out = subprocess.run(
+        [sys.executable, "-I", "-c", _code_confine.ISOLATE_SOURCE + "import json\nprint(json.dumps(isolate(os.getcwd(), False)))"],
+        cwd=tempfile.gettempdir(), capture_output=True, text=True,
+    ).stdout
+    assert json.loads(out.strip().splitlines()[-1])["caps_dropped"] is True
+    code = textwrap.dedent('''
+        def f(x):
+            caps = {}
+            for line in open("/proc/self/status"):
+                if line.startswith("Cap"):
+                    k, _, v = line.partition(":")
+                    caps[k] = int(v.strip(), 16)
+            return [caps["CapEff"], caps["CapPrm"], caps["CapInh"], caps.get("CapAmb", 0)]
+    ''')
+    assert _code_grader.run_candidate(code, 20, ("f(1)",)) == [[0, 0, 0, 0]]
+
+
+def _root_like_available():
+    if os.geteuid() == 0:
+        return "root"
+    try:
+        ok = subprocess.run(["unshare", "-r", "true"], capture_output=True, timeout=20).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        ok = False
+    return "userns" if ok else ""
+
+
+ROOT_LIKE = _root_like_available() if LINUX else ""
+
+ROOT_SCRIPT = textwrap.dedent('''
+    import json, os, subprocess, sys, time
+    sys.path.insert(0, SRC)
+    import logging
+    logging.disable(logging.CRITICAL)
+    from safetune.rewards import _code_confine, _code_grader as g
+    out = {"euid": os.geteuid()}
+    sentinel = "SENTINEL_" + os.urandom(16).hex()
+    sibling = subprocess.Popen([sys.executable, "-c", (
+        "import ctypes, sys, time\\nctypes.CDLL(None).prctl(4, 0, 0, 0, 0)\\n"  # PR_SET_DUMPABLE 0: reading it needs CAP_SYS_PTRACE
+        "buf = ctypes.create_string_buffer(%r.encode())\\nprint(ctypes.addressof(buf), flush=True)\\ntime.sleep(120)" % sentinel)],
+        stdout=subprocess.PIPE, text=True)
+    addr = int(sibling.stdout.readline())
+    read = "import os\\ndef f(x):\\n    fd = os.open('/proc/%d/mem', os.O_RDONLY)\\n    return os.pread(fd, %d, %d).decode()\\n" % (sibling.pid, len(sentinel), addr)
+    status = ("def f(x):\\n    return [int(l.split(':')[1], 16) for l in open('/proc/self/status') if l.startswith(('CapEff', 'CapPrm'))]\\n")
+    syscalls = ("import os, time, stat\\ndef f(x):\\n    out = []\\n"
+                "    try:\\n        os.mknod('node', stat.S_IFCHR | 0o600, os.makedev(1, 3))\\n        out.append('mknod worked')\\n    except OSError as e:\\n        out.append('mknod ' + str(e.errno))\\n"
+                "    try:\\n        time.clock_settime(time.CLOCK_REALTIME, time.time())\\n        out.append('clock_settime worked')\\n    except OSError as e:\\n        out.append('clock_settime ' + str(e.errno))\\n"
+                "    return out\\n")
+    originals = {n: getattr(g, n) for n in ("_HARNESS", "_HARNESS_MANY")}
+    no_landlock = "abi = sc(444, ctypes.c_void_p(0), 0, 1)"
+    keep_caps = 'st["caps_dropped"] = drop_capabilities(libc)'
+    os.environ["SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP"] = "1"
+
+    def use(landlock=True, drop=True):
+        for n, h in originals.items():
+            h = h if landlock else h.replace(no_landlock, "abi = 0")
+            h = h if drop else h.replace(keep_caps, 'st["caps_dropped"] = False')
+            setattr(g, n, h)
+
+    run = lambda code: g.run_candidate(code, 30, ("f(1)",))
+    use(landlock=False, drop=False)  # control: seccomp only, capabilities kept
+    out["control_caps"] = run(status)
+    out["control_reads_other_process"] = run(read)
+    out["control_syscalls"] = run(syscalls)
+    use(landlock=False, drop=True)  # capabilities dropped, no Landlock: only the capability stands in the way
+    out["dropped_caps"] = run(status)
+    out["dropped_reads_other_process"] = run(read)
+    out["dropped_syscalls"] = run(syscalls)
+    use(landlock=True, drop=True)  # everything
+    out["full_reads_other_process"] = run(read)
+    out["full_ordinary_answer"] = run("def f(x):\\n    return x + 1\\n")
+    out["sentinel"] = sentinel
+    sibling.kill()
+    print("JSON:" + json.dumps(out))
+''')
+
+
+@pytest.mark.skipif(not (LINUX and SECCOMP and ROOT_LIKE), reason="needs root, or a user namespace (unshare -r), to hold capabilities")
+def test_as_root_a_confined_candidate_has_no_capabilities_and_cannot_read_another_process():
+    """Real capabilities: root, or root in a user namespace. Without the drop the candidate keeps CAP_SYS_PTRACE and reads a
+    non-dumpable sibling's memory (control); with it, it cannot. An ordinary answer still scores 1."""
+    src = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "src")
+    script = "SRC = %r\n" % src + ROOT_SCRIPT
+    cmd = [sys.executable, "-P", "-c", script]
+    if ROOT_LIKE == "userns":
+        cmd = ["unshare", "-r"] + cmd
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    line = next((l for l in proc.stdout.splitlines() if l.startswith("JSON:")), None)
+    assert line, proc.stderr[-2000:]
+    out = json.loads(line[5:])
+    assert out["euid"] == 0
+    # control: seccomp only, capabilities kept: the capability reads the sibling's memory
+    assert out["control_caps"][0][0] != 0, "the control holds no capability, so the test proves nothing"
+    assert out["control_reads_other_process"] == [out["sentinel"]]
+    # with the drop: no capability, and the read fails (the candidate raised, so there is no result)
+    assert out["dropped_caps"] == [[0, 0]]
+    assert out["dropped_reads_other_process"] is None
+    assert out["full_reads_other_process"] is None
+    assert out["full_ordinary_answer"] == [2]
+    # mknod of a device and clock_settime are refused (as real root they work without the drop)
+    assert out["dropped_syscalls"] == [["mknod 1", "clock_settime 1"]]
+    if ROOT_LIKE == "root":
+        assert out["control_syscalls"] == [["mknod worked", "clock_settime worked"]]
 
 
 # --- what the confined child may read -------------------------------------------------------------------------
@@ -1052,6 +1291,7 @@ def test_the_decision_uses_the_childs_report_not_a_probe(monkeypatch, caplog):
         assert _code_grader.run_candidate_many(HONEST, [("f(1)",)], 10) == [None]
     assert "no report" in " ".join(r.getMessage() for r in caplog.records)
     monkeypatch.delenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION")
+    monkeypatch.setenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", "1")  # no report counts as no seccomp, refused on Linux by default
     assert _code_grader.run_candidate(HONEST, 10, ("f(1)",)) == [2]  # nothing required: it runs
 
 
@@ -1202,6 +1442,7 @@ class _AsWindows:
 def test_on_windows_no_report_pipe_is_passed_and_the_run_goes_on(monkeypatch, caplog):
     """``pass_fds`` is POSIX-only: without it every candidate would score 0 there. The child reports nothing."""
     monkeypatch.setattr(_code_grader, "os", _AsWindows())
+    monkeypatch.setattr(_code_confine, "os", _AsWindows())
     monkeypatch.delenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", raising=False)
     seen = {}
     real_popen = subprocess.Popen
@@ -1214,7 +1455,6 @@ def test_on_windows_no_report_pipe_is_passed_and_the_run_goes_on(monkeypatch, ca
     assert _code_grader.run_candidate(HONEST, 20, ("f(1)",)) == [2]
     assert "pass_fds" not in seen
     # ... and the requirement is refused, with a clear reason
-    monkeypatch.setattr(_code_confine, "os", _AsWindows())
     monkeypatch.setenv("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", "1")
     monkeypatch.setattr(_code_confine, "_unmet_logged", set())
     with caplog.at_level(logging.WARNING, logger=_code_confine.logger.name):

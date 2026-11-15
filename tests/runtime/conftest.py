@@ -9,7 +9,9 @@ from safetune.rewards import _code_grader
 
 @pytest.fixture
 def unconfined(monkeypatch):
-    """The harnesses with the isolate() call replaced by a stub that reports no isolation."""
+    """The harnesses with the isolate() call replaced by a stub that reports no isolation (and the opt-out that lets a
+    Linux grader run a candidate without seccomp, which is refused by default)."""
+    monkeypatch.setenv("SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP", "1")
     call = 'state = isolate(os.getcwd(), job.get("require", False))'
     for name in ("_HARNESS", "_HARNESS_MANY"):
         harness = getattr(_code_grader, name)
