@@ -34,6 +34,8 @@ from typing import Any, List, Optional
 
 import torch.nn as nn
 
+from safetune._refusal_helpers import _last_logit_only
+
 from ._invariant import assert_mutates, require_matched
 
 logger = logging.getLogger(__name__)
@@ -199,12 +201,13 @@ def _train_reactivation_lora(
         probes = torch.randint(0, 100, (1, 16), device=device)
 
     def _forward_hidden(m: nn.Module, x: Any) -> Any:
+        keep = _last_logit_only(m)    # only hidden states are read, never the logits
         if isinstance(x, dict):
-            out = m(**x, output_hidden_states=True)
+            out = m(**x, output_hidden_states=True, **keep)
         elif isinstance(x, (tuple, list)):
-            out = m(*x, output_hidden_states=True)
+            out = m(*x, output_hidden_states=True, **keep)
         else:
-            out = m(x, output_hidden_states=True)
+            out = m(x, output_hidden_states=True, **keep)
         hs = getattr(out, "hidden_states", None)
         if hs is None and isinstance(out, dict):
             hs = out.get("hidden_states")
