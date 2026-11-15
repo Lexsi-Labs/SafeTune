@@ -57,6 +57,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- RepNoise's per-layer harmful CE no longer builds a `(batch, seq, vocab)` logits tensor for every
+  hidden state: it sends only the positions whose label counts through the final norm and the LM
+  head, with the same loss and gradients. Before, a step kept `n_layers + 1` full-vocabulary tensors
+  for backward, which ran a 16 GB T4 out of memory on Tiny Aya (262k vocabulary) at batch 1. The sum
+  over tokens runs in fp32, so fp16 training does not overflow (#92, @ShivenduShivu).
+- SEAM's layer-wise unlearning loss (`L_ul`) had the same pattern, with an fp32 upcast on top; it
+  now also projects only the counted positions, with the same loss and gradients.
+- Passes that only read hidden states ask the model for the last position's logits only
+  (`logits_to_keep=1`), including on a peft-wrapped model: `SteeringVectorExtractor` (so
+  `extract_refusal_direction` and `extract_caa_vectors`) (#92, @ShivenduShivu), and the
+  data-compiler hidden-state and LARF filters, subspace encoding, `SafetyProber.train`, and
+  SafeSwitch's prefill and pilot probes.
+
 - Code rewards (`code_execution`, `code_correctness`, `mbpp_reward`) no longer score correct answers 0 or partly when
   the answer returns a `collections.Counter`, an `OrderedDict`, a `defaultdict` or a complex number (these now cross as
   plain data and are rebuilt in the trainer), or an object that a test only checks for truth (`assert f(x)` on an
