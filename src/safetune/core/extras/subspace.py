@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, List
 
 import torch
+from safetune._refusal_helpers import _last_logit_only
 
 
 def _encode(
@@ -36,7 +37,7 @@ def _encode(
             inputs = {"input_ids": prompt.to(device)}
 
         with torch.no_grad():
-            out = model(**inputs, output_hidden_states=True)
+            out = model(**inputs, output_hidden_states=True, **_last_logit_only(model))
 
         hs = getattr(out, "hidden_states", None)
         if hs is None:

@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 
 import torch
 import torch.nn.functional as F
+from safetune._refusal_helpers import _last_logit_only
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def compute_hidden_states(
                 batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=512
             ).to(device)
             # Forward pass asking for hidden states
-            outputs = model(**inputs, output_hidden_states=True)
+            outputs = model(**inputs, output_hidden_states=True, **_last_logit_only(model))
             # (batch, seq_len, hidden_dim)
             if hasattr(outputs, "hidden_states"):
                 last_layer = outputs.hidden_states[-1]
@@ -161,7 +162,7 @@ def filter_by_larf(
                 batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=512
             ).to(device)
             
-            outputs = model(**inputs, output_hidden_states=True)
+            outputs = model(**inputs, output_hidden_states=True, **_last_logit_only(model))
             if not hasattr(outputs, "hidden_states"):
                 # fallback for generic models without intermediate states exposed
                 # If we can't do layer-aware, assign 0 interference.

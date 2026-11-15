@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from tqdm.auto import tqdm
-from safetune._refusal_helpers import _get_decoder_layers
+from safetune._refusal_helpers import _get_decoder_layers, _last_logit_only
 
 logger = logging.getLogger(__name__)
 
@@ -113,24 +113,6 @@ class SteeringVectorExtractor:
             return (hidden * keep).sum(dim=1) / keep.sum(dim=1).clamp_min(1)
         return hidden.mean(dim=1)
 
-    def _logit_kwargs(self) -> dict:
-        """Ask for the last position's logits only: the hooks read hidden states, never the logits.
-
-        A full forward otherwise builds a (batch, seq, vocab) logits tensor per batch; with a
-        262k vocabulary (Tiny Aya), batch 16 and a ~400-token chat preamble that is ~3 GB in fp16.
-        Models whose forward has no ``logits_to_keep`` / ``num_logits_to_keep`` keep the old call.
-        """
-        import inspect
-
-        try:
-            params = inspect.signature(self.model.forward).parameters
-        except (TypeError, ValueError):
-            return {}
-        for name in ("logits_to_keep", "num_logits_to_keep"):
-            if name in params:
-                return {name: 1}
-        return {}
-
     def _collect_activations(
         self, prompts: List[str], desc: str = "activations"
     ) -> Dict[int, Any]:
@@ -176,7 +158,7 @@ class SteeringVectorExtractor:
                 self._batch_mask = inputs.get("attention_mask")
 
                 with torch.no_grad():
-                    self.model(**inputs, **self._logit_kwargs())
+                    self.model(**inputs, **_last_logit_only(self.model))
         finally:
             if _prev_side is not None:
                 self.tokenizer.padding_side = _prev_side

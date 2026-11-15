@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, List, Optional
+from safetune._refusal_helpers import _last_logit_only
 
 logger = logging.getLogger(__name__)
 
@@ -279,6 +280,7 @@ class SafeSwitchModel:
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 output_hidden_states=True,
+                **_last_logit_only(self.model),
             )
         return out.hidden_states
 
@@ -313,6 +315,7 @@ class SafeSwitchModel:
                 input_ids=pilot,
                 attention_mask=pilot_mask,
                 output_hidden_states=True,
+                **_last_logit_only(self.model),
             )
         return out.hidden_states, pilot_mask
 
