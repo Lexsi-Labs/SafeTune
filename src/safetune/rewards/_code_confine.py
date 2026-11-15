@@ -6,25 +6,32 @@ child confines itself with
 
 * seccomp: no ``kill``/``tgkill``/``pidfd_send_signal`` (a completion could otherwise
   SIGKILL the trainer through ``os.getppid()``), no ``ptrace``, no sockets, no
-  ``io_uring_setup``, no new processes or programs (``fork``/``clone``/``execve``), and
-  nothing that changes another process: ``prlimit64`` and the ``sched_set*`` calls only on
-  the caller (pid 0), no ``setpriority``/``ioprio_set``/``perf_event_open``/``keyctl``, and no
-  ``F_SETOWN``/``FIOSETOWN`` (they make the kernel signal another process);
-* Landlock: writes only under its own temporary directory; reads only from the interpreter's
-  prefixes and library paths (stdlib, site-packages), the system library directories, its own
-  ``/proc/<pid>``, and a short list of files (``/dev/urandom``, ``/proc/cpuinfo``, ``/etc/ld.so.cache``
-  and the like), so not the user's home, a repository checkout, any other ``sys.path`` entry,
-  ``/etc/passwd``, a listing of ``/dev`` or ``/proc``, or another process's ``/proc/<pid>``
-  (the trainer's ``mem``, ``maps``, ``environ`` and ``cmdline``); and no TCP on ABI 4+.
+  ``io_uring``, no new processes or programs (``fork``/``clone``/``execve``), no SysV IPC or
+  POSIX message queues, and nothing that changes another process: ``prlimit64`` and the
+  ``sched_set*`` calls only on the caller (pid 0), no ``setpriority``/``ioprio_set``/
+  ``perf_event_open``/``keyctl``, and no ``F_SETOWN``/``FIOSETOWN`` (they make the kernel signal
+  another process). It also refuses the file changes Landlock doesn't cover: ``chown``,
+  extended-attribute writes and ``truncate(2)`` by path;
+* Landlock: writes (create, modify, delete, truncate on open) only under its own temporary
+  directory; reads only from the interpreter's prefixes and library paths (stdlib,
+  site-packages), the system library directories, its own ``/proc/<pid>`` and a short list of
+  files (``/dev/urandom``, ``/proc/cpuinfo``, ``/etc/ld.so.cache`` and the like). So not the
+  user's home, a repository checkout, any other ``sys.path`` entry, ``/etc/passwd``, a listing
+  of ``/dev`` or ``/proc``, or another process's ``/proc/<pid>`` (the trainer's ``mem``,
+  ``maps``, ``environ`` and ``cmdline``); and no TCP on ABI 4+. Landlock does not cover
+  ``chmod`` or timestamp changes: those are NOT prevented on files the user can write.
+  If the interpreter's prefix contains the home directory or the working directory, all of it is
+  readable by candidates (a one-time warning says so).
 
 Both are best effort. Without them (non-Linux, an old kernel, some containers) the child
-is still a separate process with resource limits, and a one-time warning says so; without
-seccomp it can also start processes, so the grader kills its process group, then finds and kills every
-process that still carries the run's marker in its environment (Linux, best effort: that is why
-``SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1`` exists). Each child writes what isolation it really got over a pipe that it closes before the
-candidate runs (the candidate can't write to it), and the grader decides on that report, not on any earlier probe. On Linux the
-grading process also marks itself non-dumpable for as long as a candidate child is alive,
-whatever the kernel offers.
+is still a separate process with resource limits, and a one-time warning says so. Without
+seccomp it can also start processes, so the grader kills its process group, then finds and
+kills every process that still carries the run's marker in its environment (Linux, best
+effort: that is why ``SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1`` exists). Each child writes what
+isolation it really got over a pipe that it closes before the candidate runs (the candidate
+can't write to it), and the grader decides on that report, not on any earlier probe (on
+Windows there is no pipe: the child reports nothing). On Linux the grading process also marks
+itself non-dumpable for as long as a candidate child is alive, whatever the kernel offers.
 
 ``SAFETUNE_SANDBOX_REQUIRE_ISOLATION`` refuses to run candidate code (score 0, with a warning that
 says which layer is missing) when the child didn't get the isolation asked for (the child itself
@@ -37,8 +44,10 @@ code; BLAS libraries are told to use one thread so ``numpy`` still imports.
 import json
 import logging
 import os
+import selectors
 import sys
 import threading
+import time
 from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
@@ -94,6 +103,12 @@ SECCOMP_DENY = [
         "setgroups": (116, 159), "capset": (126, 91)}),
     ("scheduling and I/O priority that can name a whole user (setpriority(PRIO_USER, 0))", {
         "setpriority": (141, 140), "ioprio_set": (251, 30)}),
+    ("file changes Landlock does not cover: ownership, extended attributes and truncate(2) by path (ftruncate and "
+     "O_TRUNC are covered; chmod and utime are not refused, shutil.copy2 and much other code use them)", {
+        "chown": (92, None), "fchown": (93, 55), "lchown": (94, None), "fchownat": (260, 54),
+        "setxattr": (188, 5), "lsetxattr": (189, 6), "fsetxattr": (190, 7),
+        "removexattr": (197, 14), "lremovexattr": (198, 15), "fremovexattr": (199, 16),
+        "truncate": (76, 45)}),
 ]
 # Allowed only on the caller itself: name -> (x86_64, aarch64, index of the pid argument); pid 0 is the caller.
 SECCOMP_SELF_ONLY = {
@@ -205,7 +220,7 @@ def isolate(tmp, require):
             # candidate needs none of it), the system library directories, this process's own /proc entry
             # (/proc/self is a symlink to it) and the CPU topology that BLAS and OpenMP read.
             trees = {sys.prefix, sys.base_prefix, sys.exec_prefix, sys.base_exec_prefix,
-                     "/usr", "/lib", "/lib64", "/lib32", "/bin", "/sbin", "/opt", "/nix", "/run/current-system",
+                     "/usr", "/lib", "/lib64", "/lib32", "/bin", "/sbin", "/nix", "/run/current-system",
                      "/proc/%d" % os.getpid(), "/sys/devices/system/cpu", "/etc/ld.so.conf.d"}
             import sysconfig
             for key in ("stdlib", "platstdlib", "purelib", "platlib"):
@@ -283,11 +298,15 @@ def judge_report(state: Any) -> bool:
     """Judge what a candidate child reported about its own isolation; True if its result may be used.
 
     ``state`` is the child's ``{"seccomp": bool, "landlock": ABI}`` (what its own ``isolate()`` really achieved,
-    written before the candidate ran), or None if it reported nothing. Logs once if the isolation is partial.
+    written before the candidate ran), None if it reported nothing, or what ``read_report`` returns on a timeout. Logs once if the isolation is partial.
     With ``SAFETUNE_SANDBOX_REQUIRE_ISOLATION`` set, an unmet requirement (including no report at all) is
     logged once per reason and refused: the child itself exits without running the candidate in that case, so
     this is the second check. Nothing here is taken from a probe: only from the child that ran the candidate."""
     st = state if isinstance(state, dict) else {}
+    no_report = state is None or isinstance(state, _TimedOut)
+    nothing = ("the child did not report in time" if isinstance(state, _TimedOut)
+               else "this platform has no report channel" if os.name == "nt"
+               else "the child reported nothing")
     if not (st.get("seccomp") and st.get("landlock")) and not _partial_logged:
         _partial_logged["done"] = True
         logger.warning(
@@ -295,7 +314,7 @@ def judge_report(state: Any) -> bool:
             "code still runs in a separate process with limits, but may be able to signal other "
             "processes or read/write the user's files%s. Set SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1 (both layers) or "
             "=any (at least one) to refuse to run candidate code without them.",
-            st.get("seccomp"), st.get("landlock"), "" if state is not None else "; the child reported nothing",
+            st.get("seccomp"), st.get("landlock"), "; " + nothing if no_report else "",
             "; without seccomp it can also start processes" if not st.get("seccomp") else "")
     mode = require_isolation()
     if not mode or isolation_met(mode, st):
@@ -306,7 +325,7 @@ def judge_report(state: Any) -> bool:
     why = ("SAFETUNE_SANDBOX_REQUIRE_ISOLATION=%s needs %s, but the candidate's process got %s; candidate code "
            "is not run and scores 0." % (os.environ.get("SAFETUNE_SANDBOX_REQUIRE_ISOLATION", ""),
                                          "both seccomp and Landlock" if mode == "full" else "seccomp or Landlock",
-                                         " and ".join(missing) if state is not None else "no report"))
+                                         "no report (%s)" % nothing if no_report else " and ".join(missing)))
     if why not in _unmet_logged:
         _unmet_logged.add(why)
         logger.warning(why)
@@ -314,6 +333,17 @@ def judge_report(state: Any) -> bool:
 
 
 _MAX_REPORT_BYTES = 4096
+REPORT_TIMEOUT = 10.0  # seconds a child gets to report (interpreter start-up and isolate()); see report_timeout
+
+
+def report_timeout(candidate_timeout: float) -> float:
+    """How long to wait for a child's report: ``REPORT_TIMEOUT``, more when the candidate's own timeout is long
+    (a slow or loaded machine starts a child slowly), at most two minutes."""
+    return min(max(REPORT_TIMEOUT, 2.0 * float(candidate_timeout)), 120.0)
+
+
+class _TimedOut(dict):
+    """What ``read_report`` returns when the child did not report in time: falsy, like no report, but the log can say why."""
 
 
 def parse_report(data: bytes) -> Any:
@@ -327,27 +357,54 @@ def parse_report(data: bytes) -> Any:
     return None
 
 
-def read_report(fd: int, timeout: float = 10.0) -> Any:
+def read_report(fd: int, timeout: float = REPORT_TIMEOUT) -> Any:
     """Read the child's report from the read end of its report pipe (at most 4 KiB, until it closes the pipe or
-    ``timeout`` passes). None if there is no valid report: a child that died or hung before reporting, or sent
-    anything but a plain state. The child writes it right after ``isolate()`` and closes the pipe before the
-    candidate runs, so the candidate can't write to it or even know its number."""
-    import select
-    import time
+    ``timeout`` passes). The state if there is a valid one. None if the child died before reporting or sent anything
+    but a plain state; an empty ``_TimedOut`` if it did not report in time. The child writes the report right after
+    ``isolate()`` and closes the pipe before the candidate runs, so the candidate can't write to it or know its number.
 
+    Uses ``selectors`` (epoll, kqueue or poll), not ``select.select``, which fails for descriptors >= 1024: a
+    trainer with many open files would otherwise get no report from any child."""
     data, deadline = b"", time.monotonic() + timeout
     try:
-        while len(data) <= _MAX_REPORT_BYTES:
-            left = deadline - time.monotonic()
-            if left <= 0 or not select.select([fd], [], [], left)[0]:
-                break
-            chunk = os.read(fd, _MAX_REPORT_BYTES + 1 - len(data))
-            if not chunk:
-                break  # the child closed its end
-            data += chunk
-    except OSError:
+        with selectors.DefaultSelector() as sel:
+            sel.register(fd, selectors.EVENT_READ)
+            while len(data) <= _MAX_REPORT_BYTES:
+                left = deadline - time.monotonic()
+                if left <= 0 or not sel.select(left):
+                    return _TimedOut()
+                chunk = os.read(fd, _MAX_REPORT_BYTES + 1 - len(data))
+                if not chunk:
+                    break  # the child closed its end
+                data += chunk
+    except (OSError, ValueError):
         return None
     return parse_report(data) if len(data) <= _MAX_REPORT_BYTES else None
+
+
+_prefix_warned: Dict[str, bool] = {}
+
+
+def warn_broad_prefix() -> None:
+    """Warn once if an interpreter prefix contains the home directory or the working directory: the child may read
+    its whole prefix, so a candidate could then read everything under the home directory or the checkout."""
+    if _prefix_warned:
+        return
+    _prefix_warned["done"] = True
+    try:
+        inside = {"the home directory": os.path.expanduser("~"), "the working directory": os.getcwd()}
+        prefixes = {os.path.realpath(p) for p in (sys.prefix, sys.base_prefix, sys.exec_prefix, sys.base_exec_prefix)}
+        for what, path in inside.items():
+            path = os.path.realpath(path)
+            for prefix in sorted(prefixes):
+                if path == prefix or path.startswith(prefix.rstrip("/") + "/"):
+                    logger.warning(
+                        "SafeTune code-reward sandbox: the interpreter prefix %s contains %s (%s), so a candidate "
+                        "can read all of it. Run the trainer from an interpreter whose prefix is a virtualenv or "
+                        "system directory of its own.", prefix, what, path)
+                    break
+    except Exception:
+        pass  # a warning only
 
 
 def kill_marked(marker: str, wait: float = 2.0) -> bool:
@@ -397,8 +454,8 @@ def group_gone(pgid: int, wait: float = 1.0) -> bool:
             os.killpg(pgid, 0)
         except ProcessLookupError:
             return True
-        except OSError:
-            return True  # not ours to signal any more: nothing of ours is in it
+        except (OSError, AttributeError):
+            return True  # not ours to signal any more (or no process groups here): nothing of ours is in it
         if time.monotonic() > deadline:
             return False
         time.sleep(0.01)
@@ -410,8 +467,10 @@ def group_gone(pgid: int, wait: float = 1.0) -> bool:
 # alive, which a process of the same user without CAP_SYS_PTRACE can't read or write through /proc either
 # (``mem``, ``environ``, ``oom_score_adj``). The flag is restored afterwards; concurrent graders share one hold,
 # counted under a lock. The only cost is that debuggers and profilers of the trainer can't attach for the
-# seconds a candidate runs. Where seccomp is missing the candidate can fork, so the hold also lasts until the
-# child's process group is gone and no process carrying the run's environment marker is left.
+# seconds a candidate runs. Where seccomp is missing the candidate can fork, so the grader keeps the hold
+# after the child's death until its process group is gone and no process carrying the run's environment
+# marker is left, for at most about 5 seconds; if something survives that, it logs once and releases the hold
+# anyway (a trainer must not stay non-dumpable for good because of one stuck process).
 _hold_lock = threading.Lock()
 _hold: Dict[str, Any] = {"n": 0, "restore": False}
 

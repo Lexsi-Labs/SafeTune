@@ -5,7 +5,7 @@ Code-related reward functions for SafeTune.
 from typing import List, Optional, Dict, Any
 import logging
 import re
-from ._code_grader import grade_assertion, grade_assertions, grade_io, run_candidate
+from ._code_grader import grade_assertion, grade_assertions, grade_io
 from .base import RewardFunction, RewardConfig
 
 logger = logging.getLogger(__name__)
@@ -80,15 +80,6 @@ class CodeExecutionReward(RewardFunction):
             if l.strip().startswith('def '): in_fn = True
             if in_fn: code_lines.append(l)
         return '\n'.join(code_lines) if code_lines else text.strip()
-
-    def _execute_code_safely(self, code: str) -> bool:
-        # SECURITY: run model-generated code OUT-OF-PROCESS with a timeout, NOT
-        # via an in-process exec() with full builtins (which is an
-        # arbitrary-code-execution vector in the reward process — it could read
-        # files, open sockets, etc.). Exiting early doesn't count as running.
-        # compute() no longer pays for a bare run (no tests scores 0.0); this reports only
-        # whether the code ran to its end.
-        return run_candidate(code, self.timeout) is not None
 
     def _validate_with_test_cases(self, code: str, test_cases: List[Any]) -> float:
         if not test_cases: return 0.0

@@ -8,7 +8,7 @@ never reaches the child.
 This limits what a completion can score. On Linux the child also confines itself
 before the candidate runs (see ``_code_confine``): seccomp refuses signals to other
 processes, ``ptrace``, ``process_vm_readv``, sockets and new processes or threads,
-and Landlock keeps writes to its own temporary directory, reads to the Python
+and Landlock keeps writes (not chmod or timestamps) to its own temporary directory, reads to the Python
 installation and system directories, and refuses reading the trainer's memory through
 ``/proc``. This is best effort: without seccomp and Landlock (non-Linux, an old
 kernel, some containers) the child is only a separate process with resource limits,
@@ -62,7 +62,9 @@ from ._code_confine import (
     kill_marked,
     read_report,
     release_parent,
+    report_timeout,
     require_isolation,
+    warn_broad_prefix,
 )
 
 logger = logging.getLogger(__name__)
@@ -109,8 +111,9 @@ def _main():
     # over the report pipe, which is closed before the candidate runs (it can't write to it or find it), and
     # the candidate does not run if a required layer failed.
     state = isolate(os.getcwd(), job.get("require", False))
-    _write(report, _dumps(state).encode())
-    _close(report)
+    if report >= 0:  # -1 on Windows, where there is no pipe to pass
+        _write(report, _dumps(state).encode())
+        _close(report)
     if job.get("require") and not (
             (state["seccomp"] and state["landlock"]) if job["require"] == "full" else (state["seccomp"] or state["landlock"])):
         os._exit(3)
@@ -178,8 +181,9 @@ def _main():
     # over the report pipe, which is closed before the candidate runs (it can't write to it or find it), and
     # the candidate does not run if a required layer failed.
     state = isolate(os.getcwd(), job.get("require", False))
-    _write(report, _dumps(state).encode())
-    _close(report)
+    if report >= 0:  # -1 on Windows, where there is no pipe to pass
+        _write(report, _dumps(state).encode())
+        _close(report)
     if job.get("require") and not (
             (state["seccomp"] and state["landlock"]) if job["require"] == "full" else (state["seccomp"] or state["landlock"])):
         os._exit(3)
@@ -325,7 +329,7 @@ def run_candidate(
                      "require": require_isolation()}, f
                 )
             held = hold_parent()
-            proc, marker, state = _start(harness, job, result, work)
+            proc, marker, state = _start(harness, job, result, work, timeout)
             if not judge_report(state):
                 return None
             proc.wait(timeout=timeout)
@@ -348,14 +352,18 @@ def run_candidate(
                 release_parent()
 
 
-def _start(harness: str, job: str, result: str, work: str) -> Tuple["subprocess.Popen", str, Any]:
+def _start(harness: str, job: str, result: str, work: str, timeout: float) -> Tuple["subprocess.Popen", str, Any]:
     """Start the harness child; return it, the marker in its environment, and the isolation it reported.
 
     The child gets the write end of a pipe, writes its state there right after ``isolate()`` and closes it before
-    the candidate runs; the report is read here before anything else happens. A child that sent no valid
-    report counts as having no isolation (None)."""
+    the candidate runs; the report is read here before anything else happens (waiting at most
+    ``report_timeout(timeout)``). A child that sent no valid report counts as having no isolation. On Windows
+    there is no pipe to pass (``pass_fds`` is POSIX-only): the child reports nothing and the run goes on as
+    before, unless ``SAFETUNE_SANDBOX_REQUIRE_ISOLATION`` refuses it."""
+    warn_broad_prefix()
     marker = os.urandom(8).hex()  # a run-unique value in the child's environment, inherited by its descendants
-    r, w = os.pipe()
+    pipe = os.name != "nt"
+    r, w = os.pipe() if pipe else (-1, -1)
     try:
         proc = subprocess.Popen(
             [sys.executable, "-I", harness, job, result, str(_MAX_MEMORY_BYTES), str(_MAX_RESULT_BYTES), str(w)],
@@ -366,15 +374,18 @@ def _start(harness: str, job: str, result: str, work: str) -> Tuple["subprocess.
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True,
-            pass_fds=(w,),
+            **({"pass_fds": (w,)} if pipe else {}),
         )
     except BaseException:
-        os.close(r)
-        os.close(w)
+        if pipe:
+            os.close(r)
+            os.close(w)
         raise
+    if not pipe:
+        return proc, marker, None
     os.close(w)  # the child's copy is the only one left: EOF means it closed it or died
     try:
-        state = read_report(r)
+        state = read_report(r, report_timeout(timeout))
     except BaseException:
         _kill(proc)
         raise
@@ -392,18 +403,26 @@ def _kill(proc: "subprocess.Popen") -> None:
     proc.wait()
 
 
+_REAP_BUDGET = 5.0  # seconds the hold waits for a candidate's leftovers (see _code_confine)
+_survivors_logged: List[bool] = []
+
+
 def _reap(proc: "subprocess.Popen", marker: str, state: Any) -> None:
     """Kill the child's process group. Where the child says seccomp was not active (or said nothing) it could have
     forked or called setsid: wait until the group is gone, then find and kill every process that still carries the
-    run's marker in its environment (Linux), so the trainer's non-dumpable hold lasts until nothing of the
-    candidate is left. Best effort: see ``kill_marked``."""
+    run's marker in its environment (Linux). The caller releases the trainer's non-dumpable hold only after this
+    returns, so the hold lasts until nothing of the candidate is left, but for at most ``_REAP_BUDGET`` seconds:
+    if something survives that, a warning is logged once and the hold is released anyway. Best effort."""
     _kill(proc)
     if not (state or {}).get("seccomp"):
-        group_gone(proc.pid)
-        if marker and not kill_marked(marker):
+        deadline = time.monotonic() + _REAP_BUDGET
+        gone = kill_marked(marker, wait=_REAP_BUDGET) if marker else True
+        gone = group_gone(proc.pid, wait=max(deadline - time.monotonic(), 0.05)) and gone
+        if not gone and not _survivors_logged:
+            _survivors_logged.append(True)
             logger.warning("SafeTune code-reward sandbox: a process started by the candidate survived the cleanup "
-                           "(the kernel offers no seccomp here); set SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1 to refuse "
-                           "to run candidates without it.")
+                           "(the kernel offers no seccomp here); the trainer's protection is released anyway. Set "
+                           "SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1 to refuse to run candidates without seccomp.")
 
 
 def run_candidate_many(
@@ -445,7 +464,7 @@ def run_candidate_many(
             open(result, "wb").close()
             with open(result, "rb") as reader:
                 held = hold_parent()
-                proc, marker, state = _start(harness, job, result, work)
+                proc, marker, state = _start(harness, job, result, work, timeout)
                 if not judge_report(state):
                     return none
                 start = time.monotonic()
