@@ -63,7 +63,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for backward, which ran a 16 GB T4 out of memory on Tiny Aya (262k vocabulary) at batch 1. The sum
   over tokens runs in fp32, so fp16 training does not overflow (#92, @ShivenduShivu).
 - SEAM's layer-wise unlearning loss (`L_ul`) had the same pattern, with an fp32 upcast on top; it
-  now also projects only the counted positions, with the same loss and gradients.
+  now also projects only the counted positions, with the same loss and gradients. It also runs on a
+  model split over several GPUs (`device_map="auto"`), where adding the per-layer losses used to fail
+  with a device mismatch.
 - Passes that only read hidden states ask the model for the last position's logits only
   (`logits_to_keep=1`), including on a peft-wrapped model: `SteeringVectorExtractor` (so
   `extract_refusal_direction` and `extract_caa_vectors`) (#92, @ShivenduShivu), and the
