@@ -92,6 +92,7 @@ skipped and the trainer falls back to plain benign SFT (graceful degradation).
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
 from itertools import cycle
 from typing import Any, Iterable, Iterator, List, Optional
@@ -271,10 +272,13 @@ if _TORCH_IMPORT_ERROR is None:
         counted = shift_labels != 0
         live = counted & mask[..., :-1].bool()
         logits = project(hidden[..., :-1, :][live])
-        loss_live = F.cross_entropy(logits, shift_labels[live], reduction="sum")
+        # Per-token CE in the logits' dtype, summed in fp32: a half-precision sum overflows
+        # (fp16 max 65504) once a step counts a few thousand tokens; the mean CE does not.
+        loss_live = F.cross_entropy(logits, shift_labels[live], reduction="none").float().sum()
         n_dead = (counted & ~live).sum()
-        log_v = torch.log(torch.tensor(float(logits.size(-1)), device=device, dtype=loss_live.dtype))
-        return (loss_live + n_dead * log_v) / counted.sum()
+        # log(vocab) rounded to the logits' dtype, as the reference's per-token CE stores it.
+        log_v = torch.tensor(math.log(logits.size(-1)), dtype=logits.dtype).float().item()
+        return ((loss_live + n_dead * log_v) / counted.sum()).to(logits.dtype)
 
 else:  # pragma: no cover
     MMD_loss = object  # type: ignore[assignment,misc]

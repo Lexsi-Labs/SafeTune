@@ -91,3 +91,22 @@ def test_trainer_harmful_ce_matches_full_projection_on_a_real_model():
     assert torch.allclose(got, ref, atol=1e-5), (got.item(), ref.item())
     assert len(rows) == len(out.hidden_states)
     assert all(len(r) == 1 and r[0] < ids.numel() for r in rows), rows    # (positions,), never (batch, seq)
+
+
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_half_precision_sum_does_not_overflow(dtype):
+    """A real step counts thousands of tokens; their CE summed in fp16 passes 65504 and turns to inf."""
+    torch.manual_seed(0)
+    v, d = 4096, 32
+    norm, head = torch.nn.LayerNorm(d), torch.nn.Linear(d, v, bias=False)
+    hidden = torch.randn(4, 2048, d)
+    labels = torch.randint(1, v, (4, 2048))
+    mask = torch.zeros(4, 2048, dtype=torch.bool)
+    mask[:, 100:] = True                               # ~7.8k counted tokens at CE ~8.3
+    truth = masked_token_ce_loss(head(norm(hidden)), labels, mask)
+
+    norm, head = norm.to(dtype), head.to(dtype)
+    got = masked_token_ce_from_hidden(hidden.to(dtype), lambda x: head(norm(x)), labels, mask)
+    assert got.dtype == dtype
+    assert torch.isfinite(got), got
+    assert abs(got.float().item() - truth.item()) < 0.05 * truth.item(), (got.item(), truth.item())
