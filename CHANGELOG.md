@@ -69,8 +69,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Passes that only read hidden states ask the model for the last position's logits only
   (`logits_to_keep=1`), including on a peft-wrapped model: `SteeringVectorExtractor` (so
   `extract_refusal_direction` and `extract_caa_vectors`) (#92, @ShivenduShivu), and the
-  data-compiler hidden-state and LARF filters, subspace encoding, `SafetyProber.train`, and
-  SafeSwitch's prefill and pilot probes.
+  data-compiler hidden-state and LARF filters, subspace encoding, `SafetyProber.train`,
+  SafeSwitch's prefill and pilot probes, SafeReAct's representation-training loop, and AAQ's APC
+  calibration.
 
 - Code rewards (`code_execution`, `code_correctness`, `mbpp_reward`) no longer score correct answers 0 or partly when
   the answer returns a `collections.Counter`, an `OrderedDict`, a `defaultdict` or a complex number (these now cross as
