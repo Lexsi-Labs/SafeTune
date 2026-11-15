@@ -5,7 +5,7 @@ Code-related reward functions for SafeTune.
 from typing import List, Optional, Dict, Any
 import logging
 import re
-from ._code_grader import grade_assertion, grade_assertions, grade_io, run_candidate
+from ._code_grader import grade_assertion, grade_assertions, grade_io
 from .base import RewardFunction, RewardConfig
 
 logger = logging.getLogger(__name__)
@@ -32,8 +32,16 @@ class CodeSyntaxReward(RewardFunction):
             return False
 
 
+_NO_TESTS_WARNED = set()
+
+
 class CodeExecutionReward(RewardFunction):
-    """Reward for code execution success."""
+    """Fraction of test cases the code passes.
+
+    Tests are ``assert`` strings or ``{"input": ..., "expected_output": ...}`` dicts, from
+    ``compute(test_cases=...)`` or ``params["test_cases"]``. With no tests the reward is 0.0 and a
+    warning is logged once: code that merely runs (a stub included) is not evidence of a correct answer.
+    """
     
     def __init__(self, config: RewardConfig):
         super().__init__(config)
@@ -47,7 +55,12 @@ class CodeExecutionReward(RewardFunction):
         
         if test_cases:
             return self._validate_with_test_cases(code, test_cases)
-        return 1.0 if self._execute_code_safely(code) else 0.0
+        # No tests: running is not evidence of a correct answer (a stub runs), so nothing is paid.
+        if type(self).__name__ not in _NO_TESTS_WARNED:
+            _NO_TESTS_WARNED.add(type(self).__name__)
+            logger.warning("code_execution got no test cases (test_cases); scoring 0.0. "
+                           "Pass test_cases (assert strings or input/expected_output dicts).")
+        return 0.0
 
     def _extract_code(self, text: str) -> str:
         blocks = re.findall(r'```python\s*(.*?)```', text, re.DOTALL) or re.findall(r'```\s*(.*?)```', text, re.DOTALL)
@@ -67,13 +80,6 @@ class CodeExecutionReward(RewardFunction):
             if l.strip().startswith('def '): in_fn = True
             if in_fn: code_lines.append(l)
         return '\n'.join(code_lines) if code_lines else text.strip()
-
-    def _execute_code_safely(self, code: str) -> bool:
-        # SECURITY: run model-generated code OUT-OF-PROCESS with a timeout, NOT
-        # via an in-process exec() with full builtins (which is an
-        # arbitrary-code-execution vector in the reward process — it could read
-        # files, open sockets, etc.). Exiting early doesn't count as running.
-        return run_candidate(code, self.timeout) is not None
 
     def _validate_with_test_cases(self, code: str, test_cases: List[Any]) -> float:
         if not test_cases: return 0.0

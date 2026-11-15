@@ -63,7 +63,8 @@ def test_a_candidate_that_swallows_every_exception_is_still_killed():
     assert result == [False, False, False] and took < 4.5
 
 
-def test_a_background_child_does_not_outlive_the_grading(tmp_path):
+# The child can't fork once it is confined, so these two run unconfined to keep covering the process-group kill.
+def test_a_background_child_does_not_outlive_the_grading(tmp_path, unconfined):
     mark = tmp_path / "alive"
     code = (
         "import os, time\nif os.fork() == 0:\n    time.sleep(2.5)\n"
@@ -74,7 +75,7 @@ def test_a_background_child_does_not_outlive_the_grading(tmp_path):
     assert not os.path.exists(mark)
 
 
-def test_a_hanging_candidate_with_a_background_child_is_killed_whole(tmp_path):
+def test_a_hanging_candidate_with_a_background_child_is_killed_whole(tmp_path, unconfined):
     mark = tmp_path / "alive"
     code = (
         "import os, time\nif os.fork() == 0:\n    time.sleep(3)\n"
