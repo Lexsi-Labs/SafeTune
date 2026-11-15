@@ -937,6 +937,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#code-rewards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code rewards
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#lora-adapter-defaults" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1765,6 +1776,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#code-rewards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code rewards
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#lora-adapter-defaults" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2436,6 +2458,30 @@ raises <code>TypeError</code> (with a "did you mean" suggestion).</p>
 </tr>
 </tbody>
 </table>
+<h3 id="code-rewards">Code rewards<a class="headerlink" href="#code-rewards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Significance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>env <code>SAFETUNE_SANDBOX_REQUIRE_ISOLATION</code></td>
+<td>unset</td>
+<td>The code rewards (<code>code_execution</code>, <code>code_correctness</code>, <code>mbpp_reward</code>) run model-written code in a child process that, on Linux, confines itself with seccomp and Landlock and drops every capability before the code runs. <code>1</code>, <code>true</code>, <code>yes</code> or <code>full</code> score 0 unless BOTH seccomp and Landlock are active (and the capabilities are gone); <code>any</code> scores 0 only when neither layer is active; a warning names what is missing. On macOS and Windows (no seccomp) the code runs with process limits and a one-time warning.</td>
+</tr>
+<tr>
+<td>env <code>SAFETUNE_SANDBOX_ALLOW_NO_SECCOMP</code></td>
+<td>unset</td>
+<td>On Linux a child that reports no seccomp (an old kernel, a container profile that forbids it) is refused by default: the candidate is not run, scores 0, and one error is logged. <code>1</code>, <code>true</code> or <code>yes</code> run it anyway with the old best-effort limits.</td>
+</tr>
+</tbody>
+</table>
+<p><code>code_execution</code> needs tests (<code>test_cases</code>): with none it scores 0.0 and logs a warning once, because code that only runs proves nothing.</p>
+<p>On Linux a confined answer can no longer: fork, start threads (<code>threading</code>, <code>concurrent.futures</code>, <code>multiprocessing</code>) or run <code>subprocess</code> and <code>os.system</code>; open sockets; send signals, including to itself (<code>os.kill</code>, <code>signal.raise_signal</code>); call <code>os.nice</code> or <code>os.setpriority</code>; call <code>getpass.getuser()</code> (it reads <code>/etc/passwd</code>); or write anywhere outside its own temporary directory, which includes hard-coded <code>/tmp/...</code> paths (<code>tempfile</code> works: <code>TMPDIR</code> points there). <code>chmod</code> and timestamp changes on files the user can write are not prevented. Known limits: on a host with seccomp but no Landlock the <code>/proc</code> entries of sibling processes (other than the trainer's, which is held non-dumpable while a candidate runs) are not protected. The child drops all capabilities before the candidate runs, so running the trainer as root does not hand them over, but an unprivileged trainer is still the better setup. Set <code>SAFETUNE_SANDBOX_REQUIRE_ISOLATION=1</code> where the confinement must not silently be missing.</p>
 <h3 id="lora-adapter-defaults">LoRA adapter defaults<a class="headerlink" href="#lora-adapter-defaults" title="Permanent link">&para;</a></h3>
 <p>Used by every Harden trainer that wraps the model in a LoRA adapter, and by
 Unlearn's NPO/FLAT/SimDPO.</p>
