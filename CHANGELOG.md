@@ -274,6 +274,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- CI: a `confinement` job runs the code-reward confinement tests on an x86_64 and an aarch64 Linux runner, with
+  `SAFETUNE_EXPECT_ISOLATION=1`, so a runner kernel without seccomp or Landlock fails the job instead of skipping tests.
 - README: the note to run `pip uninstall -y torchao` before importing SafeTune covers Kaggle as
   well as Colab. Kaggle's image has shipped torchao 0.10, which peft rejects when a Harden trainer
   wraps the model in LoRA (#85).

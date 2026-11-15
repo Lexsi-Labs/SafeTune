@@ -65,3 +65,48 @@ jobs:
         run: >-
           pytest tests/ -m "not slow and not gpu and not unsloth and not wandb" --timeout=120
           --reruns 2 --reruns-delay 15 --only-rerun "Timeout"
+
+  # The seccomp filter and the Landlock rules are kernel features, so they are tested on two live kernels, x86_64
+  # and aarch64 (GitHub's free Arm runner for public repositories). SAFETUNE_EXPECT_ISOLATION=1 makes the module
+  # fail, and turns any other skip in it into a failure, if a layer is not active on the runner, instead of
+  # skipping the tests that need it.
+  confinement:
+    name: confinement tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      # Same CPU torch as the test suite above (the tests import safetune, which imports torch). Then only what the
+      # three test files import (found by installing into an empty environment until `import safetune.rewards.code`
+      # and the tests ran), with the project's own version bounds; numpy is there so the numpy case runs.
+      - name: Install CPU torch
+        run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Install what the confinement tests import
+        run: >-
+          python -m pip install numpy pytest pytest-timeout tqdm psutil
+          "transformers>=5.15,<6" "datasets>=2.14.0,<6"
+      - name: Install the package without its other dependencies
+        run: python -m pip install -e . --no-deps
+      - name: Show the kernel and the isolation it offers
+        run: |
+          uname -srm
+          cat /sys/kernel/security/lsm || true
+          python -P - <<'PY'
+          import json, os, subprocess, sys
+          from safetune.rewards import _code_confine as c
+          out = subprocess.run([sys.executable, "-I", "-c", c.ISOLATE_SOURCE + "import json\nprint(json.dumps(isolate(os.getcwd(), False)))"],
+                               capture_output=True, text=True, cwd="/tmp").stdout
+          print("child isolation (seccomp, Landlock ABI, caps_dropped):", out.strip().splitlines()[-1:])
+          PY
+      - name: Run the confinement tests
+        env:
+          SAFETUNE_EXPECT_ISOLATION: "1"
+        run: >-
+          pytest tests/runtime/test_code_rewards.py tests/runtime/test_mbpp_one_child.py
+          tests/runtime/test_code_confinement.py -p no:cacheprovider -rs --timeout=300
