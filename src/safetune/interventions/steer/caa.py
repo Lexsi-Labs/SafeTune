@@ -49,12 +49,14 @@ class CAAConfig:
             ``"mean"`` averages over the real (unpadded) tokens.
         strength: Multiplier ``alpha`` applied at inference time.
         normalize: Whether to L2-normalize each per-layer vector.
+        batch_size: Number of prompts per forward pass at extraction time.
     """
 
     target_layers: Optional[List[int]] = None
     pool_method: str = "last_token"
     strength: float = 1.0
     normalize: bool = False
+    batch_size: int = 16
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +95,7 @@ def extract_caa_vectors(
         target_layers=target,
         pool_method=cfg.pool_method,
         normalize=cfg.normalize,
+        batch_size=cfg.batch_size,
     )
     ext = SteeringVectorExtractor(model, tokenizer, ve_cfg)
     # Extractor returns ``safe_mean - unsafe_mean``; the CAA convention is
