@@ -61,10 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   checkpoint: `calibrate()` installs runtime hooks (a training-free approximation) and returns the
   wrapper, and the RR loss is exposed as `rr_loss` for your own fine-tuning loop. The guide's
   `reroute_to` list now names the accepted values (`"zero"`, `"orthogonal"`; it listed `"noise"`,
-  which raises). The steer index, taxonomy page and reference table now say which steer trainers
-  are pass-throughs and which install hooks, and `extract_steer_spec` no longer tells callers to
-  "bake the trained checkpoint" for `CircuitBreakerRRModel`; it points to
-  `build_vllm_eval_backend`. Reported by @observer04 (#94).
+  which raises). The steer index, taxonomy page, reference table and hyperparameter table now say
+  which steer trainers are pass-throughs (CircuitBreaker, RepBend, TAR, RRFA) and which installs
+  hooks (CircuitBreakerRR); the `RRFAEnsembleTrainer` row no longer claims it ensembles anything.
+  `extract_steer_spec` no longer tells callers to "bake the trained checkpoint" for
+  `CircuitBreakerRRModel`; it points to `build_vllm_eval_backend` and says that path is an
+  unconditional additive approximation. Reported by @observer04 (#94).
 
 - RepNoise's per-layer harmful CE no longer builds a `(batch, seq, vocab)` logits tensor for every
   hidden state: it sends only the positions whose label counts through the final norm and the LM

@@ -82,7 +82,8 @@ NEEDS LIVE PER-TOKEN LOGIC IN THE WORKER (cannot be a static spec):
   serve the model (or a checkpoint you fine-tuned with its loss) with plain vLLM.
 * ``CircuitBreakerRRModel`` -- its runtime hook gates each token on a z-scored
   projection, which has no ``SteerSpec`` here.  ``vllm_eval.build_vllm_eval_backend``
-  serves it with an additive approximation instead.
+  serves it with an unconditional additive approximation, not the gated removal
+  the HF hook applies.
 
 Decoding-steering methods (ContrastiveDecoding, SafeDecoding, ProxyTuning,
 Nudging) are NOT activation steering -- they belong in vLLM ``LogitsProcessor``
@@ -288,9 +289,9 @@ def extract_steer_spec(steer_model: Any) -> SteerSpec:
     if cls == "CircuitBreakerRRModel":
         raise NotImplementedError(
             f"{cls} installs a runtime hook that gates each token on a z-scored "
-            f"projection; it has no SteerSpec here. Use "
-            f"vllm_eval.build_vllm_eval_backend, which serves it with an additive "
-            f"approximation."
+            f"projection; it has no SteerSpec here. "
+            f"vllm_eval.build_vllm_eval_backend serves it with an unconditional "
+            f"additive approximation, not the gated removal the HF hook applies."
         )
 
     if cls in ("CircuitBreakerModel", "RepBendModel", "TARModel"):

@@ -111,7 +111,8 @@ model so `.generate()` stays standard; weights are untouched.
 > ⚠️ **Filed under steer but actually TRAIN-TIME.** `CircuitBreakerTrainer`,
 > `RepBendTrainer`, `TARSteerTrainer` and `RRFAEnsembleTrainer` ship in
 > `safetune.steer` for historical/locality reasons, but the methods enforce safety at
-> **train time** with a LoRA representation-rerouting / bend / tamper-resistance loss.
+> **train time**: a LoRA representation-rerouting or bend loss, or TAR's tamper-resistance
+> meta-learning loss.
 > Their steer trainers train nothing: `calibrate()` returns a **no-op pass-through**
 > wrapper (and exposes the loss where SafeTune implements it) so you can run the
 > fine-tuning loop yourself. Don't expect a runtime intervention from `.generate()`.
