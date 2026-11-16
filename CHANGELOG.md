@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   16 on Llama-3.2-1B and 10 to 12 of 12 on GPT-2 in EAP-IG score files) and a circuit-restricted
   edit restricts little. It is opt-in, so existing results don't change. With a
   CircuitKIT 0.2 file it replaces the file's `safety_units` and `layer_suggestions` (#86).
+- `CAAConfig(batch_size=...)` sets the batch size `extract_caa_vectors` uses. It was fixed at 16.
+  The default is still 16 (#96).
 
 ### Fixed
 
