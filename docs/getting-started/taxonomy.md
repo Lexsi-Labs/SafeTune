@@ -109,14 +109,16 @@ model so `.generate()` stays standard; weights are untouched.
 | decoding steering | `ContrastiveDecodingTrainer`, `ProxyTuningTrainer`, `SafeDecodingTrainer`, `NudgingTrainer` |
 
 > ⚠️ **Filed under steer but actually TRAIN-TIME.** `CircuitBreakerTrainer`,
-> `CircuitBreakerRRTrainer`, `RepBendTrainer`, and `RRFAEnsembleTrainer` ship in
-> `safetune.steer` for historical/locality reasons, but they enforce safety at
-> **train time** — each fine-tunes a LoRA with a representation-rerouting /
-> bend loss, and their inference hook is a **no-op pass-through by design**.
-> Taxonomically they are train-time representation-engineering (a `harden`
-> sibling), NOT runtime steering. Use them as trainers; don't expect a runtime
-> intervention from `.generate()`. (`TARTrainer` — the train-time TAR trainer —
-> already lives under `harden`.)
+> `RepBendTrainer`, `TARSteerTrainer` and `RRFAEnsembleTrainer` ship in
+> `safetune.steer` for historical/locality reasons, but the methods enforce safety at
+> **train time** with a LoRA representation-rerouting / bend / tamper-resistance loss.
+> Their steer trainers train nothing: `calibrate()` returns a **no-op pass-through**
+> wrapper (and exposes the loss where SafeTune implements it) so you can run the
+> fine-tuning loop yourself. Don't expect a runtime intervention from `.generate()`.
+> (`TARTrainer` — the train-time TAR trainer — lives under `harden`.)
+> `CircuitBreakerRRTrainer` is the exception: `calibrate()` installs runtime hooks, a
+> training-free approximation of circuit breakers, and the wrapper also exposes the RR
+> training loss (`rr_loss`).
 
 ---
 

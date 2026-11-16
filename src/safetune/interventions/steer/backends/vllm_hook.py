@@ -77,10 +77,12 @@ NEEDS LIVE PER-TOKEN LOGIC IN THE WORKER (cannot be a static spec):
   requires running the prober head inside the worker.  Recommended path:
   ship the prober weights into the worker and evaluate per-request.  Not
   implemented here; documented as future work.
-* ``CircuitBreakerModel`` / ``CircuitBreakerRRModel`` -- these are
-  *weight-space* / training-time interventions (LoRA / rep-rerouting), not
-  runtime residual additions.  They do not need a hook worker at all: bake the
-  trained checkpoint and serve it with plain vLLM.
+* ``CircuitBreakerModel`` -- a training-time intervention (LoRA
+  rep-rerouting); the wrapper is a pass-through, so it needs no hook worker:
+  serve the model (or a checkpoint you fine-tuned with its loss) with plain vLLM.
+* ``CircuitBreakerRRModel`` -- its runtime hook gates each token on a z-scored
+  projection, which has no ``SteerSpec`` here.  ``vllm_eval.build_vllm_eval_backend``
+  serves it with an additive approximation instead.
 
 Decoding-steering methods (ContrastiveDecoding, SafeDecoding, ProxyTuning,
 Nudging) are NOT activation steering -- they belong in vLLM ``LogitsProcessor``
@@ -283,8 +285,15 @@ def extract_steer_spec(steer_model: Any) -> SteerSpec:
             f"use AdaptiveSteerSpec or a custom worker."
         )
 
-    if cls in ("CircuitBreakerModel", "CircuitBreakerRRModel", "RepBendModel",
-               "TARModel"):
+    if cls == "CircuitBreakerRRModel":
+        raise NotImplementedError(
+            f"{cls} installs a runtime hook that gates each token on a z-scored "
+            f"projection; it has no SteerSpec here. Use "
+            f"vllm_eval.build_vllm_eval_backend, which serves it with an additive "
+            f"approximation."
+        )
+
+    if cls in ("CircuitBreakerModel", "RepBendModel", "TARModel"):
         raise NotImplementedError(
             f"{cls} is a weight-space / training-time intervention, not a "
             f"runtime residual addition. Bake the trained checkpoint and serve "

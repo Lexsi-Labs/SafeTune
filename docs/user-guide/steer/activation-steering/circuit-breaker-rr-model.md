@@ -1,9 +1,12 @@
 # CircuitBreakerRRTrainer — dual-purpose RR
 
-!!! warning "Training-time method"
-    `CircuitBreakerRRTrainer` requires a training loop (RR loss) and produces a
-    trained checkpoint, not an inference-only wrapper. It is placed under Steer
-    because its mechanism is representation rerouting.
+!!! warning "The trainer installs runtime hooks; it does not train"
+    `CircuitBreakerRRTrainer.calibrate()` extracts refusal directions, wraps the model in
+    `CircuitBreakerRRModel`, installs forward hooks and returns the wrapper. It runs no
+    training loop, changes no weights and writes no checkpoint. The hooks are a
+    training-free approximation of circuit breakers, not the paper's method. The paper's
+    method is the RR / LoRRA loss, exposed as `CircuitBreakerRRModel.rr_loss` (with the
+    `rr_coeffs` schedule) for you to optimise inside your own LoRA fine-tuning loop.
 
 !!! warning "Without `baselines`, results depend on call history"
     The runtime hook z-scores each position's projection against running statistics that accumulate across every
@@ -34,7 +37,7 @@ CircuitBreakerRRTrainer(
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `model` | `PreTrainedModel` | required | Model to train |
+| `model` | `PreTrainedModel` | required | Model to hook; its weights are not changed |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
 | `rr_layers` | `list[int] \| None` | `None` | Accepted and ignored (warns): the trainer trains nothing |
 | `target_layers` | `list[int] \| None` | `None` | Accepted and ignored (warns): the hooks go on every layer that has a refusal direction |
@@ -59,10 +62,11 @@ wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompt
 
 ## When to use
 
-- **Best for:** representation rerouting with runtime hooks and access to the RR loss in one class.
+- **Best for:** a training-free, threshold-gated runtime approximation of representation rerouting, with the RR training loss available on the same class for your own fine-tuning loop.
 - **Compare to CircuitBreakerTrainer:** `CircuitBreakerTrainer` exposes the two-term retain + rerouting loss from the original paper; this variant adds a threshold gate and, through `CircuitBreakerRRConfig`, a `reroute_to` destination.
-- **`reroute_to="zero"`** — collapses harmful activations to zero (hard suppression).
-- **`reroute_to="noise"`** — redirects to random noise (softer).
+- **`reroute_to="zero"`** (default): on flagged tokens, subtracts `strength` times the component along the refusal direction (`strength=1.0` removes it).
+- **`reroute_to="orthogonal"`**: replaces flagged tokens with their projection onto the orthogonal complement of the refusal direction, ignoring `strength`.
+- Any other `reroute_to` value raises `ValueError` on the first forward pass.
 
 ## Citation
 
