@@ -54,8 +54,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   16 on Llama-3.2-1B and 10 to 12 of 12 on GPT-2 in EAP-IG score files) and a circuit-restricted
   edit restricts little. It is opt-in, so existing results don't change. With a
   CircuitKIT 0.2 file it replaces the file's `safety_units` and `layer_suggestions` (#86).
+- `CAAConfig(batch_size=...)` sets the batch size `extract_caa_vectors` uses. It was fixed at 16, so
+  extraction on long prompts could run out of memory with no way to lower it. `CAATrainer` and
+  `CASTTrainer` take `batch_size` too, and `safetune.configure(steer_extract_batch_size=...)` (or the
+  YAML `runtime:` block) sets it once for every Steer method that extracts vectors (CAA, refusal
+  direction, AdaSteer, AlphaSteer). An explicit `batch_size` wins over `configure()`. The default is
+  still 16, with the same vectors; in fp32 other sizes give the same vectors up to floating-point rounding, but in bf16 they can differ noticeably, so keep the size fixed when comparing runs.
+  A size that is not a positive integer now raises `ValueError` (0 raised `ZeroDivisionError`, a
+  negative size ran no batch and returned no vectors) (#96, #97; reported and written by
+  @ishu86).
 
 ### Fixed
+
+- The `CircuitBreakerRRTrainer` guide no longer says the trainer runs a training loop and produces a
+  checkpoint: `calibrate()` installs runtime hooks (a training-free approximation) and returns the
+  wrapper, and the RR loss is exposed as `rr_loss` for your own fine-tuning loop. The guide's
+  `reroute_to` list now names the accepted values (`"zero"`, `"orthogonal"`; it listed `"noise"`,
+  which raises). The steer index, taxonomy page, reference table and hyperparameter table now say
+  which steer trainers are pass-throughs (CircuitBreaker, RepBend, TAR, RRFA) and which installs
+  hooks (CircuitBreakerRR); the `RRFAEnsembleTrainer` row no longer claims it ensembles anything.
+  `extract_steer_spec` no longer tells callers to "bake the trained checkpoint" for
+  `CircuitBreakerRRModel`; it points to `build_vllm_eval_backend` and says that path is an
+  unconditional additive approximation. Reported by @observer04 (#94).
 
 - RepNoise's per-layer harmful CE no longer builds a `(batch, seq, vocab)` logits tensor for every
   hidden state: it sends only the positions whose label counts through the final norm and the LM

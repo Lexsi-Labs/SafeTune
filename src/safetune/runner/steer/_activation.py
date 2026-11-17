@@ -53,9 +53,11 @@ class CAATrainer(_SteerBase):
 
     def __init__(self, model=None, tokenizer=None, *,
                  target_layers=None, pool_method: str = "mean",
-                 normalize: bool = True, multiplier: float = 20.0, **kwargs):
+                 normalize: bool = True, multiplier: float = 20.0,
+                 batch_size: int = None, **kwargs):
         super().__init__(model, tokenizer, **kwargs)
         self.target_layers = target_layers  # None -> 14-18 scaled to depth
+        self.batch_size = batch_size  # extraction prompts per forward; None -> configure() / 16
         self.pool_method = pool_method
         self.normalize = normalize
         self.multiplier = multiplier
@@ -68,6 +70,7 @@ class CAATrainer(_SteerBase):
             target_layers=self.target_layers or _default_layers(self.model, range(14, 19)),
             pool_method=self.pool_method,
             normalize=self.normalize,
+            batch_size=self.batch_size,
         )
         vectors = S.extract_caa_vectors(self.model, self.tok, harmful, harmless, cfg)
         return S.CAAModel(self.model, vectors=vectors, strength=self.multiplier)
@@ -186,8 +189,9 @@ class CASTTrainer(_SteerBase):
     def __init__(self, model=None, tokenizer=None, *,
                  behavior_layers=None, condition_layers=None,
                  alpha: float = 1.0, chat_template: bool = None,
-                 per_prompt_gate: bool = None, **kwargs):
+                 per_prompt_gate: bool = None, batch_size: int = None, **kwargs):
         super().__init__(model, tokenizer, **kwargs)
+        self.batch_size = batch_size  # extraction prompts per forward; None -> configure() / 16
         self.behavior_layers = behavior_layers  # None -> 14-18 scaled to depth
         self.condition_layers = condition_layers
         self.alpha = alpha
@@ -201,7 +205,8 @@ class CASTTrainer(_SteerBase):
         if harmful is None or harmless is None:
             harmful, harmless = self._default_calib(calib_n)
         caa_cfg = S.CAAConfig(target_layers=self.behavior_layers
-                              or _default_layers(self.model, range(14, 19)))
+                              or _default_layers(self.model, range(14, 19)),
+                              batch_size=self.batch_size)
         vectors = S.extract_caa_vectors(self.model, self.tok, harmful, harmless, caa_cfg)
         condition = S.fit_cast_condition(
             self.model, harmful, harmless, self.tok,

@@ -20,6 +20,7 @@ CASTTrainer(
     alpha: float = 1.0,
     chat_template: bool | None = None,
     per_prompt_gate: bool | None = None,
+    batch_size: int | None = None,
 )
 ```
 
@@ -34,6 +35,7 @@ CASTTrainer(
 | `alpha` | `float` | `1.0` | CAA vector scaling when the gate is active |
 | `chat_template` | `bool \| None` | `None` | Format the calibration prompts with the tokenizer's chat template before fitting the condition (`fit_cast_condition(chat_template=...)`), as generation sees them. `None` is `True` unless `configure(legacy_cast_gate=True)` |
 | `per_prompt_gate` | `bool \| None` | `None` | Gate and steer each prompt of a batch separately (`CASTModel(per_prompt_gate=...)`). `False`: the first prompt decides for the whole batch. `None` is `True` unless `configure(legacy_cast_gate=True)` |
+| `batch_size` | `int \| None` | `None` | Prompts per forward pass when extracting the behavior vectors (`CAAConfig.batch_size`). `None` takes `safetune.configure(steer_extract_batch_size=...)`, 16 unless configured. Lower it if extraction runs out of memory |
 
 `CASTTrainer(chat_template=False, per_prompt_gate=False)` or
 `safetune.configure(legacy_cast_gate=True)` gives the old gate: fitted on raw

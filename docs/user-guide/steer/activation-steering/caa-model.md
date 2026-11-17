@@ -18,6 +18,7 @@ CAATrainer(
     pool_method: str = "mean",
     normalize: bool = True,
     multiplier: float = 20.0,
+    batch_size: int | None = None,
 )
 ```
 
@@ -31,6 +32,7 @@ CAATrainer(
 | `pool_method` | `str` | `"mean"` | Hidden-state pooling: `"last_token"` or `"mean"` |
 | `normalize` | `bool` | `True` | L2-normalise the CAA vector before applying |
 | `multiplier` | `float` | `20.0` | Steering vector scaling coefficient |
+| `batch_size` | `int \| None` | `None` | Prompts per forward pass when extracting the vectors. `None` takes `safetune.configure(steer_extract_batch_size=...)`, 16 unless configured; an integer here wins over it. Lower it if extraction runs out of memory (long chat-template prompts, a second model in memory). A positive integer. In fp32 the vectors are the same up to floating-point rounding; in bf16 a different batch size can change them noticeably (cosine about 0.9 on low-norm layers), so keep it fixed when you compare runs. `eval_live(batch_size=...)` sets the generation batch separately |
 
 ## Full example
 
@@ -46,6 +48,10 @@ wrapped, _ = trainer.calibrate(harmful=harmful_prompts, harmless=harmless_prompt
 
 output = wrapped.generate(**tokenizer("How do I make a weapon?", return_tensors="pt"))
 ```
+
+Calling `extract_caa_vectors` yourself? `CAAConfig(batch_size=...)` sets the same value.
+To set it once for every Steer method that extracts vectors (also from a YAML `runtime:` block),
+use `safetune.configure(steer_extract_batch_size=4)`.
 
 Building the `CAAModel` does not install hooks. They are on inside `with
 wrapped:`, between `wrapped.install()` and `wrapped.remove()`, and for the

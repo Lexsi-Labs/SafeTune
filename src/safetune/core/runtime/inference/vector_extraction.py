@@ -20,10 +20,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class VectorExtractionConfig:
-    """Configuration for steering vector extraction."""
+    """Configuration for steering vector extraction.
+
+    ``batch_size`` is the number of prompts per forward pass. ``None`` takes
+    ``safetune.configure(steer_extract_batch_size=...)``, which is 16 by default; an integer
+    given here wins over it. Lower it when extraction runs out of memory.
+    """
 
     target_layers: List[int] = field(default_factory=lambda: list(range(8, 28)))
-    batch_size: int = 16
+    batch_size: Optional[int] = None
     pool_method: str = "mean"  # "mean", "last_token", "max"
     normalize: bool = True
     save_format: str = "pt"  # "pt", "npz", "safetensors"
@@ -52,6 +57,19 @@ class SteeringVectorExtractor:
         self._hooks: List[Any] = []
         self._activations: Dict[int, List[Any]] = {}
         self._batch_mask: Any = None  # attention mask of the batch being run (read by the hooks)
+
+    def _batch_size(self) -> int:
+        """The config's batch size, else the runtime setting; must be a positive int."""
+        from safetune.config import get_config
+
+        bs = self.config.batch_size
+        if bs is None:
+            bs = get_config().steer_extract_batch_size
+        if isinstance(bs, bool) or not isinstance(bs, int) or bs < 1:
+            raise ValueError(
+                f"Vector extraction batch_size must be a positive integer, got {bs!r}."
+            )
+        return bs
 
     def _get_layers(self) -> list:
         return _get_decoder_layers(self.model)
@@ -122,6 +140,7 @@ class SteeringVectorExtractor:
         except ImportError:
             raise ImportError("Vector extraction requires PyTorch.")
 
+        batch_size = self._batch_size()  # before any hook goes on
         self._register_hooks()
         self.model.eval()
 
@@ -138,17 +157,17 @@ class SteeringVectorExtractor:
         _prev_side = getattr(self.tokenizer, "padding_side", None)
         if _prev_side is not None:
             self.tokenizer.padding_side = "left"
-        n_batches = (len(prompts) + self.config.batch_size - 1) // self.config.batch_size
+        n_batches = (len(prompts) + batch_size - 1) // batch_size
         try:
             bar = tqdm(
-                range(0, len(prompts), self.config.batch_size),
+                range(0, len(prompts), batch_size),
                 total=n_batches,
                 desc=f"Calibrate [{desc}]",
                 unit="batch",
                 leave=False,
             )
             for i in bar:
-                batch = [_fmt(p) for p in prompts[i : i + self.config.batch_size]]
+                batch = [_fmt(p) for p in prompts[i : i + batch_size]]
                 tok_kwargs = dict(return_tensors="pt", padding=True, truncation=True)
                 if use_chat:
                     tok_kwargs["add_special_tokens"] = False

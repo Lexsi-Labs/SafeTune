@@ -56,6 +56,7 @@ safetune.configure(max_prompts=20, eval_limit=20, eval_strict=False)
 |---|---|---|
 | `gen_batch_size` | `8` | Batch size for the plain HF generation paths: `evaluate()`, `generate_responses()`, forget-set generation. |
 | `steer_batch_size` | `4` | Batch size for Steer's `eval_live()`. |
+| `steer_extract_batch_size` | `16` | Prompts per forward pass when a Steer method extracts activation vectors: CAA and CAST (`CAAConfig.batch_size`), refusal direction, AdaSteer, AlphaSteer and the other users of `SteeringVectorExtractor`. Lower it when extraction runs out of memory. In fp32 the vectors are the same up to floating-point rounding, but in bf16 a different batch size can change them noticeably (cosine about 0.9 on low-norm layers, from padding and kernel choice), so keep it fixed when you compare runs. The refusal-direction candidate-scoring sweep scores the first `n_val` (16) held-out prompts and does not use this setting; only its extraction does. A `batch_size` given to `CAAConfig`, `CAATrainer` or `CASTTrainer` wins over it. Must be a positive integer. |
 | `lm_eval_batch_size` | `None` | Resolves to `"4"` on the "hf" backend or `"auto"` on vLLM. |
 | `max_prompts` | `None` (every prompt) | Per-benchmark prompt cap for the safety suite — the main lever for a faster evaluation pass during development. |
 | `eval_limit` | `None` (env `SAFETUNE_EVAL_LIMIT`, every example) | The lm-eval `--limit` flag — caps how many examples each utility benchmark (gsm8k, humaneval, mbpp, wikitext, ifeval, ...) scores, independent of `max_prompts` (which only caps the safety benches). |
@@ -375,18 +376,18 @@ only `.calibrate()` (see [Shared parameters](#steer)).
 | Method | Params (non-default) | Significance |
 |---|---|---|
 | `RefusalDirectionTrainer` | `layers=None`, `alpha=20.0` | Extracts and applies a refusal direction at the given layers. |
-| `CAATrainer` | `target_layers=None`, `pool_method="mean"`, `multiplier=20.0` | Contrastive Activation Addition. |
+| `CAATrainer` | `target_layers=None`, `pool_method="mean"`, `multiplier=20.0`, `batch_size=None` | Contrastive Activation Addition. `batch_size` is the number of prompts per forward pass when extracting the vectors (`None`: `steer_extract_batch_size`, 16). |
 | `LinearProbeGuardTrainer` | `layer=None`, `threshold=0.5` | Fits a linear probe to detect harmful activations and gates generation by `threshold`. |
 | `SCANSTrainer` | — | Fits directly from calibration prompts at calibration time. |
 | `STATrainer` | — | Requires no calibration data. |
-| `CircuitBreakerRRTrainer` | `threshold=0.5` | Representation-rerouting circuit breaker. |
-| `CASTTrainer` | `behavior_layers=None`, `alpha=1.0`, `per_prompt_gate=None` | Conditional activation steering. `per_prompt_gate` (default: on) gates and steers each prompt of a batch independently rather than letting one prompt's gate decide for the whole batch. |
+| `CircuitBreakerRRTrainer` | `threshold=0.5` | Installs runtime hooks that remove the refusal-direction component on tokens whose z-scored projection exceeds `threshold` (a training-free approximation of circuit breakers; trains nothing). |
+| `CASTTrainer` | `behavior_layers=None`, `alpha=1.0`, `per_prompt_gate=None`, `batch_size=None` | Conditional activation steering. `per_prompt_gate` (default: on) gates and steers each prompt of a batch independently rather than letting one prompt's gate decide for the whole batch. `batch_size` is the number of prompts per forward pass when extracting the behavior vectors (`None`: `steer_extract_batch_size`). |
 | `AdaSteerTrainer` | `alpha=15.0`, `layers=None` | Adapts steering strength per input rather than applying a fixed strength uniformly. |
 | `SafeSwitchTrainer` | `gate_layer=None`, `threshold=0.5` | Trains a small safety classifier to gate generation at a chosen layer. |
-| `CircuitBreakerTrainer` | — | Requires no calibration data. |
-| `RepBendTrainer` | — | Requires no calibration data. |
-| `TARSteerTrainer` | — | Requires no calibration data. |
-| `RRFAEnsembleTrainer` | — | Ensembles multiple refusal-direction-based safeguards. |
+| `CircuitBreakerTrainer` | — | Requires no calibration data. Pass-through wrapper; trains nothing. |
+| `RepBendTrainer` | — | Requires no calibration data. Pass-through wrapper; trains nothing. |
+| `TARSteerTrainer` | — | Requires no calibration data. Pass-through wrapper; trains nothing. |
+| `RRFAEnsembleTrainer` | — | Pass-through wrapper for a model that already carries RRFA-trained LoRA adapters; `member_models` is ignored (warns) and nothing is ensembled. |
 | `SafeSteerTrainer` | `alpha=15.0` | Extracts and applies a refusal direction as a single steering category. |
 | `AlphaSteerTrainer` | `alpha=20.0`, `layers=None` | Per-layer steering vectors fit from harmful/benign activation contrasts. |
 
