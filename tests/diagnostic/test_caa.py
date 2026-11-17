@@ -117,3 +117,22 @@ def test_caa_context_manager_removes_hooks(fixture):
     with torch.no_grad():
         after = model(inputs)
     assert torch.allclose(before, after), "CAAModel left hooks installed after context exit"
+
+
+def test_caa_extract_uses_config_batch_size(fixture):
+    model, tok = fixture
+    from safetune.steer import CAAConfig, extract_caa_vectors
+
+    calls = []
+    handle = model.register_forward_pre_hook(lambda _m, _a: calls.append(1))
+    try:
+        extract_caa_vectors(
+            model,
+            tok,
+            positive_prompts=["a", "b", "c", "d"],
+            negative_prompts=["e", "f", "g", "h"],
+            config=CAAConfig(target_layers=[0], batch_size=1),
+        )
+    finally:
+        handle.remove()
+    assert len(calls) == 8
