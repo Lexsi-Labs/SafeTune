@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `CASTTrainer` take `batch_size` too, and `safetune.configure(steer_extract_batch_size=...)` (or the
   YAML `runtime:` block) sets it once for every Steer method that extracts vectors (CAA, refusal
   direction, AdaSteer, AlphaSteer). An explicit `batch_size` wins over `configure()`. The default is
-  still 16, with the same vectors; other sizes give the same vectors up to floating-point rounding.
+  still 16, with the same vectors; in fp32 other sizes give the same vectors up to floating-point rounding, but in bf16 they can differ noticeably, so keep the size fixed when comparing runs.
   A size that is not a positive integer now raises `ValueError` (0 raised `ZeroDivisionError`, a
   negative size ran no batch and returned no vectors) (#96, #97; reported and written by
   @ishu86).
