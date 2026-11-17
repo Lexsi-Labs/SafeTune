@@ -380,14 +380,14 @@ only `.calibrate()` (see [Shared parameters](#steer)).
 | `LinearProbeGuardTrainer` | `layer=None`, `threshold=0.5` | Fits a linear probe to detect harmful activations and gates generation by `threshold`. |
 | `SCANSTrainer` | — | Fits directly from calibration prompts at calibration time. |
 | `STATrainer` | — | Requires no calibration data. |
-| `CircuitBreakerRRTrainer` | `threshold=0.5` | Representation-rerouting circuit breaker. |
+| `CircuitBreakerRRTrainer` | `threshold=0.5` | Installs runtime hooks that remove the refusal-direction component on tokens whose z-scored projection exceeds `threshold` (a training-free approximation of circuit breakers; trains nothing). |
 | `CASTTrainer` | `behavior_layers=None`, `alpha=1.0`, `per_prompt_gate=None`, `batch_size=None` | Conditional activation steering. `per_prompt_gate` (default: on) gates and steers each prompt of a batch independently rather than letting one prompt's gate decide for the whole batch. `batch_size` is the number of prompts per forward pass when extracting the behavior vectors (`None`: `steer_extract_batch_size`). |
 | `AdaSteerTrainer` | `alpha=15.0`, `layers=None` | Adapts steering strength per input rather than applying a fixed strength uniformly. |
 | `SafeSwitchTrainer` | `gate_layer=None`, `threshold=0.5` | Trains a small safety classifier to gate generation at a chosen layer. |
-| `CircuitBreakerTrainer` | — | Requires no calibration data. |
-| `RepBendTrainer` | — | Requires no calibration data. |
-| `TARSteerTrainer` | — | Requires no calibration data. |
-| `RRFAEnsembleTrainer` | — | Ensembles multiple refusal-direction-based safeguards. |
+| `CircuitBreakerTrainer` | — | Requires no calibration data. Pass-through wrapper; trains nothing. |
+| `RepBendTrainer` | — | Requires no calibration data. Pass-through wrapper; trains nothing. |
+| `TARSteerTrainer` | — | Requires no calibration data. Pass-through wrapper; trains nothing. |
+| `RRFAEnsembleTrainer` | — | Pass-through wrapper for a model that already carries RRFA-trained LoRA adapters; `member_models` is ignored (warns) and nothing is ensembled. |
 | `SafeSteerTrainer` | `alpha=15.0` | Extracts and applies a refusal direction as a single steering category. |
 | `AlphaSteerTrainer` | `alpha=20.0`, `layers=None` | Per-layer steering vectors fit from harmful/benign activation contrasts. |
 

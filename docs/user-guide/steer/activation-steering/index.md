@@ -1,9 +1,10 @@
 # Activation-steering methods
 
 Add or remove safety-related directions in the residual stream. Most methods wrap a
-frozen model with forward hooks that modify hidden states at inference time; a few
-(CircuitBreaker, CircuitBreakerRR) are training-time methods grouped here because they
-also target hidden representations.
+frozen model with forward hooks that modify hidden states at inference time. CircuitBreaker,
+RepBend, TAR and RRFA are training-time methods grouped here because they also target hidden
+representations: their trainers return pass-through wrappers and train nothing. CircuitBreakerRR
+installs runtime hooks (a training-free approximation) and also exposes the RR training loss.
 
 | Method | Mechanism | Reference |
 |---|---|---|

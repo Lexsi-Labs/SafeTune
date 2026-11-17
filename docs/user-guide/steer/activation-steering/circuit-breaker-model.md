@@ -31,7 +31,7 @@ model, not on the trainer.
 
 | Param | Type | Default | Description |
 |---|---|---|---|
-| `model` | `PreTrainedModel` | `None` | Model to train |
+| `model` | `PreTrainedModel` | `None` | Model to wrap; `calibrate()` does not train it |
 | `tokenizer` | `PreTrainedTokenizer` | `None` | Tokenizer |
 | `model_id` | `str` | `None` | Hub id / path to load the model from when `model` is `None` |
 | `results_dir` | `str` | `None` | Output directory; `None` is the runner default |
