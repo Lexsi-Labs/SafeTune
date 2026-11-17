@@ -212,6 +212,7 @@ class RuntimeConfig:
     # Batch sizes and sample counts
     gen_batch_size: int = 8                 # HF generation, evaluate(), HarmBench forget-set generation
     steer_batch_size: int = 4               # steer eval_live
+    steer_extract_batch_size: int = 16      # steer vector extraction (CAA, refusal direction, AdaSteer, ...)
     lm_eval_batch_size: Optional[str] = None  # None = "4" (hf) / "auto" (vllm)
     max_prompts: Optional[int] = None       # per-benchmark prompt cap for safety eval; None = all
     eval_limit: Optional[int] = None        # lm-eval --limit; env SAFETUNE_EVAL_LIMIT

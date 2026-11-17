@@ -136,3 +136,141 @@ def test_caa_extract_uses_config_batch_size(fixture):
     finally:
         handle.remove()
     assert len(calls) == 8
+
+
+# --- batch size: precedence, validation, equivalence, runner reach -------------------------------
+
+_POS = [f"polite reply {i}" for i in range(4)]  # one length for every prompt, so no padding
+_NEG = [f"rude replies {i}" for i in range(4)]
+assert len({len(p) for p in _POS + _NEG}) == 1
+
+
+@pytest.fixture
+def runtime(monkeypatch):
+    """Fresh process-wide runtime settings, restored after the test."""
+    import safetune.config as sc
+
+    monkeypatch.setattr(sc, "_RUNTIME", sc.RuntimeConfig())
+    return sc
+
+
+def _count_forwards(model, tok, config, pos=_POS, neg=_NEG):
+    from safetune.steer import extract_caa_vectors
+
+    calls = []
+    handle = model.register_forward_pre_hook(lambda _m, _a: calls.append(1))
+    try:
+        vecs = extract_caa_vectors(model, tok, pos, neg, config)
+    finally:
+        handle.remove()
+    return len(calls), vecs
+
+
+def test_caa_default_batch_size_is_16(fixture, runtime):
+    model, tok = fixture
+    from safetune.steer import CAAConfig
+
+    assert CAAConfig().batch_size is None  # resolved from the runtime setting, 16 unless configured
+    assert runtime.get_config().steer_extract_batch_size == 16
+    prompts = [f"prompt number {i:02d}" for i in range(20)]  # 20 per side: 2 batches of <=16 each
+    n, _ = _count_forwards(model, tok, CAAConfig(target_layers=[0]), prompts, prompts)
+    assert n == 4
+
+
+def test_caa_batch_size_precedence(fixture, runtime):
+    """explicit argument > configure() > default."""
+    model, tok = fixture
+    from safetune.steer import CAAConfig
+
+    runtime.configure(steer_extract_batch_size=2)
+    n, _ = _count_forwards(model, tok, CAAConfig(target_layers=[0]))
+    assert n == 4  # 2 batches per side
+    n, _ = _count_forwards(model, tok, CAAConfig(target_layers=[0], batch_size=1))
+    assert n == 8  # the explicit value wins over configure()
+    runtime.configure(steer_extract_batch_size=None)
+    n, _ = _count_forwards(model, tok, CAAConfig(target_layers=[0]))
+    assert n == 2  # back to 16: one batch per side
+
+
+def test_caa_batch_size_does_not_change_vectors(fixture):
+    model, tok = fixture
+    from safetune.steer import CAAConfig
+
+    ref = None
+    for bs in (16, 4, 3, 1):
+        for pool in ("last_token", "mean"):
+            cfg = CAAConfig(target_layers=[0, 2, 3], pool_method=pool, batch_size=bs)
+            _, vecs = _count_forwards(model, tok, cfg)
+            if bs == 16:
+                ref = ref or {}
+                ref[pool] = vecs
+                continue
+            for layer, v in vecs.items():
+                assert torch.allclose(v, ref[pool][layer], atol=1e-6), (bs, pool, layer)
+
+
+@pytest.mark.parametrize("bad", [0, -1, True, 2.5, "4"])
+def test_caa_rejects_invalid_batch_size(fixture, bad):
+    """0 used to raise ZeroDivisionError and a negative size ran no batch and returned {}."""
+    model, tok = fixture
+    from safetune.steer import CAAConfig, extract_caa_vectors
+
+    with pytest.raises(ValueError, match="batch_size must be a positive integer"):
+        extract_caa_vectors(model, tok, _POS, _NEG, CAAConfig(target_layers=[0], batch_size=bad))
+
+
+def test_configure_rejects_invalid_extract_batch_size(fixture, runtime):
+    model, tok = fixture
+    from safetune.steer import CAAConfig, extract_caa_vectors
+
+    runtime.configure(steer_extract_batch_size=0)
+    with pytest.raises(ValueError, match="batch_size must be a positive integer"):
+        extract_caa_vectors(model, tok, _POS, _NEG, CAAConfig(target_layers=[0]))
+
+
+def test_extractor_default_follows_configure(fixture, runtime):
+    """Every extractor user (refusal direction, AdaSteer, AlphaSteer, ...) shares this default."""
+    model, tok = fixture
+    from safetune.core.runtime.inference.vector_extraction import (
+        SteeringVectorExtractor,
+        VectorExtractionConfig,
+    )
+
+    runtime.configure(steer_extract_batch_size=2)
+    calls = []
+    handle = model.register_forward_pre_hook(lambda _m, _a: calls.append(1))
+    try:
+        SteeringVectorExtractor(model, tok, VectorExtractionConfig(target_layers=[0])).extract(_POS, _NEG)
+    finally:
+        handle.remove()
+    assert len(calls) == 4
+
+
+def test_yaml_runtime_block_sets_extract_batch_size(tmp_path, runtime):
+    from safetune.config import SafeTuneConfig
+
+    path = tmp_path / "cfg.yaml"
+    path.write_text("command: eval\nruntime:\n  steer_extract_batch_size: 3\n")
+    runtime.configure(**SafeTuneConfig.from_yaml(str(path)).runtime)
+    assert runtime.get_config().steer_extract_batch_size == 3
+
+
+def test_caa_and_cast_trainers_pass_batch_size(fixture, monkeypatch):
+    model, tok = fixture
+    import safetune.steer as S
+    from safetune.runner.steer import CASTTrainer, CAATrainer
+
+    seen = []
+
+    def fake_extract(_model, _tok, _pos, _neg, cfg):
+        seen.append(cfg.batch_size)
+        return {}
+
+    monkeypatch.setattr(S, "extract_caa_vectors", fake_extract)
+    monkeypatch.setattr(S, "CAAModel", lambda *a, **k: None)
+    monkeypatch.setattr(S, "fit_cast_condition", lambda *a, **k: None)
+    monkeypatch.setattr(S, "CASTModel", lambda *a, **k: None)
+    for cls in (CAATrainer, CASTTrainer):
+        for bs in (3, None):
+            cls(model, tok, model_id="toy", batch_size=bs).calibrate(harmful=_NEG, harmless=_POS)
+    assert seen == [3, None, 3, None]

@@ -52,6 +52,7 @@ RUNTIME_DEFAULTS = [
     ("forget_max_new_tokens", 256, "T4"),
     ("gen_batch_size", 8, "T2, N14, N27"),
     ("steer_batch_size", 4, "N30"),
+    ("steer_extract_batch_size", 16, "VectorExtractionConfig.batch_size = 16"),
     ("lm_eval_batch_size", None, "T16: '4' hf / 'auto' vllm"),
     ("max_prompts", None, "N16: full benchmarks"),
     ("eval_limit", None, "SAFETUNE_EVAL_LIMIT"),
