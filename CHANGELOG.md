@@ -54,8 +54,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   16 on Llama-3.2-1B and 10 to 12 of 12 on GPT-2 in EAP-IG score files) and a circuit-restricted
   edit restricts little. It is opt-in, so existing results don't change. With a
   CircuitKIT 0.2 file it replaces the file's `safety_units` and `layer_suggestions` (#86).
-- `CAAConfig(batch_size=...)` sets the batch size `extract_caa_vectors` uses. It was fixed at 16.
-  The default is still 16 (#96).
+- `CAAConfig(batch_size=...)` sets the batch size `extract_caa_vectors` uses. It was fixed at 16, so
+  extraction on long prompts could run out of memory with no way to lower it. `CAATrainer` and
+  `CASTTrainer` take `batch_size` too, and `safetune.configure(steer_extract_batch_size=...)` (or the
+  YAML `runtime:` block) sets it once for every Steer method that extracts vectors (CAA, refusal
+  direction, AdaSteer, AlphaSteer). An explicit `batch_size` wins over `configure()`. The default is
+  still 16, with the same vectors; other sizes give the same vectors up to floating-point rounding.
+  A size that is not a positive integer now raises `ValueError` (0 raised `ZeroDivisionError`, a
+  negative size ran no batch and returned no vectors) (#96, #97; reported and written by
+  @ishu86).
 
 ### Fixed
 
