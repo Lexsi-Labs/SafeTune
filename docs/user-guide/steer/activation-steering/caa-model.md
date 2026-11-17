@@ -32,7 +32,7 @@ CAATrainer(
 | `pool_method` | `str` | `"mean"` | Hidden-state pooling: `"last_token"` or `"mean"` |
 | `normalize` | `bool` | `True` | L2-normalise the CAA vector before applying |
 | `multiplier` | `float` | `20.0` | Steering vector scaling coefficient |
-| `batch_size` | `int \| None` | `None` | Prompts per forward pass when extracting the vectors. `None` takes `safetune.configure(steer_extract_batch_size=...)`, 16 unless configured; an integer here wins over it. Lower it if extraction runs out of memory (long chat-template prompts, a second model in memory). A positive integer; the vectors only change by floating-point rounding. `eval_live(batch_size=...)` sets the generation batch separately |
+| `batch_size` | `int \| None` | `None` | Prompts per forward pass when extracting the vectors. `None` takes `safetune.configure(steer_extract_batch_size=...)`, 16 unless configured; an integer here wins over it. Lower it if extraction runs out of memory (long chat-template prompts, a second model in memory). A positive integer. In fp32 the vectors are the same up to floating-point rounding; in bf16 a different batch size can change them noticeably (cosine about 0.9 on low-norm layers), so keep it fixed when you compare runs. `eval_live(batch_size=...)` sets the generation batch separately |
 
 ## Full example
 
